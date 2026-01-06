@@ -25,7 +25,9 @@ constructor(
             date: LocalDateTime,
             notes: String? = null,
             subcategory: String? = null,
-            isRecurring: Boolean = false
+            isRecurring: Boolean = false,
+            bankName: String? = null,
+            accountLast4: String? = null
     ) {
         // Generate a unique hash for manual transactions
         val transactionHash =
@@ -42,9 +44,9 @@ constructor(
                         dateTime = date,
                         description = notes,
                         smsBody = null, // null indicates manual entry
-                        bankName = "Manual Entry",
+                        bankName = bankName ?: "Manual Entry",
                         smsSender = null, // null indicates manual entry
-                        accountNumber = null,
+                        accountNumber = accountLast4,
                         balanceAfter = null,
                         transactionHash = transactionHash,
                         isRecurring = isRecurring,

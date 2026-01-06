@@ -35,6 +35,7 @@ import androidx.core.graphics.toColorInt
 import com.ritesh.cashiro.R
 import com.ritesh.cashiro.data.database.entity.CategoryEntity
 import com.ritesh.cashiro.ui.components.ColorPickerContent
+import com.ritesh.cashiro.ui.components.GenericTypeSwitcher
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.SplitButtonDefaults
 import androidx.compose.material3.SplitButtonLayout
@@ -88,6 +89,7 @@ fun EditCategorySheet(
     ) {
         Column(
             modifier = Modifier
+                .imePadding()
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(start = 16.dp, end = 16.dp, top = 16.dp),
@@ -208,11 +210,11 @@ fun EditCategorySheet(
             Spacer(modifier = Modifier.height(4.dp))
 
 
-            // Type SwitchER with TabIndicator effect
-
-            TypeSwitcher(
-                isIncome = isIncome,
-                onTypeChange = { isIncome = it },
+            // Type Switcher
+            GenericTypeSwitcher(
+                selectedIndex = if (isIncome) 1 else 0,
+                onIndexChange = { index -> isIncome = index == 1 },
+                options = listOf("Expense", "Income"),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -438,82 +440,3 @@ fun EditCategorySheet(
     }
 }
 
-@Composable
-private fun TypeSwitcher(
-        isIncome: Boolean,
-        onTypeChange: (Boolean) -> Unit,
-        modifier: Modifier = Modifier
-) {
-    val themeColors = MaterialTheme.colorScheme
-
-    BoxWithConstraints(
-            modifier =
-                    modifier
-                        .height(48.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(themeColors.surfaceVariant.copy(alpha = 0.5f))
-                        .padding(4.dp)
-    ) {
-        val maxWidth = maxWidth
-        val indicatorWidth = maxWidth / 2
-        val indicatorOffset by
-        animateDpAsState(
-            targetValue = if (isIncome) indicatorWidth else 0.dp,
-            animationSpec = tween(durationMillis = 300),
-            label = "Type indicator offset"
-        )
-
-        // Animated Indicator
-        Box(
-            modifier = Modifier
-                .offset(x = indicatorOffset)
-                .width(indicatorWidth)
-                .fillMaxHeight()
-                .shadow(2.dp, RoundedCornerShape(18.dp))
-                .clip(RoundedCornerShape(18.dp))
-                .background(themeColors.primary)
-        )
-
-        Row(modifier = Modifier.fillMaxSize()) {
-            TypeButton(
-                text = "EXPENSE",
-                isSelected = !isIncome,
-                onClick = { onTypeChange(false) },
-                modifier = Modifier.weight(1f)
-            )
-            TypeButton(
-                text = "INCOME",
-                isSelected = isIncome,
-                onClick = { onTypeChange(true) },
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun TypeButton(
-        text: String,
-        isSelected: Boolean,
-        onClick: () -> Unit,
-        modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .fillMaxHeight()
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                else MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Bold,
-            fontSize = 13.sp
-        )
-    }
-}

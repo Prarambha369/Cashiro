@@ -43,8 +43,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ritesh.cashiro.data.database.entity.CategoryEntity
 import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
-import com.ritesh.cashiro.ui.components.CashiroCard
-import com.ritesh.cashiro.ui.components.CategoryChip
+import com.ritesh.cashiro.ui.components.CategoryItem
 import com.ritesh.cashiro.ui.components.CustomTitleTopAppBar
 import com.ritesh.cashiro.ui.components.SearchBarBox
 import com.ritesh.cashiro.ui.components.SectionHeader
@@ -465,65 +464,7 @@ private fun SwipeableCategoryItem(
     )
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun CategoryItem(
-    category: CategoryEntity, subcategories: List<SubcategoryEntity>,
-    onClick: (() -> Unit)?,
-    onAddSubcategory: () -> Unit,
-    onEditSubcategory: (SubcategoryEntity) -> Unit,
-) {
-    val showAddButton = subcategories.isEmpty()
 
-    CashiroCard(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(Dimensions.Padding.content),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Category with Icon
-                CategoryChip(
-                    category = category,
-                    onClick = onClick,
-                    showText = true,
-                    modifier = Modifier.weight(1f)
-                )
-
-                // Subcategory Add/Toggle
-                BlurredAnimatedVisibility(showAddButton) {
-                    IconButton(
-                        onClick = onAddSubcategory,
-                        colors = IconButtonDefaults.iconButtonColors(
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer
-                        ),
-                        shape = MaterialTheme.shapes.largeIncreased
-                    ) {
-                        Icon(
-                            Icons.Default.AddCircle,
-                            contentDescription = "Add Subcategory",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
-                }
-            }
-
-            // Subcategory Row (horizontal chips)
-            if (subcategories.isNotEmpty()) {
-                SubcategoryRow(
-                        subcategories = subcategories,
-                        onSubcategoryClick = onEditSubcategory,
-                        onAddClick = onAddSubcategory,
-                        modifier = Modifier.padding(bottom = Spacing.xs)
-                )
-            } else {
-                // Show add button if no subcategories
-                Spacer(modifier = Modifier.height(Spacing.xs))
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable

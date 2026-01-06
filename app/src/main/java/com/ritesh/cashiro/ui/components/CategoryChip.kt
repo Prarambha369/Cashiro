@@ -85,58 +85,6 @@ fun CategoryChip(
 }
 
 /**
- * A simple colored dot indicator for a category.
- */
-@Composable
-fun CategoryDot(
-    color: String,
-    modifier: Modifier = Modifier,
-    size: Int = 8
-) {
-    Box(
-        modifier = modifier
-            .size(size.dp)
-            .background(
-                color = parseColor(color),
-                shape = CircleShape
-            )
-    )
-}
-
-/**
- * Overload for displaying category by name and color without entity.
- */
-@Composable
-fun CategoryChip(
-    categoryName: String,
-    categoryColor: String,
-    modifier: Modifier = Modifier,
-    showText: Boolean = true
-) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Start
-    ) {
-        // Colored dot indicator
-        CategoryDot(
-            color = categoryColor,
-            modifier = Modifier.padding(end = if (showText) 6.dp else 0.dp)
-        )
-        
-        // Category name
-        if (showText) {
-            Text(
-                text = categoryName,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
-
-/**
  * Helper function to parse color string to Compose Color.
  * Handles hex colors like "#FF0000" or "FF0000".
  */

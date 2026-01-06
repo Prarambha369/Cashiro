@@ -30,7 +30,7 @@ fun SubscriptionTabContent(viewModel: AddViewModel, onSave: () -> Unit) {
 
     Column(
             modifier =
-                    Modifier.fillMaxSize()
+                    Modifier.fillMaxWidth()
                             .imePadding() // Handle keyboard properly
                             .verticalScroll(rememberScrollState())
                             .padding(horizontal = 16.dp, vertical = 16.dp),

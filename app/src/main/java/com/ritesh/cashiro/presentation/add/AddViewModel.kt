@@ -25,7 +25,9 @@ constructor(
         private val addTransactionUseCase: AddTransactionUseCase,
         private val addSubscriptionUseCase: AddSubscriptionUseCase,
         private val getCategoriesUseCase: GetCategoriesUseCase,
-        private val subcategoryRepository: SubcategoryRepository
+        private val subcategoryRepository: SubcategoryRepository,
+        private val accountBalanceRepository:
+                com.ritesh.cashiro.data.repository.AccountBalanceRepository
 ) : ViewModel() {
 
     // General UI State
@@ -49,6 +51,20 @@ constructor(
                             started = SharingStarted.WhileSubscribed(5000),
                             initialValue = emptyList()
                     )
+
+    // Accounts for dropdown
+    val accounts =
+            accountBalanceRepository
+                    .getAllLatestBalances()
+                    .stateIn(
+                            scope = viewModelScope,
+                            started = SharingStarted.WhileSubscribed(5000),
+                            initialValue = emptyList()
+                    )
+
+    // All Subcategories for sheet
+    val allSubcategories = subcategoryRepository.subcategoriesMap
+
 
     // Subcategories for the selected category
     private val _transactionSubcategories =
@@ -182,7 +198,9 @@ constructor(
                         type = state.transactionType,
                         date = state.date,
                         notes = state.notes.takeIf { it.isNotBlank() },
-                        isRecurring = state.isRecurring
+                        isRecurring = state.isRecurring,
+                        bankName = state.selectedAccount?.bankName,
+                        accountLast4 = state.selectedAccount?.accountLast4
                 )
 
                 onSuccess()
@@ -195,6 +213,12 @@ constructor(
                 }
             }
         }
+    }
+
+    fun updateTransactionAccount(
+            account: com.ritesh.cashiro.data.database.entity.AccountBalanceEntity?
+    ) {
+        _transactionUiState.update { currentState -> currentState.copy(selectedAccount = account) }
     }
 
     // Subscription Tab Functions
@@ -372,6 +396,7 @@ data class TransactionUiState(
         val date: LocalDateTime = LocalDateTime.now(),
         val notes: String = "",
         val isRecurring: Boolean = false,
+        val selectedAccount: com.ritesh.cashiro.data.database.entity.AccountBalanceEntity? = null,
         val isLoading: Boolean = false,
         val error: String? = null
 ) {

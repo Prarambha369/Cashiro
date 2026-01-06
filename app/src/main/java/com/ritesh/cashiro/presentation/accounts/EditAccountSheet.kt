@@ -181,6 +181,7 @@ fun EditAccountSheet(
     Box(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
+                .imePadding()
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Spacing.md, vertical = Spacing.md),
