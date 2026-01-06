@@ -13,33 +13,31 @@ class AddSubscriptionUseCase
 @Inject
 constructor(private val subscriptionRepository: SubscriptionRepository) {
     suspend fun execute(
-            merchantName: String,
-            amount: BigDecimal,
-            nextPaymentDate: LocalDate,
-            billingCycle: String,
-            category: String,
-            subcategory: String? = null,
-            autoRenewal: Boolean = true,
-            paymentReminder: Boolean = true,
-            notes: String? = null
+        merchantName: String,
+        amount: BigDecimal,
+        nextPaymentDate: LocalDate,
+        billingCycle: String,
+        category: String,
+        subcategory: String? = null,
+        bankName: String? = null,
+        autoRenewal: Boolean = true,
+        paymentReminder: Boolean = true,
+        notes: String? = null
     ): Long {
         Log.d("AddSubscriptionUseCase", "Creating subscription entity...")
 
-        val subscription =
-                SubscriptionEntity(
-                        merchantName = merchantName,
-                        amount = amount,
-                        nextPaymentDate = nextPaymentDate,
-                        state =
-                                SubscriptionState
-                                        .ACTIVE, // Always active for manually added subscriptions
-                        bankName = "Manual Entry",
-                        category = category,
-                        subcategory = subcategory,
-                        smsBody = notes, // Store user notes in smsBody field
-                        createdAt = LocalDateTime.now(),
-                        updatedAt = LocalDateTime.now()
-                )
+        val subscription = SubscriptionEntity(
+            merchantName = merchantName,
+            amount = amount,
+            nextPaymentDate = nextPaymentDate,
+            state = SubscriptionState.ACTIVE, // Always active for manually added subscriptions
+            bankName = bankName ?: "Manual Entry",
+            category = category,
+            subcategory = subcategory,
+            smsBody = notes, // Store user notes in smsBody field
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now()
+        )
 
         Log.d("AddSubscriptionUseCase", "Subscription entity created: $subscription")
         Log.d("AddSubscriptionUseCase", "Calling repository.insertSubscription...")

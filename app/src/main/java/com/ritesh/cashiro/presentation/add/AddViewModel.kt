@@ -22,10 +22,12 @@ import kotlinx.coroutines.launch
 class AddViewModel
 @Inject
 constructor(
-        private val addTransactionUseCase: AddTransactionUseCase,
-        private val addSubscriptionUseCase: AddSubscriptionUseCase,
-        private val getCategoriesUseCase: GetCategoriesUseCase,
-        private val subcategoryRepository: SubcategoryRepository
+    private val addTransactionUseCase: AddTransactionUseCase,
+    private val addSubscriptionUseCase: AddSubscriptionUseCase,
+    private val getCategoriesUseCase: GetCategoriesUseCase,
+    private val subcategoryRepository: SubcategoryRepository,
+    private val accountBalanceRepository:
+    com.ritesh.cashiro.data.repository.AccountBalanceRepository
 ) : ViewModel() {
 
     // General UI State
@@ -42,30 +44,44 @@ constructor(
 
     // Categories for dropdowns
     val categories =
-            getCategoriesUseCase
-                    .execute()
-                    .stateIn(
-                            scope = viewModelScope,
-                            started = SharingStarted.WhileSubscribed(5000),
-                            initialValue = emptyList()
-                    )
+        getCategoriesUseCase
+            .execute()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
+
+    // Accounts for dropdown
+    val accounts =
+        accountBalanceRepository
+            .getAllLatestBalances()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
+
+    // All Subcategories for sheet
+    val allSubcategories = subcategoryRepository.subcategoriesMap
+
 
     // Subcategories for the selected category
     private val _transactionSubcategories =
-            MutableStateFlow<List<com.ritesh.cashiro.data.database.entity.SubcategoryEntity>>(
-                    emptyList()
-            )
+        MutableStateFlow<List<com.ritesh.cashiro.data.database.entity.SubcategoryEntity>>(
+            emptyList()
+        )
     val transactionSubcategories:
             StateFlow<List<com.ritesh.cashiro.data.database.entity.SubcategoryEntity>> =
-            _transactionSubcategories.asStateFlow()
+        _transactionSubcategories.asStateFlow()
 
     private val _subscriptionSubcategories =
-            MutableStateFlow<List<com.ritesh.cashiro.data.database.entity.SubcategoryEntity>>(
-                    emptyList()
-            )
+        MutableStateFlow<List<com.ritesh.cashiro.data.database.entity.SubcategoryEntity>>(
+            emptyList()
+        )
     val subscriptionSubcategories:
             StateFlow<List<com.ritesh.cashiro.data.database.entity.SubcategoryEntity>> =
-            _subscriptionSubcategories.asStateFlow()
+        _subscriptionSubcategories.asStateFlow()
 
     // Transaction Tab Functions
     fun updateTransactionAmount(amount: String) {
@@ -81,15 +97,15 @@ constructor(
     fun updateTransactionType(type: TransactionType) {
         _transactionUiState.update { currentState ->
             currentState.copy(
-                    transactionType = type,
-                    category =
-                            when (type) {
-                                TransactionType.INCOME -> "Income"
-                                TransactionType.EXPENSE -> "Others"
-                                TransactionType.INVESTMENT -> "Investment"
-                                TransactionType.CREDIT -> "Shopping"
-                                else -> currentState.category
-                            }
+                transactionType = type,
+                category =
+                    when (type) {
+                        TransactionType.INCOME -> "Income"
+                        TransactionType.EXPENSE -> "Others"
+                        TransactionType.INVESTMENT -> "Investment"
+                        TransactionType.CREDIT -> "Shopping"
+                        else -> currentState.category
+                    }
             )
         }
     }
@@ -103,9 +119,9 @@ constructor(
     fun updateTransactionCategory(category: String) {
         _transactionUiState.update { currentState ->
             currentState.copy(
-                    category = category,
-                    subcategory = null,
-                    categoryError = validateCategory(category)
+                category = category,
+                subcategory = null,
+                categoryError = validateCategory(category)
             )
         }
 
@@ -160,9 +176,9 @@ constructor(
         if (amountError != null || merchantError != null || categoryError != null) {
             _transactionUiState.update { currentState ->
                 currentState.copy(
-                        amountError = amountError,
-                        merchantError = merchantError,
-                        categoryError = categoryError
+                    amountError = amountError,
+                    merchantError = merchantError,
+                    categoryError = categoryError
                 )
             }
             return
@@ -175,34 +191,42 @@ constructor(
                 val amount = BigDecimal(state.amount)
 
                 addTransactionUseCase.execute(
-                        amount = amount,
-                        merchant = state.merchant.trim(),
-                        category = state.category,
-                        subcategory = state.subcategory,
-                        type = state.transactionType,
-                        date = state.date,
-                        notes = state.notes.takeIf { it.isNotBlank() },
-                        isRecurring = state.isRecurring
+                    amount = amount,
+                    merchant = state.merchant.trim(),
+                    category = state.category,
+                    subcategory = state.subcategory,
+                    type = state.transactionType,
+                    date = state.date,
+                    notes = state.notes.takeIf { it.isNotBlank() },
+                    isRecurring = state.isRecurring,
+                    bankName = state.selectedAccount?.bankName,
+                    accountLast4 = state.selectedAccount?.accountLast4
                 )
 
                 onSuccess()
             } catch (e: Exception) {
                 _transactionUiState.update { currentState ->
                     currentState.copy(
-                            isLoading = false,
-                            error = e.message ?: "Failed to save transaction"
+                        isLoading = false,
+                        error = e.message ?: "Failed to save transaction"
                     )
                 }
             }
         }
     }
 
+    fun updateTransactionAccount(
+        account: com.ritesh.cashiro.data.database.entity.AccountBalanceEntity?
+    ) {
+        _transactionUiState.update { currentState -> currentState.copy(selectedAccount = account) }
+    }
+
     // Subscription Tab Functions
     fun updateSubscriptionService(service: String) {
         _subscriptionUiState.update { currentState ->
             currentState.copy(
-                    serviceName = service,
-                    serviceError = if (service.isBlank()) "Service name is required" else null
+                serviceName = service,
+                serviceError = if (service.isBlank()) "Service name is required" else null
             )
         }
     }
@@ -235,9 +259,9 @@ constructor(
     fun updateSubscriptionCategory(category: String) {
         _subscriptionUiState.update { currentState ->
             currentState.copy(
-                    category = category,
-                    subcategory = null,
-                    categoryError = validateCategory(category)
+                category = category,
+                subcategory = null,
+                categoryError = validateCategory(category)
             )
         }
 
@@ -262,6 +286,12 @@ constructor(
         _subscriptionUiState.update { currentState -> currentState.copy(notes = notes) }
     }
 
+    fun updateSubscriptionAccount(
+        account: com.ritesh.cashiro.data.database.entity.AccountBalanceEntity?
+    ) {
+        _subscriptionUiState.update { currentState -> currentState.copy(selectedAccount = account) }
+    }
+
     fun saveSubscription(onSuccess: () -> Unit) {
         val state = _subscriptionUiState.value
         Log.d("AddViewModel", "saveSubscription called with state: $state")
@@ -272,16 +302,16 @@ constructor(
         val categoryError = validateCategory(state.category)
 
         Log.d(
-                "AddViewModel",
-                "Validation - serviceError: $serviceError, amountError: $amountError, categoryError: $categoryError"
+            "AddViewModel",
+            "Validation - serviceError: $serviceError, amountError: $amountError, categoryError: $categoryError"
         )
 
         if (serviceError != null || amountError != null || categoryError != null) {
             _subscriptionUiState.update { currentState ->
                 currentState.copy(
-                        serviceError = serviceError,
-                        amountError = amountError,
-                        categoryError = categoryError
+                    serviceError = serviceError,
+                    amountError = amountError,
+                    categoryError = categoryError
                 )
             }
             return
@@ -294,25 +324,26 @@ constructor(
 
                 val amount = BigDecimal(state.amount)
                 Log.d(
-                        "AddViewModel",
-                        "Calling addSubscriptionUseCase.execute with: " +
-                                "merchantName=${state.serviceName.trim()}, amount=$amount, " +
-                                "nextPaymentDate=${state.nextPaymentDate}, billingCycle=${state.billingCycle}, " +
-                                "category=${state.category}"
+                    "AddViewModel",
+                    "Calling addSubscriptionUseCase.execute with: " +
+                            "merchantName=${state.serviceName.trim()}, amount=$amount, " +
+                            "nextPaymentDate=${state.nextPaymentDate}, billingCycle=${state.billingCycle}, " +
+                            "category=${state.category}"
                 )
 
                 val subscriptionId =
-                        addSubscriptionUseCase.execute(
-                                merchantName = state.serviceName.trim(),
-                                amount = amount,
-                                nextPaymentDate = state.nextPaymentDate,
-                                billingCycle = state.billingCycle,
-                                category = state.category,
-                                subcategory = state.subcategory,
-                                autoRenewal = false, // Not implemented yet
-                                paymentReminder = false, // Not implemented yet
-                                notes = state.notes.takeIf { it.isNotBlank() }
-                        )
+                    addSubscriptionUseCase.execute(
+                        merchantName = state.serviceName.trim(),
+                        amount = amount,
+                        nextPaymentDate = state.nextPaymentDate,
+                        billingCycle = state.billingCycle,
+                        category = state.category,
+                        subcategory = state.subcategory,
+                        bankName = state.selectedAccount?.bankName,
+                        autoRenewal = false, // Not implemented yet
+                        paymentReminder = false, // Not implemented yet
+                        notes = state.notes.takeIf { it.isNotBlank() }
+                    )
 
                 Log.d("AddViewModel", "Subscription saved successfully with ID: $subscriptionId")
                 onSuccess()
@@ -321,8 +352,8 @@ constructor(
                 e.printStackTrace()
                 _subscriptionUiState.update { currentState ->
                     currentState.copy(
-                            isLoading = false,
-                            error = e.message ?: "Failed to save subscription"
+                        isLoading = false,
+                        error = e.message ?: "Failed to save subscription"
                     )
                 }
             } finally {
@@ -361,56 +392,58 @@ constructor(
 data class AddUiState(val currentTab: Int = 0)
 
 data class TransactionUiState(
-        val amount: String = "",
-        val amountError: String? = null,
-        val transactionType: TransactionType = TransactionType.EXPENSE,
-        val merchant: String = "",
-        val merchantError: String? = null,
-        val category: String = "Others",
-        val subcategory: String? = null,
-        val categoryError: String? = null,
-        val date: LocalDateTime = LocalDateTime.now(),
-        val notes: String = "",
-        val isRecurring: Boolean = false,
-        val isLoading: Boolean = false,
-        val error: String? = null
+    val amount: String = "",
+    val amountError: String? = null,
+    val transactionType: TransactionType = TransactionType.EXPENSE,
+    val merchant: String = "",
+    val merchantError: String? = null,
+    val category: String = "Others",
+    val subcategory: String? = null,
+    val categoryError: String? = null,
+    val date: LocalDateTime = LocalDateTime.now(),
+    val notes: String = "",
+    val isRecurring: Boolean = false,
+    val selectedAccount: com.ritesh.cashiro.data.database.entity.AccountBalanceEntity? = null,
+    val isLoading: Boolean = false,
+    val error: String? = null
 ) {
     val isValid: Boolean
         get() =
-                amount.isNotBlank() &&
-                        amount.toDoubleOrNull() != null &&
-                        amount.toDouble() > 0 &&
-                        merchant.isNotBlank() &&
-                        category.isNotBlank() &&
-                        amountError == null &&
-                        merchantError == null &&
-                        categoryError == null
+            amount.isNotBlank() &&
+                    amount.toDoubleOrNull() != null &&
+                    amount.toDouble() > 0 &&
+                    merchant.isNotBlank() &&
+                    category.isNotBlank() &&
+                    amountError == null &&
+                    merchantError == null &&
+                    categoryError == null
 }
 
 data class SubscriptionUiState(
-        val serviceName: String = "",
-        val serviceError: String? = null,
-        val amount: String = "",
-        val amountError: String? = null,
-        val billingCycle: String = "Monthly",
-        val billingCycleError: String? = null,
-        val nextPaymentDate: LocalDate = LocalDate.now().plusMonths(1),
-        val category: String = "Subscriptions",
-        val subcategory: String? = null,
-        val categoryError: String? = null,
-        val notes: String = "",
-        val isLoading: Boolean = false,
-        val error: String? = null
+    val serviceName: String = "",
+    val serviceError: String? = null,
+    val amount: String = "",
+    val amountError: String? = null,
+    val billingCycle: String = "Monthly",
+    val billingCycleError: String? = null,
+    val nextPaymentDate: LocalDate = LocalDate.now().plusMonths(1),
+    val category: String = "Subscriptions",
+    val subcategory: String? = null,
+    val categoryError: String? = null,
+    val selectedAccount: com.ritesh.cashiro.data.database.entity.AccountBalanceEntity? = null,
+    val notes: String = "",
+    val isLoading: Boolean = false,
+    val error: String? = null
 ) {
     val isValid: Boolean
         get() =
-                serviceName.isNotBlank() &&
-                        amount.isNotBlank() &&
-                        amount.toDoubleOrNull() != null &&
-                        amount.toDouble() > 0 &&
-                        billingCycle.isNotBlank() &&
-                        category.isNotBlank() &&
-                        serviceError == null &&
-                        amountError == null &&
-                        categoryError == null
+            serviceName.isNotBlank() &&
+                    amount.isNotBlank() &&
+                    amount.toDoubleOrNull() != null &&
+                    amount.toDouble() > 0 &&
+                    billingCycle.isNotBlank() &&
+                    category.isNotBlank() &&
+                    serviceError == null &&
+                    amountError == null &&
+                    categoryError == null
 }

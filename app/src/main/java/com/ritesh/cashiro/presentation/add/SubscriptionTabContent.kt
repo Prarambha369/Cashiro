@@ -1,312 +1,668 @@
 package com.ritesh.cashiro.presentation.add
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.ritesh.cashiro.ui.components.AccountCard
+import com.ritesh.cashiro.ui.components.CategorySelectionSheet
 import com.ritesh.cashiro.ui.theme.*
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SubscriptionTabContent(viewModel: AddViewModel, onSave: () -> Unit) {
     val uiState by viewModel.subscriptionUiState.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val accounts by viewModel.accounts.collectAsState()
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showCategoryMenu by remember { mutableStateOf(false) }
     var showBillingCycleMenu by remember { mutableStateOf(false) }
-    var showSubcategoryMenu by remember { mutableStateOf(false) }
+    var showAccountSheet by remember { mutableStateOf(false) }
+    val allSubcategories by viewModel.allSubcategories.collectAsState(initial = emptyMap())
+
+    val selectedCategoryObj = remember(uiState.category, categories) {
+        categories.find { it.name == uiState.category }
+    }
+    val selectedSubcategoryObj = remember(uiState.subcategory, allSubcategories) { // using allSubcategories for simplicity or specific list if available
+        // However, we need to match with subcategories list if needed, or just find it in map.
+        // Actually `transactionSubcategories` was used in TransactionTab.
+        // Here we have `subcategories` from viewmodel.
+        null // Placeholder, will fix in body if needed or just rely on IDs/names as implemented in TransactionTabContent
+    }
+    // Actually TransactionTabContent uses `transactionSubcategories`. Here we have:
     val subcategories by viewModel.subscriptionSubcategories.collectAsState()
 
-    val billingCycles = listOf("Monthly", "Quarterly", "Semi-Annual", "Annual", "Weekly")
+    val selectedSubcategoryObj2 = remember(uiState.subcategory, subcategories) {
+        subcategories.find { it.name == uiState.subcategory }
+    }
 
-    Column(
-            modifier =
-                    Modifier.fillMaxSize()
-                            .imePadding() // Handle keyboard properly
-                            .verticalScroll(rememberScrollState())
-                            .padding(horizontal = 16.dp, vertical = 16.dp),
+    val billingCycles = listOf("Monthly", "Quarterly", "Semi-Annual", "Annual", "Weekly")
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .imePadding() // Handle keyboard properly
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // Error Card
-        uiState.error?.let { errorMessage ->
-            Card(
+        ) {
+            // Error Card
+            uiState.error?.let { errorMessage ->
+                Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors =
-                            CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer
-                            )
-            ) {
-                Row(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Row(
                         modifier = Modifier.padding(12.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
+                    ) {
+                        Icon(
                             Icons.Default.Error,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onErrorContainer,
                             modifier = Modifier.size(20.dp)
-                    )
-                    Text(
+                        )
+                        Text(
                             text = errorMessage,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onErrorContainer
-                    )
+                        )
+                    }
                 }
             }
-        }
 
-        // Info Card
-        Card(
+            // Info Card
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors =
-                        CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer
-                        )
-        ) {
-            Row(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Row(
                     modifier = Modifier.padding(12.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
+                ) {
+                    Icon(
                         Icons.Default.Info,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(20.dp)
-                )
-                Text(
+                    )
+                    Text(
                         text =
-                                "Track recurring expenses. You'll need to add transactions manually each month.",
+                            "Track recurring expenses. You'll need to add transactions manually each month.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                    )
+                }
             }
-        }
-        // Service Name Input
-        OutlinedTextField(
-                value = uiState.serviceName,
-                onValueChange = viewModel::updateSubscriptionService,
-                label = { Text("Service Name *") },
-                leadingIcon = { Icon(Icons.Default.Subscriptions, contentDescription = null) },
-                placeholder = { Text("e.g., Netflix, Spotify") },
-                isError = uiState.serviceError != null,
-                supportingText = uiState.serviceError?.let { { Text(it) } },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-        )
 
-        // Amount Input
-        OutlinedTextField(
+
+            // Amount Input
+            TextField(
                 value = uiState.amount,
                 onValueChange = viewModel::updateSubscriptionAmount,
-                label = { Text("Amount *") },
-                leadingIcon = { Icon(Icons.Default.CurrencyRupee, contentDescription = null) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                isError = uiState.amountError != null,
-                supportingText = uiState.amountError?.let { { Text(it) } },
+                label = { Text("Amount", fontWeight = FontWeight.SemiBold) },
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-        )
-
-        // Billing Cycle Dropdown
-        ExposedDropdownMenuBox(
-                expanded = showBillingCycleMenu,
-                onExpandedChange = { showBillingCycleMenu = it },
-                modifier = Modifier.fillMaxWidth()
-        ) {
-            OutlinedTextField(
-                    value = uiState.billingCycle,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Billing Cycle *") },
-                    leadingIcon = { Icon(Icons.Default.EventRepeat, contentDescription = null) },
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = showBillingCycleMenu)
-                    },
-                    modifier =
-                            Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                    isError = uiState.billingCycleError != null,
-                    supportingText = uiState.billingCycleError?.let { { Text(it) } }
+                shape =
+                    RoundedCornerShape(
+                        topStart = 16.dp,
+                        topEnd = 16.dp,
+                        bottomStart = 16.dp,
+                        bottomEnd = 16.dp
+                    ),
+                isError = uiState.amountError != null,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
+                ),
+                supportingText = uiState.amountError?.let { { Text(it) } },
+                leadingIcon = { Icon(Icons.Default.CurrencyRupee, contentDescription = null) },
             )
 
-            ExposedDropdownMenu(
-                    expanded = showBillingCycleMenu,
-                    onDismissRequest = { showBillingCycleMenu = false }
+            // Billing Cycle Dropdown and Date Selection
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                billingCycles.forEach { cycle ->
-                    DropdownMenuItem(
-                            text = { Text(cycle) },
-                            onClick = {
-                                viewModel.updateSubscriptionBillingCycle(cycle)
-                                showBillingCycleMenu = false
-                            }
+
+                // Billing Cycle Dropdown
+                ExposedDropdownMenuBox(
+                    expanded = showBillingCycleMenu,
+                    onExpandedChange = { showBillingCycleMenu = it },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    TextField(
+                        value = uiState.billingCycle,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Billing Cycle *") },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.EventRepeat,
+                                contentDescription = null
+                            )
+                        },
+                        shape = RoundedCornerShape(Spacing.md),
+                        modifier =
+                            Modifier.weight(1f).menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        isError = uiState.billingCycleError != null,
+                        supportingText = uiState.billingCycleError?.let { { Text(it) } },
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            unfocusedLabelColor =
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
+                        ),
                     )
+
+                    ExposedDropdownMenu(
+                        expanded = showBillingCycleMenu,
+                        onDismissRequest = { showBillingCycleMenu = false }
+                    ) {
+                        billingCycles.forEach { cycle ->
+                            DropdownMenuItem(
+                                text = { Text(cycle) },
+                                onClick = {
+                                    viewModel.updateSubscriptionBillingCycle(cycle)
+                                    showBillingCycleMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Date Button
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(8.dp)
+                        .clickable { showDatePicker = true },
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    Row(
+                        modifier = Modifier.padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        val themeColors = MaterialTheme.colorScheme
+                        Icon(
+                            imageVector = Icons.Default.CalendarToday,
+                            contentDescription = "Date Picker",
+                            modifier = Modifier.size(16.dp),
+                            tint = themeColors.onSurface
+                        )
+                        Spacer(Modifier.size(8.dp))
+
+                        val dateLabel =
+                            uiState.nextPaymentDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy"))
+                        Text(
+                            text = dateLabel,
+                            textAlign = TextAlign.Center,
+                            fontSize = 16.sp,
+                            color = themeColors.onSurface,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
                 }
             }
-        }
 
-        // Next Payment Date
-        OutlinedTextField(
-                value = uiState.nextPaymentDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy")),
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Next Payment Date *") },
-                leadingIcon = { Icon(Icons.Default.CalendarToday, contentDescription = null) },
-                trailingIcon = {
-                    IconButton(onClick = { showDatePicker = true }) {
-                        Icon(Icons.Default.Edit, contentDescription = "Change date")
+            // Accounts Section
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(1.5.dp)
+            ) {
+                OutlinedCard(
+                    onClick = { showAccountSheet = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(
+                        topStart = 16.dp,
+                        topEnd = 16.dp,
+                        bottomStart = 4.dp,
+                        bottomEnd = 4.dp
+                    ),
+                    colors = CardDefaults.outlinedCardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    ),
+                    border = BorderStroke(0.dp, Color.Transparent)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        if (uiState.selectedAccount != null && uiState.selectedAccount?.iconResId != 0) {
+                            Icon(
+                                painter = painterResource(id = uiState.selectedAccount!!.iconResId),
+                                contentDescription = null,
+                                tint = Color.Unspecified,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.AccountBalance,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = uiState.selectedAccount?.bankName ?: "Select Account",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color =
+                                    if (uiState.selectedAccount != null)
+                                        MaterialTheme.colorScheme.onSurface
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (uiState.selectedAccount != null) {
+                                Text(
+                                    text = "••${uiState.selectedAccount?.accountLast4}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                },
-                modifier = Modifier.fillMaxWidth()
-        )
+                }
 
-        // Category Dropdown
-        ExposedDropdownMenuBox(
-                expanded = showCategoryMenu,
-                onExpandedChange = { showCategoryMenu = it },
-                modifier = Modifier.fillMaxWidth()
-        ) {
-            OutlinedTextField(
+                // Category Selection
+                val categoryInteractionSource = remember { MutableInteractionSource() }
+                TextField(
                     value = uiState.category,
                     onValueChange = {},
+                    label = { Text("Category", fontWeight = FontWeight.SemiBold) },
                     readOnly = true,
-                    label = { Text("Category *") },
-                    leadingIcon = { Icon(Icons.Default.Category, contentDescription = null) },
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCategoryMenu)
-                    },
+                    singleLine = true,
                     modifier =
-                            Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        Modifier.fillMaxWidth()
+                            .clickable(
+                                interactionSource = categoryInteractionSource,
+                                indication = null
+                            ) {
+                                showCategoryMenu = true
+                            },
+                    shape =
+                        RoundedCornerShape(
+                            topStart = 4.dp,
+                            topEnd = 4.dp,
+                            bottomStart = 16.dp,
+                            bottomEnd = 16.dp
+                        ),
+                    leadingIcon = {
+                        if (selectedCategoryObj != null && selectedCategoryObj.iconResId != 0) {
+                            Icon(
+                                painter = painterResource(id = selectedCategoryObj.iconResId),
+                                contentDescription = null,
+                                tint = Color.Unspecified,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        } else {
+                            Icon(Icons.Default.Category, contentDescription = null)
+                        }
+                    },
+                    trailingIcon = {
+                        Icon(Icons.Default.KeyboardArrowDown, contentDescription = null)
+                    },
                     isError = uiState.categoryError != null,
-                    supportingText = uiState.categoryError?.let { { Text(it) } }
-            )
-
-            ExposedDropdownMenu(
-                    expanded = showCategoryMenu,
-                    onDismissRequest = { showCategoryMenu = false }
-            ) {
-                categories.forEach { category ->
-                    DropdownMenuItem(
-                            text = { Text(category.name) },
-                            onClick = {
-                                viewModel.updateSubscriptionCategory(category.name)
-                                showCategoryMenu = false
-                            }
+                    supportingText = uiState.categoryError?.let { { Text(it) } },
+                    enabled = false,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f),
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        disabledIndicatorColor = Color.Transparent,
+                        disabledLabelColor = MaterialTheme.colorScheme.primary,
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
-            }
-        }
+                )
 
-        // Subcategory Dropdown (Visible only if subcategories exist)
-        if (subcategories.isNotEmpty()) {
-            ExposedDropdownMenuBox(
-                    expanded = showSubcategoryMenu,
-                    onExpandedChange = { showSubcategoryMenu = it },
-                    modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedTextField(
+                // Subcategory Display
+                if (uiState.subcategory != null) {
+                    Spacer(modifier = Modifier.height(Spacing.md))
+                    TextField(
                         value = uiState.subcategory ?: "None",
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Subcategory") },
                         leadingIcon = {
-                            Icon(Icons.Default.SubdirectoryArrowRight, contentDescription = null)
-                        },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = showSubcategoryMenu)
-                        },
-                        modifier =
-                                Modifier.fillMaxWidth()
-                                        .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                )
-
-                ExposedDropdownMenu(
-                        expanded = showSubcategoryMenu,
-                        onDismissRequest = { showSubcategoryMenu = false }
-                ) {
-                    DropdownMenuItem(
-                            text = { Text("None") },
-                            onClick = {
-                                viewModel.updateSubscriptionSubcategory(null)
-                                showSubcategoryMenu = false
+                            if (selectedSubcategoryObj2 != null && selectedSubcategoryObj2.iconResId != 0) {
+                                Icon(
+                                    painter = painterResource(id = selectedSubcategoryObj2.iconResId),
+                                    contentDescription = null,
+                                    tint = Color.Unspecified,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.SubdirectoryArrowRight,
+                                    contentDescription = null
+                                )
                             }
+                        },
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = false,
+                        colors = if (selectedSubcategoryObj2 != null) {
+                            val color = try {
+                                Color(android.graphics.Color.parseColor(selectedSubcategoryObj2.color))
+                            } catch (e: Exception) {
+                                MaterialTheme.colorScheme.surfaceContainerLow
+                            }
+                            TextFieldDefaults.colors(
+                                focusedContainerColor = color.copy(alpha = 0.2f),
+                                unfocusedContainerColor = color.copy(alpha = 0.2f),
+                                disabledContainerColor = color.copy(alpha = 0.2f),
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                disabledIndicatorColor = Color.Transparent,
+                                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                    0.7f
+                                ),
+                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                disabledTextColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        } else {
+                            TextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                    0.7f
+                                ),
+                                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                disabledIndicatorColor = Color.Transparent,
+                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                disabledTextColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     )
-                    subcategories.forEach { sub ->
-                        DropdownMenuItem(
-                                text = { Text(sub.name) },
-                                onClick = {
-                                    viewModel.updateSubscriptionSubcategory(sub.name)
-                                    showSubcategoryMenu = false
-                                }
+                }
+            }
+
+            if (showAccountSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showAccountSheet = false },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    dragHandle = { BottomSheetDefaults.DragHandle() }
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+                        Text(
+                            text = "Select Account",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
                         )
+
+                        if (accounts.isEmpty()) {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No accounts found",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                item {
+                                    // Option to deselect/None
+                                    Surface(
+                                        onClick = {
+                                            viewModel.updateSubscriptionAccount(null)
+                                            showAccountSheet = false
+                                        },
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = if (uiState.selectedAccount == null) MaterialTheme.colorScheme.primaryContainer
+                                        else MaterialTheme.colorScheme.surface,
+                                        border = if (uiState.selectedAccount == null) null
+                                        else BorderStroke(
+                                            1.dp,
+                                            MaterialTheme.colorScheme.outlineVariant
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(16.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "None (Manual Entry)",
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                    }
+                                }
+
+                                items(accounts) { account ->
+                                    val isSelected = uiState.selectedAccount?.id == account.id
+                                    Surface(
+                                        shape = CardDefaults.shape,
+                                        border = if (isSelected) BorderStroke(
+                                            2.dp,
+                                            MaterialTheme.colorScheme.primary
+                                        ) else null,
+                                        color = Color.Transparent,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        AccountCard(
+                                            account = account,
+                                            showMoreOptions = false,
+                                            onClick = {
+                                                viewModel.updateSubscriptionAccount(account)
+                                                showAccountSheet = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
+
+            // Category Selection Sheet
+            if (showCategoryMenu) {
+                ModalBottomSheet(
+                    onDismissRequest = { showCategoryMenu = false },
+                    dragHandle = { BottomSheetDefaults.DragHandle() },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ) {
+                    CategorySelectionSheet(
+                        categories = categories,
+                        subcategoriesMap = allSubcategories,
+                        onSelectionComplete = { category, subcategory ->
+                            viewModel.updateSubscriptionCategory(category.name)
+                            viewModel.updateSubscriptionSubcategory(subcategory?.name)
+                            showCategoryMenu = false
+                        },
+                        onDismiss = { showCategoryMenu = false }
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(1.5.dp)
+            ) {
+                // Service Name Input
+                TextField(
+                    value = uiState.serviceName,
+                    onValueChange = viewModel::updateSubscriptionService,
+                    label = { Text("Service Name *") },
+                    placeholder = { Text("e.g., Netflix, Spotify") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape =
+                        RoundedCornerShape(
+                            topStart = 16.dp,
+                            topEnd = 16.dp,
+                            bottomStart = 4.dp,
+                            bottomEnd = 4.dp
+                        ),
+                    leadingIcon = { Icon(Icons.Default.Subscriptions, contentDescription = null) },
+                    isError = uiState.serviceError != null,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        unfocusedLabelColor =
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
+                    ),
+                    supportingText = uiState.serviceError?.let { { Text(it) } },
+                )
+
+                // Notes/Description (Optional)
+                TextField(
+                    value = uiState.notes,
+                    onValueChange = viewModel::updateSubscriptionNotes,
+                    label = { Text("Notes (Optional)") },
+                    leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
+                    placeholder = { Text("Add any additional information...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape =
+                        RoundedCornerShape(
+                            topStart = 4.dp,
+                            topEnd = 4.dp,
+                            bottomStart = 16.dp,
+                            bottomEnd = 16.dp
+                        ),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
+                    ),
+                )
+            }
+
+            // Bottom padding for keyboard
+            Spacer(modifier = Modifier.height(80.dp))
         }
 
-        // Notes/Description (Optional)
-        OutlinedTextField(
-                value = uiState.notes,
-                onValueChange = viewModel::updateSubscriptionNotes,
-                label = { Text("Notes (Optional)") },
-                leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
-                placeholder = { Text("Add any additional information...") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-                maxLines = 4
-        )
-
-        // Save Button
-        Button(
-                onClick = { viewModel.saveSubscription(onSuccess = onSave) },
-                enabled = uiState.isValid && !uiState.isLoading,
-                modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.md)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            MaterialTheme.colorScheme.surface,
+                            MaterialTheme.colorScheme.surface
+                        )
+                    )
+                ),
+            contentAlignment = Alignment.BottomCenter
         ) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-            } else {
-                Text("Save Subscription")
+            Button(
+                onClick = { viewModel.saveSubscription(onSuccess = onSave) },
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .padding(horizontal = Dimensions.Padding.content)
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .height(56.dp),
+                shapes = ButtonDefaults.shapes(),
+                enabled = uiState.isValid && !uiState.isLoading,
+            ) {
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                } else {
+                    Icon(Icons.Default.Done, contentDescription = null)
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text("Save", style = MaterialTheme.typography.titleMedium)
+                }
             }
         }
-
-        // Bottom padding for keyboard
-        Spacer(modifier = Modifier.height(80.dp))
     }
 
     // Date Picker Dialog
     if (showDatePicker) {
         val datePickerState =
-                rememberDatePickerState(
-                        initialSelectedDateMillis =
-                                uiState.nextPaymentDate
-                                        .atStartOfDay()
-                                        .toInstant(java.time.ZoneOffset.UTC)
-                                        .toEpochMilli()
-                )
+            rememberDatePickerState(
+                initialSelectedDateMillis =
+                    uiState.nextPaymentDate
+                        .atStartOfDay()
+                        .toInstant(java.time.ZoneOffset.UTC)
+                        .toEpochMilli()
+            )
 
         DatePickerDialog(
-                onDismissRequest = { showDatePicker = false },
-                confirmButton = {
-                    TextButton(
-                            onClick = {
-                                datePickerState.selectedDateMillis?.let { millis ->
-                                    viewModel.updateSubscriptionNextPaymentDate(millis)
-                                }
-                                showDatePicker = false
-                            }
-                    ) { Text("OK") }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
-                }
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            viewModel.updateSubscriptionNextPaymentDate(millis)
+                        }
+                        showDatePicker = false
+                    }
+                ) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
         ) { DatePicker(state = datePickerState) }
     }
 }

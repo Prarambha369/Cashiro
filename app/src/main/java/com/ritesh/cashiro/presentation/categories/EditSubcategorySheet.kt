@@ -82,6 +82,7 @@ fun EditSubcategorySheet(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .imePadding()
                 .padding(start = 16.dp, end = 16.dp, top = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp)

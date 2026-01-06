@@ -26,7 +26,8 @@ fun SubcategoryRow(
         subcategories: List<SubcategoryEntity>,
         onSubcategoryClick: (SubcategoryEntity) -> Unit,
         onAddClick: () -> Unit,
-        modifier: Modifier = Modifier
+        modifier: Modifier = Modifier,
+        showAddButton: Boolean = true
 ) {
     LazyRow(
             modifier = modifier.fillMaxWidth(),
@@ -41,8 +42,10 @@ fun SubcategoryRow(
         }
         
         // Add button at the end
-        item {
-            AddSubcategoryButton(onClick = onAddClick)
+        if (showAddButton) {
+            item {
+                AddSubcategoryButton(onClick = onAddClick)
+            }
         }
     }
 }
