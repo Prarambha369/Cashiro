@@ -7,6 +7,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -15,6 +17,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ritesh.cashiro.presentation.categories.NavigationContent
 import com.ritesh.cashiro.ui.components.CustomTitleTopAppBar
 import com.ritesh.cashiro.ui.components.GenericTypeSwitcher
+import com.ritesh.cashiro.ui.effects.overScrollVertical
 import com.ritesh.cashiro.ui.theme.Dimensions
 import com.ritesh.cashiro.ui.theme.Spacing
 import dev.chrisbanes.haze.HazeState
@@ -89,7 +92,12 @@ fun AddScreen(
                 )
 
                 // Tab Content
-                HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                ) { page ->
                     when (page) {
                         0 -> TransactionTabContent(viewModel = viewModel, onSave = onNavigateBack)
                         1 -> SubscriptionTabContent(viewModel = viewModel, onSave = onNavigateBack)

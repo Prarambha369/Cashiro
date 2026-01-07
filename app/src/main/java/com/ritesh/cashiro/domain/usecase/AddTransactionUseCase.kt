@@ -15,7 +15,8 @@ class AddTransactionUseCase
 @Inject
 constructor(
         private val transactionRepository: TransactionRepository,
-        private val subscriptionRepository: SubscriptionRepository
+        private val subscriptionRepository: SubscriptionRepository,
+        private val accountBalanceRepository: com.ritesh.cashiro.data.repository.AccountBalanceRepository
 ) {
     suspend fun execute(
             amount: BigDecimal,
@@ -27,7 +28,10 @@ constructor(
             subcategory: String? = null,
             isRecurring: Boolean = false,
             bankName: String? = null,
-            accountLast4: String? = null
+            accountLast4: String? = null,
+            sourceAccountId: Long? = null,
+            targetAccountBankName: String? = null,
+            targetAccountLast4: String? = null
     ) {
         // Generate a unique hash for manual transactions
         val transactionHash =
@@ -56,6 +60,109 @@ constructor(
 
         // Insert the transaction
         val transactionId = transactionRepository.insertTransaction(transaction)
+
+        // Update account balances based on transaction type
+        if (bankName != null && accountLast4 != null) {
+            when (type) {
+                TransactionType.INCOME -> {
+                    // Add amount to the selected account
+                    val currentBalance = accountBalanceRepository.getLatestBalance(bankName, accountLast4)
+                    val newBalance = (currentBalance?.balance ?: BigDecimal.ZERO) + amount
+                    accountBalanceRepository.insertBalance(
+                        com.ritesh.cashiro.data.database.entity.AccountBalanceEntity(
+                            bankName = bankName,
+                            accountLast4 = accountLast4,
+                            balance = newBalance,
+                            timestamp = date,
+                            transactionId = transactionId,
+                            sourceType = "MANUAL",
+                            iconResId = currentBalance?.iconResId ?: 0,
+                            isCreditCard = currentBalance?.isCreditCard ?: false,
+                            creditLimit = currentBalance?.creditLimit
+                        )
+                    )
+                }
+                TransactionType.EXPENSE -> {
+                    // Subtract amount from the selected account
+                    val currentBalance = accountBalanceRepository.getLatestBalance(bankName, accountLast4)
+                    val newBalance = (currentBalance?.balance ?: BigDecimal.ZERO) - amount
+                    accountBalanceRepository.insertBalance(
+                        com.ritesh.cashiro.data.database.entity.AccountBalanceEntity(
+                            bankName = bankName,
+                            accountLast4 = accountLast4,
+                            balance = newBalance,
+                            timestamp = date,
+                            transactionId = transactionId,
+                            sourceType = "MANUAL",
+                            iconResId = currentBalance?.iconResId ?: 0,
+                            isCreditCard = currentBalance?.isCreditCard ?: false,
+                            creditLimit = currentBalance?.creditLimit
+                        )
+                    )
+                }
+                TransactionType.CREDIT -> {
+                    // Credit transactions: amount is held for manual confirmation
+                    // No balance update until user confirms payment
+                    // Transaction is saved for future reference
+                }
+                TransactionType.TRANSFER -> {
+                    // Transfer: subtract from source, add to target
+                    if (targetAccountBankName != null && targetAccountLast4 != null) {
+                        // Subtract from source account
+                        val sourceBalance = accountBalanceRepository.getLatestBalance(bankName, accountLast4)
+                        val newSourceBalance = (sourceBalance?.balance ?: BigDecimal.ZERO) - amount
+                        accountBalanceRepository.insertBalance(
+                            com.ritesh.cashiro.data.database.entity.AccountBalanceEntity(
+                                bankName = bankName,
+                                accountLast4 = accountLast4,
+                                balance = newSourceBalance,
+                                timestamp = date,
+                                transactionId = transactionId,
+                                sourceType = "MANUAL",
+                                iconResId = sourceBalance?.iconResId ?: 0,
+                                isCreditCard = sourceBalance?.isCreditCard ?: false,
+                                creditLimit = sourceBalance?.creditLimit
+                            )
+                        )
+                        
+                        // Add to target account
+                        val targetBalance = accountBalanceRepository.getLatestBalance(targetAccountBankName, targetAccountLast4)
+                        val newTargetBalance = (targetBalance?.balance ?: BigDecimal.ZERO) + amount
+                        accountBalanceRepository.insertBalance(
+                            com.ritesh.cashiro.data.database.entity.AccountBalanceEntity(
+                                bankName = targetAccountBankName,
+                                accountLast4 = targetAccountLast4,
+                                balance = newTargetBalance,
+                                timestamp = date,
+                                transactionId = transactionId,
+                                sourceType = "MANUAL",
+                                iconResId = targetBalance?.iconResId ?: 0,
+                                isCreditCard = targetBalance?.isCreditCard ?: false,
+                                creditLimit = targetBalance?.creditLimit
+                            )
+                        )
+                    }
+                }
+                TransactionType.INVESTMENT -> {
+                    // Subtract amount from the selected account
+                    val currentBalance = accountBalanceRepository.getLatestBalance(bankName, accountLast4)
+                    val newBalance = (currentBalance?.balance ?: BigDecimal.ZERO) - amount
+                    accountBalanceRepository.insertBalance(
+                        com.ritesh.cashiro.data.database.entity.AccountBalanceEntity(
+                            bankName = bankName,
+                            accountLast4 = accountLast4,
+                            balance = newBalance,
+                            timestamp = date,
+                            transactionId = transactionId,
+                            sourceType = "MANUAL",
+                            iconResId = currentBalance?.iconResId ?: 0,
+                            isCreditCard = currentBalance?.isCreditCard ?: false,
+                            creditLimit = currentBalance?.creditLimit
+                        )
+                    )
+                }
+            }
+        }
 
         // If marked as recurring, create a subscription
         if (isRecurring && transactionId != -1L) {

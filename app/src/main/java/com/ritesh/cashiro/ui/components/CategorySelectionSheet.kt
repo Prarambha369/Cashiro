@@ -5,6 +5,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,6 +28,7 @@ import com.ritesh.cashiro.data.database.entity.CategoryEntity
 import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
 import com.ritesh.cashiro.ui.theme.Dimensions
 import com.ritesh.cashiro.ui.theme.Spacing
+import kotlinx.coroutines.delay
 
 @Composable
 fun CategorySelectionSheet(
@@ -34,6 +37,15 @@ fun CategorySelectionSheet(
     onSelectionComplete: (CategoryEntity, SubcategoryEntity?) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val labels = listOf("Search Fruits", "Search Shopping", "Search Fitness", "Search Sports")
+    var currentLabelIndex by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(3000)
+            currentLabelIndex = (currentLabelIndex + 1) % labels.size
+        }
+    }
     var searchQuery by remember { mutableStateOf(TextFieldValue("")) }
     
     // Filter categories based on search
@@ -45,22 +57,47 @@ fun CategorySelectionSheet(
         }
     }
 
-    // Track expanded state for each category
-    // Initially, none are expanded.
-    // If search is active, maybe expand all? Or just match?
-    // Let's stick to manual expansion for now.
     val expandedStates = remember { mutableStateMapOf<Long, Boolean>() }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = Modifier.fillMaxWidth()
     ) {
         // Search Bar
         Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content, vertical = Spacing.sm)) {
              SearchBarBox(
                 searchQuery = searchQuery,
                 onSearchQueryChange = { searchQuery = it },
-                label = { Text("Search Categories") },
+                 label = {
+                     AnimatedContent(
+                         targetState = labels[currentLabelIndex],
+                         transitionSpec = {
+                             (fadeIn(animationSpec = tween(400, delayMillis = 100)) +
+                                     slideInVertically(
+                                         initialOffsetY = { it },
+                                         animationSpec = tween(400, delayMillis = 100)
+                                     ))
+                                 .togetherWith(
+                                     fadeOut(animationSpec = tween(400)) +
+                                             slideOutVertically(
+                                                 targetOffsetY = { -it },
+                                                 animationSpec = tween(400)
+                                             )
+                                 )
+                         },
+                         label = "SearchBarLabelAnimation"
+                     ) { labelText ->
+                         Text(
+                             text = labelText,
+                             fontSize = 14.sp,
+                             lineHeight = 14.sp,
+                             fontWeight = FontWeight.SemiBold,
+                             fontStyle = FontStyle.Italic,
+                             textAlign = TextAlign.Center,
+                             color = MaterialTheme.colorScheme.inverseSurface.copy(0.5f),
+                             modifier = Modifier.fillMaxWidth()
+                         )
+                     }
+                 },
                 leadingIcon = {},
                 trailingIcon = if (searchQuery.text.isNotEmpty()) {
                     {
@@ -87,9 +124,11 @@ fun CategorySelectionSheet(
                 modifier = Modifier
                     .padding(
                         start = Dimensions.Padding.content,
-                        end = Dimensions.Padding.content)
+                        end = Dimensions.Padding.content
+                    )
                     .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
                 contentPadding = PaddingValues(
+
                     top = Spacing.sm,
                     bottom = 0.dp
                 ),
@@ -100,15 +139,8 @@ fun CategorySelectionSheet(
                     key = { it.id }
                 ) { category ->
                     val subs = subcategoriesMap[category.id] ?: emptyList()
-                    // Auto-expand if search query matches subcategory name? 
-                    // For complexity, let's keep it simple. 
                     
                     val isExpanded = expandedStates[category.id] == true
-
-                    // We need to pass subcategories ONLY if expanded (to mimic behavior) 
-                    // OR pass them always but CategoryItem handles display? 
-                    // CategoryItem displays them if `subcategories` list is not empty.
-                    // So we control visibility by passing list or emptyList.
                     
                     val displayedSubcategories = if (isExpanded) subs else emptyList()
 
@@ -128,13 +160,11 @@ fun CategorySelectionSheet(
                                     // Toggle expansion
                                     expandedStates[animatedCategory.id] = !isExpanded
                                 } else {
-                                    // No subcategories, select immediately
                                     onSelectionComplete(animatedCategory, null)
                                 }
                             },
-                            onAddSubcategory = {}, // Hide add button
+                            onAddSubcategory = {},
                             onEditSubcategory = { sub ->
-                                // Selecting a subcategory
                                 onSelectionComplete(animatedCategory, sub)
                             },
                             showAddSubcategoryButton = false
