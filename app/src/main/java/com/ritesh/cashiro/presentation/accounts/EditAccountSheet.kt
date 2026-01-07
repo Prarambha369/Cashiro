@@ -50,10 +50,14 @@ fun EditAccountSheet(
         balance: BigDecimal,
         accountLast4: String,
         iconResId: Int,
-        colorHex: String) -> Unit
+        colorHex: String,
+        isCreditCard: Boolean,
+        creditLimit: BigDecimal?) -> Unit
 ) {
     var bankName by remember { mutableStateOf(account?.bankName ?: "") }
     var balance by remember { mutableStateOf(account?.balance ?: BigDecimal.ZERO) }
+    var creditLimit by remember { mutableStateOf(account?.creditLimit ?: BigDecimal.ZERO) }
+    var isCreditCard by remember { mutableStateOf(account?.isCreditCard ?: false) }
     var accountLast4 by remember { mutableStateOf(account?.accountLast4 ?: "") }
     var iconResId by remember {
         mutableStateOf(
@@ -64,6 +68,7 @@ fun EditAccountSheet(
     var colorHex by remember { mutableStateOf("#33B5E5") } // Default color
 
     var showNumberPad by remember { mutableStateOf(false) }
+    var editingCreditLimit by remember { mutableStateOf(false) }
     var showIconSelector by remember { mutableStateOf(false) }
 
     // Merge Flow States
@@ -87,12 +92,18 @@ fun EditAccountSheet(
             dragHandle = { BottomSheetDefaults.DragHandle() }
         ) {
             NumberPad(
-                initialValue = balance.toString(),
+                initialValue = if (editingCreditLimit) creditLimit.toString() else balance.toString(),
                 onDone = {
-                    balance = it.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                    if (editingCreditLimit) {
+                        creditLimit = it.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                    } else {
+                        balance = it.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                    }
                     showNumberPad = false
                     },
-                title = if (account == null) "Enter Amount" else "Update Amount"
+                title = if (editingCreditLimit) "Enter Credit Limit" 
+                        else if (account == null) "Enter Amount" 
+                        else "Update Amount"
             )
         }
     }
@@ -194,6 +205,36 @@ fun EditAccountSheet(
                 fontWeight = FontWeight.Bold
             )
 
+            // Account Type Selection (Only for new accounts)
+            if (account == null) {
+                SingleChoiceSegmentedButtonRow(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    SegmentedButton(
+                        selected = !isCreditCard,
+                        onClick = { isCreditCard = false },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.AccountBalance, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Bank")
+                        }
+                    }
+                    SegmentedButton(
+                        selected = isCreditCard,
+                        onClick = { isCreditCard = true },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.CreditCard, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Credit Card")
+                        }
+                    }
+                }
+            }
+
             // Preview Section
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -205,7 +246,9 @@ fun EditAccountSheet(
                     accountLast4 = accountLast4.ifEmpty { "0000" },
                     iconResId = iconResId,
                     colorHex = colorHex,
-                    currency = account?.currency ?: "INR"
+                    currency = account?.currency ?: "INR",
+                    isCreditCard = isCreditCard,
+                    creditLimit = creditLimit
                 )
                 Text(
                     text = "Preview",
@@ -262,9 +305,12 @@ fun EditAccountSheet(
                             )
                         }
                     }
-                    // Balance Input (opens NumberPad)
+                    // Balance/Outstanding Input (opens NumberPad)
                     Surface(
-                        onClick = { showNumberPad = true },
+                        onClick = { 
+                            editingCreditLimit = false
+                            showNumberPad = true 
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.large,
                         color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -287,7 +333,7 @@ fun EditAccountSheet(
                             // Label and Value
                             Column(verticalArrangement = Arrangement.Center) {
                                 Text(
-                                    text = "Balance",
+                                    text = if (isCreditCard) "Outstanding" else "Balance",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.primary
@@ -299,6 +345,94 @@ fun EditAccountSheet(
                                     ),
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (isCreditCard) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // Credit Limit Input
+                    Surface(
+                        onClick = { 
+                            editingCreditLimit = true
+                            showNumberPad = true 
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.large,
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CreditCard,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            Column(verticalArrangement = Arrangement.Center) {
+                                Text(
+                                    text = "Credit Limit",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = CurrencyFormatter.formatCurrency(
+                                        creditLimit,
+                                        account?.currency ?: "INR"
+                                    ),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+
+                    // Available Credit Tip
+                    val availableCredit = creditLimit - balance
+                    val utilization = if (creditLimit > BigDecimal.ZERO) {
+                        ((balance.toDouble() / creditLimit.toDouble()) * 100).toInt()
+                    } else 0
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
+                        ),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(Spacing.sm),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                        ) {
+                            Icon(
+                                Icons.Default.Info,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = "Available Credit: ${CurrencyFormatter.formatCurrency(availableCredit, account?.currency ?: "INR")}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Text(
+                                    text = "Utilization: $utilization%",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                                 )
                             }
                         }
@@ -407,7 +541,7 @@ fun EditAccountSheet(
             SplitButtonLayout(
                 leadingButton = {
                     SplitButtonDefaults.LeadingButton(
-                        onClick = { onSave(bankName, balance, accountLast4, iconResId, colorHex) },
+                        onClick = { onSave(bankName, balance, accountLast4, iconResId, colorHex, isCreditCard, if (isCreditCard) creditLimit else null) },
                         enabled = bankName.isNotBlank() && accountLast4.length == 4,
                         modifier = Modifier.height(56.dp)
                     ) {
@@ -553,7 +687,9 @@ private fun PreviewAccountCard(
     accountLast4: String,
     iconResId: Int,
     colorHex: String,
-    currency: String
+    currency: String,
+    isCreditCard: Boolean = false,
+    creditLimit: BigDecimal = BigDecimal.ZERO
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -567,10 +703,10 @@ private fun PreviewAccountCard(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Balance Section
+            // Balance/Outstanding Section
             Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp)) {
                 Text(
-                    text = "Balance",
+                    text = if (isCreditCard) "Outstanding" else "Balance",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -583,6 +719,29 @@ private fun PreviewAccountCard(
                     ),
                     color = MaterialTheme.colorScheme.onSurface
                 )
+            }
+
+            if (isCreditCard) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Credit Limit",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = CurrencyFormatter.formatCurrency(creditLimit, currency),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
             }
 
             // Bottom Bank Info Section

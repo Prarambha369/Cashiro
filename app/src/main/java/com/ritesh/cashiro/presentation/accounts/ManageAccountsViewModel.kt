@@ -18,6 +18,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import com.ritesh.cashiro.R
 
 data class ManageAccountsUiState(
     val accounts: List<AccountBalanceEntity> = emptyList(),
@@ -573,6 +574,98 @@ constructor(
                     it.copy(
                         isLoading = false,
                         errorMessage = "Failed to merge accounts: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    fun seedSampleData() {
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isLoading = true) }
+
+                val now = LocalDateTime.now()
+
+                // 1. HDFC Bank (Savings) with History
+                val hdfcLast4 = "1234"
+                for (i in 4 downTo 0) {
+                    accountBalanceRepository.insertBalance(
+                        AccountBalanceEntity(
+                            bankName = "HDFC Bank",
+                            accountLast4 = hdfcLast4,
+                            balance = BigDecimal(50000 - (i * 1000)),
+                            timestamp = now.minusDays(i.toLong()),
+                            sourceType = "MANUAL",
+                            iconResId = com.ritesh.cashiro.R.drawable.type_finance_bank
+                        )
+                    )
+                }
+
+                // 2. ICICI Bank (Credit Card)
+                accountBalanceRepository.insertBalance(
+                    AccountBalanceEntity(
+                        bankName = "ICICI Bank",
+                        accountLast4 = "5678",
+                        balance = BigDecimal(25000),
+                        creditLimit = BigDecimal(100000),
+                        timestamp = now,
+                        isCreditCard = true,
+                        sourceType = "MANUAL",
+                        iconResId = R.drawable.type_stationary_card_file_box
+                    )
+                )
+
+                // 3. SBI Bank (Current)
+                accountBalanceRepository.insertBalance(
+                    AccountBalanceEntity(
+                        bankName = "SBI Bank",
+                        accountLast4 = "9012",
+                        balance = BigDecimal(75000),
+                        timestamp = now,
+                        sourceType = "MANUAL",
+                        iconResId = com.ritesh.cashiro.R.drawable.type_finance_bank
+                    )
+                )
+
+                // 4. Linked Card for HDFC
+                cardRepository.insertCard(
+                    CardEntity(
+                        cardLast4 = "4321",
+                        cardType = CardType.DEBIT,
+                        bankName = "HDFC Bank",
+                        accountLast4 = hdfcLast4,
+                        nickname = "Salary Card"
+                    )
+                )
+
+                // 5. Unlinked Card
+                cardRepository.insertCard(
+                    CardEntity(
+                        cardLast4 = "8765",
+                        cardType = CardType.DEBIT,
+                        bankName = "Axis Bank",
+                        nickname = "Travel Card"
+                    )
+                )
+
+                loadAccounts()
+                loadCards()
+
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        successMessage = "Sample data seeded successfully"
+                    )
+                }
+                delay(3000)
+                _uiState.update { it.copy(successMessage = null) }
+
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Failed to seed sample data: ${e.message}"
                     )
                 }
             }

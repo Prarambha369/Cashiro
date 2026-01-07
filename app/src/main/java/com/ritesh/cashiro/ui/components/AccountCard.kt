@@ -63,7 +63,7 @@ fun AccountCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Balance",
+                    text = if (account.isCreditCard) "Outstanding" else "Balance",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

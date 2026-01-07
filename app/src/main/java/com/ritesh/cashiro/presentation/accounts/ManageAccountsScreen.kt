@@ -61,7 +61,7 @@ fun ManageAccountsScreen(
     var showUpdateDialog by remember { mutableStateOf(false) }
     var selectedAccount by remember { mutableStateOf<Pair<String, String>?>(null) }
     var selectedAccountEntity by remember {
-        mutableStateOf<com.ritesh.cashiro.data.database.entity.AccountBalanceEntity?>(null)
+        mutableStateOf<AccountBalanceEntity?>(null)
     }
     var showHistoryDialog by remember { mutableStateOf(false) }
     var historyAccount by remember { mutableStateOf<Pair<String, String>?>(null) }
@@ -71,7 +71,7 @@ fun ManageAccountsScreen(
     var showAddSheet by remember { mutableStateOf(false) }
     var showEditSheet by remember { mutableStateOf(false) }
     var accountToEdit by remember {
-        mutableStateOf<com.ritesh.cashiro.data.database.entity.AccountBalanceEntity?>(null)
+        mutableStateOf<AccountBalanceEntity?>(null)
     }
 
     var showFloatingLabel by remember { mutableStateOf(true) }
@@ -113,7 +113,15 @@ fun ManageAccountsScreen(
                     hazeState = hazeState,
                     hasBackButton = true,
                     onBackClick = onNavigateBack,
-                    navigationContent = { NavigationContent(onNavigateBack) }
+                    navigationContent = { NavigationContent(onNavigateBack) },
+                    actionContent = {
+                        IconButton(onClick = { viewModel.seedSampleData() }) {
+                            Icon(
+                                imageVector = Icons.Default.Science,
+                                contentDescription = "Seed Sample Data"
+                            )
+                        }
+                    }
                 ) },
             floatingActionButton = {
                 ExtendedFloatingActionButton(
@@ -173,6 +181,18 @@ fun ManageAccountsScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            Spacer(modifier = Modifier.height(Spacing.sm))
+                            Button(
+                                onClick = { viewModel.seedSampleData() },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            ) {
+                                Icon(Icons.Default.Science, contentDescription = null)
+                                Spacer(modifier = Modifier.width(Spacing.xs))
+                                Text("Seed Sample Data")
+                            }
                         }
                     }
                 } else {
@@ -272,12 +292,10 @@ fun ManageAccountsScreen(
                         if (uiState.orphanedCards.isNotEmpty()) {
                             item {
                                 Spacer(modifier = Modifier.height(Spacing.md))
-                                Text(
-                                    text = "Unlinked Cards",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.padding(vertical = Spacing.xs)
+
+                                SectionHeader(
+                                    title = "Unlinked Cards",
+                                    modifier = Modifier.padding(start = 8.dp)
                                 )
                             }
                             items(uiState.orphanedCards) { card ->
@@ -300,12 +318,9 @@ fun ManageAccountsScreen(
                         if (visibleCreditCards.isNotEmpty()) {
                             item {
                                 Spacer(modifier = Modifier.height(Spacing.md))
-                                Text(
-                                    text = "Credit Cards",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.padding(vertical = Spacing.xs)
+                                SectionHeader(
+                                    title = "Credit Cards",
+                                    modifier = Modifier.padding(start = 8.dp)
                                 )
                             }
 
@@ -497,7 +512,7 @@ fun ManageAccountsScreen(
                         title = "Update Outstanding",
                         bankName = selectedAccount!!.first,
                         accountLast4 = selectedAccount!!.second,
-                        doneButtonLabel = "Update Balance",
+                        doneButtonLabel = "Update Outstanding",
                         onDone = { newValue ->
                             newValue.toBigDecimalOrNull()?.let { newBalance ->
                                 viewModel.updateCreditCard(
@@ -538,7 +553,6 @@ fun ManageAccountsScreen(
             }
         }
 
-        // Balance History Dialog
         // Balance History Sheet
         if (showHistoryDialog && historyAccount != null) {
             ModalBottomSheet(
@@ -623,14 +637,14 @@ fun ManageAccountsScreen(
                         accountToEdit = null
                         showDeleteConfirmDialog = true
                     },
-                    onSave = { bankName, balance, last4, icon, color ->
+                    onSave = { bankName, balance, last4, icon, color, isCC, limit ->
                         viewModel.editAccount(
                             oldBankName = accountToEdit!!.bankName,
                             accountLast4 = accountToEdit!!.accountLast4,
                             newBankName = bankName,
                             newBalance = balance,
-                            newCreditLimit = accountToEdit!!.creditLimit,
-                            isCreditCard = accountToEdit!!.isCreditCard,
+                            newCreditLimit = limit,
+                            isCreditCard = isCC,
                             newIconResId = icon
                         )
                         showEditSheet = false
@@ -650,13 +664,15 @@ fun ManageAccountsScreen(
                 EditAccountSheet(
                     allAccounts = uiState.accounts,
                     onDismiss = { showAddSheet = false },
-                    onSave = { bankName, balance, last4, icon, color ->
+                    onSave = { bankName, balance, last4, icon, color, isCC, limit ->
                         viewModel.addAccount(
                             bankName = bankName,
                             balance = balance,
                             accountLast4 = last4,
                             iconResId = icon,
-                            colorHex = color
+                            colorHex = color,
+                            isCreditCard = isCC,
+                            creditLimit = limit
                         )
                         showAddSheet = false
                     }
@@ -788,73 +804,74 @@ private fun AccountItem(
             onViewHistory = onViewHistory,
             onToggleVisibility = onToggleVisibility,
             onDeleteAccount = onDeleteAccount
-        )
+        ) {
 
-        // Linked Cards Section
-        if (linkedCards.isNotEmpty()) {
-            Column(modifier = Modifier.padding(start = 16.dp, top = 8.dp)) {
-                Text(
-                    text = "Linked Cards",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = Spacing.xs)
-                )
-                linkedCards.forEach { card ->
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = Spacing.xs),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        shape = MaterialTheme.shapes.small
-                    ) {
-                        Row(
+            // Linked Cards Section
+            if (linkedCards.isNotEmpty()) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    Text(
+                        text = "Linked Cards",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = Spacing.xs)
+                    )
+                    linkedCards.forEach { card ->
+                        Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(
-                                    horizontal = Spacing.sm,
-                                    vertical = Spacing.xs
-                                ),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                                .padding(bottom = Spacing.xs),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            shape = MaterialTheme.shapes.small
                         ) {
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(
+                                        horizontal = Spacing.sm,
+                                        vertical = Spacing.xs
+                                    ),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    "💳",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                Column {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                                    ) {
-                                        Text(
-                                            text = "••${card.cardLast4}",
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
-                                        if (!card.isActive
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(
+                                        "💳",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    Column {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                                         ) {
                                             Text(
-                                                text = "(Inactive)",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.error
+                                                text = "••${card.cardLast4}",
+                                                style = MaterialTheme.typography.bodyMedium
                                             )
+                                            if (!card.isActive
+                                            ) {
+                                                Text(
+                                                    text = "(Inactive)",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.error
+                                                )
+                                            }
                                         }
                                     }
                                 }
-                            }
-                            IconButton(
-                                onClick = { onUnlinkCard(card.id) },
-                                modifier = Modifier.size(24.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.LinkOff,
-                                    contentDescription = "Unlink card",
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                IconButton(
+                                    onClick = { onUnlinkCard(card.id) },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.LinkOff,
+                                        contentDescription = "Unlink card",
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     }
