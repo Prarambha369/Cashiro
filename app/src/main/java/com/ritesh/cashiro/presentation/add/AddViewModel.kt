@@ -67,6 +67,20 @@ constructor(
     val allSubcategories = subcategoryRepository.subcategoriesMap
 
 
+    // Accounts for dropdown
+    val accounts =
+            accountBalanceRepository
+                    .getAllLatestBalances()
+                    .stateIn(
+                            scope = viewModelScope,
+                            started = SharingStarted.WhileSubscribed(5000),
+                            initialValue = emptyList()
+                    )
+
+    // All Subcategories for sheet
+    val allSubcategories = subcategoryRepository.subcategoriesMap
+
+
     // Subcategories for the selected category
     private val _transactionSubcategories =
         MutableStateFlow<List<com.ritesh.cashiro.data.database.entity.SubcategoryEntity>>(

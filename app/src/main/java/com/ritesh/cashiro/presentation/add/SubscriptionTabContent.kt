@@ -49,13 +49,9 @@ fun SubscriptionTabContent(viewModel: AddViewModel, onSave: () -> Unit) {
     val selectedCategoryObj = remember(uiState.category, categories) {
         categories.find { it.name == uiState.category }
     }
-    val selectedSubcategoryObj = remember(uiState.subcategory, allSubcategories) { // using allSubcategories for simplicity or specific list if available
-        // However, we need to match with subcategories list if needed, or just find it in map.
-        // Actually `transactionSubcategories` was used in TransactionTab.
-        // Here we have `subcategories` from viewmodel.
+    val selectedSubcategoryObj = remember(uiState.subcategory, allSubcategories) { 
         null // Placeholder, will fix in body if needed or just rely on IDs/names as implemented in TransactionTabContent
     }
-    // Actually TransactionTabContent uses `transactionSubcategories`. Here we have:
     val subcategories by viewModel.subscriptionSubcategories.collectAsState()
 
     val selectedSubcategoryObj2 = remember(uiState.subcategory, subcategories) {
