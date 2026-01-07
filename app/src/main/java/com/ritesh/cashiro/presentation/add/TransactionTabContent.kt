@@ -1,5 +1,6 @@
 package com.ritesh.cashiro.presentation.add
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -27,6 +28,10 @@ import com.ritesh.cashiro.data.database.entity.TransactionType
 import androidx.compose.foundation.border
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import com.ritesh.cashiro.ui.components.AccountCard
 import com.ritesh.cashiro.ui.components.CategorySelectionSheet
 import com.ritesh.cashiro.ui.theme.*
@@ -34,6 +39,11 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 import androidx.compose.ui.res.painterResource
+import com.ritesh.cashiro.ui.effects.BlurredAnimatedVisibility
+import androidx.core.graphics.toColorInt
+import com.ritesh.cashiro.ui.effects.overScrollVertical
+import com.ritesh.cashiro.ui.effects.rememberOverscrollFlingBehavior
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -49,17 +59,34 @@ fun TransactionTabContent(viewModel: AddViewModel, onSave: () -> Unit) {
         transactionSubcategories.find { it.name == uiState.subcategory }
     }
 
+    val labels = listOf("Search Fruits", "Search Shopping", "Search Fitness", "Search Sports")
+    var currentLabelIndex by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(3000)
+            currentLabelIndex = (currentLabelIndex + 1) % labels.size
+        }
+    }
+
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var showCategoryMenu by remember { mutableStateOf(false) }
 
+    val scrollState = rememberScrollState()
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .animateContentSize()
+                .fillMaxSize()
+                .overScrollVertical()
                 .imePadding() // Handle keyboard properly
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+                .verticalScroll(
+                    state = scrollState,
+                    flingBehavior = rememberOverscrollFlingBehavior { scrollState }
+                )
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+                .clip(RoundedCornerShape(Dimensions.Radius.md)),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Amount Input
@@ -137,14 +164,22 @@ fun TransactionTabContent(viewModel: AddViewModel, onSave: () -> Unit) {
                 Box(
                     modifier = Modifier
                         .weight(1f)
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            shape = RoundedCornerShape(Dimensions.Radius.md)
+                        )
                         .padding(8.dp)
-                        .clickable { showDatePicker = true },
-                    contentAlignment = Alignment.CenterStart
+                        .clickable(
+                            onClick = { showDatePicker = true },
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
                     Row(
                         modifier = Modifier.padding(vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Start
+                        horizontalArrangement = Arrangement.Center
                     ) {
                         val themeColors = MaterialTheme.colorScheme
                         Icon(
@@ -196,6 +231,7 @@ fun TransactionTabContent(viewModel: AddViewModel, onSave: () -> Unit) {
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
+                                lineHeight = 16.sp,
                                 modifier = Modifier.padding(5.dp)
                             )
                         }
@@ -220,6 +256,7 @@ fun TransactionTabContent(viewModel: AddViewModel, onSave: () -> Unit) {
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 16.sp,
+                                lineHeight = 16.sp,
                                 modifier = Modifier.padding(5.dp)
                             )
                         }
@@ -239,189 +276,476 @@ fun TransactionTabContent(viewModel: AddViewModel, onSave: () -> Unit) {
             // Accounts Section
             val accounts by viewModel.accounts.collectAsState()
             var showAccountSheet by remember { mutableStateOf(false) }
+            var showTargetAccountSheet by remember { mutableStateOf(false) }
 
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(1.5.dp)
-            ) {
-
-                OutlinedCard(
-                    onClick = { showAccountSheet = true },
+            // Conditional UI based on transaction type
+            BlurredAnimatedVisibility(uiState.transactionType == TransactionType.TRANSFER) {
+                // Transfer Type UI: Source Account + Exchange Icon + Target Account + Category
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(
-                        topStart = 16.dp,
-                        topEnd = 16.dp,
-                        bottomStart = 4.dp,
-                        bottomEnd = 4.dp
-                    ),
-                    colors = CardDefaults.outlinedCardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                    ),
-                    border = BorderStroke(0.dp, Color.Transparent)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        if (uiState.selectedAccount != null && uiState.selectedAccount?.iconResId != 0) {
-                            Icon(
-                                painter = painterResource(id = uiState.selectedAccount!!.iconResId),
-                                contentDescription = null,
-                                tint = Color.Unspecified,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.AccountBalance,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(1.5.dp)
+                        ) {
+                            // Source Account Card
+                            OutlinedCard(
+                                onClick = { showAccountSheet = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(
+                                    topStart = 16.dp,
+                                    topEnd = 16.dp,
+                                    bottomStart = 4.dp,
+                                    bottomEnd = 4.dp),
+                                colors = CardDefaults.outlinedCardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                                ),
+                                border = BorderStroke(0.dp, Color.Transparent)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    if (uiState.selectedAccount != null && uiState.selectedAccount?.iconResId != 0) {
+                                        Icon(
+                                            painter = painterResource(id = uiState.selectedAccount!!.iconResId),
+                                            contentDescription = null,
+                                            tint = Color.Unspecified,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.AccountBalance,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
 
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = uiState.selectedAccount?.bankName ?: "Select Account",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color =
-                                    if (uiState.selectedAccount != null)
-                                        MaterialTheme.colorScheme.onSurface
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            if (uiState.selectedAccount != null) {
-                                Text(
-                                    text = "••${uiState.selectedAccount?.accountLast4}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = uiState.selectedAccount?.bankName
+                                                ?: "Select Source Account",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color =
+                                                if (uiState.selectedAccount != null)
+                                                    MaterialTheme.colorScheme.onSurface
+                                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        if (uiState.selectedAccount != null) {
+                                            Text(
+                                                text = "••${uiState.selectedAccount?.accountLast4}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+
+                                    Icon(
+                                        imageVector = Icons.Default.KeyboardArrowDown,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            // Target Account Card
+                            OutlinedCard(
+                                onClick = { showTargetAccountSheet = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(
+                                    topStart = 4.dp,
+                                    topEnd = 4.dp,
+                                    bottomStart = 16.dp,
+                                    bottomEnd = 16.dp),
+                                colors = CardDefaults.outlinedCardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                                ),
+                                border = BorderStroke(0.dp, Color.Transparent)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    if (uiState.targetAccount != null && uiState.targetAccount?.iconResId != 0) {
+                                        Icon(
+                                            painter = painterResource(id = uiState.targetAccount!!.iconResId),
+                                            contentDescription = null,
+                                            tint = Color.Unspecified,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.AccountBalance,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = uiState.targetAccount?.bankName
+                                                ?: "Select Target Account",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color =
+                                                if (uiState.targetAccount != null)
+                                                    MaterialTheme.colorScheme.onSurface
+                                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        if (uiState.targetAccount != null) {
+                                            Text(
+                                                text = "••${uiState.targetAccount?.accountLast4}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+
+                                    Icon(
+                                        imageVector = Icons.Default.KeyboardArrowDown,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                        // Exchange Icon
+                        Box(
+                            modifier = Modifier.fillMaxWidth().align(Alignment.Center),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .shadow(elevation = 3.dp, shape = CircleShape)
+                                    .clip(CircleShape)
+                                    .background(
+                                        MaterialTheme.colorScheme.surface,
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.SwapVert,
+                                    contentDescription = "Transfer",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
                                 )
                             }
                         }
-
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                     }
-                }
-                // Category Selection
-                val categoryInteractionSource = remember { MutableInteractionSource() }
-                TextField(
-                    value = uiState.category,
-                    onValueChange = {},
-                    label = { Text("Category", fontWeight = FontWeight.SemiBold) },
-                    readOnly = true,
-                    singleLine = true,
-                    modifier =
-                        Modifier.fillMaxWidth()
-                            .clickable(
-                                interactionSource = categoryInteractionSource,
-                                indication = null
-                            ) {
-                                showCategoryMenu = true
-                            },
-                    shape =
-                        RoundedCornerShape(
-                            topStart = 4.dp,
-                            topEnd = 4.dp,
-                            bottomStart = 16.dp,
-                            bottomEnd = 16.dp
-                        ),
-                    leadingIcon = {
-                        if (selectedCategoryObj != null && selectedCategoryObj.iconResId != 0) {
-                            Icon(
-                                painter = painterResource(id = selectedCategoryObj.iconResId),
-                                contentDescription = null,
-                                tint = Color.Unspecified,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        } else {
-                            Icon(Icons.Default.Category, contentDescription = null)
-                        }
-                    },
-                    trailingIcon = {
-                        Icon(Icons.Default.KeyboardArrowDown, contentDescription = null)
-                    },
-                    isError = uiState.categoryError != null,
-                    supportingText = uiState.categoryError?.let { { Text(it) } },
-                    enabled = false, // Disable typing, handle click above
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        focusedLabelColor = MaterialTheme.colorScheme.primary,
-                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f),
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        disabledIndicatorColor = Color.Transparent,
-                        disabledLabelColor = MaterialTheme.colorScheme.primary,
-                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                        disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                )
 
-                // Subcategory Display (Read-only, selected via sheet)
-                if (uiState.subcategory != null) {
-                    Spacer(modifier = Modifier.height(Spacing.md))
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Category Selection with full rounded corners
+                    val categoryInteractionSource = remember { MutableInteractionSource() }
                     TextField(
-                        value = uiState.subcategory ?: "None",
+                        value = uiState.category,
                         onValueChange = {},
+                        label = { Text("Category", fontWeight = FontWeight.SemiBold) },
                         readOnly = true,
-                        label = { Text("Subcategory") },
+                        singleLine = true,
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .clickable(
+                                    interactionSource = categoryInteractionSource,
+                                    indication = null
+                                ) {
+                                    showCategoryMenu = true
+                                },
+                        shape = RoundedCornerShape(16.dp),
                         leadingIcon = {
-                            if (selectedSubcategoryObj != null && selectedSubcategoryObj.iconResId != 0) {
+                            if (selectedCategoryObj != null && selectedCategoryObj.iconResId != 0) {
                                 Icon(
-                                    painter = painterResource(id = selectedSubcategoryObj.iconResId),
+                                    painter = painterResource(id = selectedCategoryObj.iconResId),
+                                    contentDescription = null,
+                                    tint = Color.Unspecified,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            } else {
+                                Icon(Icons.Default.Category, contentDescription = null)
+                            }
+                        },
+                        trailingIcon = {
+                            Icon(Icons.Default.KeyboardArrowDown, contentDescription = null)
+                        },
+                        isError = uiState.categoryError != null,
+                        supportingText = uiState.categoryError?.let { { Text(it) } },
+                        enabled = false,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                0.7f
+                            ),
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            disabledIndicatorColor = Color.Transparent,
+                            disabledLabelColor = MaterialTheme.colorScheme.primary,
+                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                            disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+                }
+            }
+            BlurredAnimatedVisibility(uiState.transactionType != TransactionType.TRANSFER){
+                // Non-Transfer Type UI: Original layout with connected sections
+                Column(
+                    modifier = Modifier.animateContentSize().fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(1.5.dp)
+                ) {
+                    OutlinedCard(
+                        onClick = { showAccountSheet = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(
+                            topStart = 16.dp,
+                            topEnd = 16.dp,
+                            bottomStart = 4.dp,
+                            bottomEnd = 4.dp
+                        ),
+                        colors = CardDefaults.outlinedCardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                        ),
+                        border = BorderStroke(0.dp, Color.Transparent)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            if (uiState.selectedAccount != null && uiState.selectedAccount?.iconResId != 0) {
+                                Icon(
+                                    painter = painterResource(id = uiState.selectedAccount!!.iconResId),
                                     contentDescription = null,
                                     tint = Color.Unspecified,
                                     modifier = Modifier.size(24.dp)
                                 )
                             } else {
                                 Icon(
-                                    Icons.Default.SubdirectoryArrowRight,
-                                    contentDescription = null
+                                    imageVector = Icons.Default.AccountBalance,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                             }
-                        },
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = false,
-                        colors = if (selectedSubcategoryObj != null) {
-                            val color = try {
-                                Color(android.graphics.Color.parseColor(selectedSubcategoryObj.color))
-                            } catch (e: Exception) {
-                                MaterialTheme.colorScheme.surfaceContainerLow
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = uiState.selectedAccount?.bankName ?: "Select Account",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color =
+                                        if (uiState.selectedAccount != null)
+                                            MaterialTheme.colorScheme.onSurface
+                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                if (uiState.selectedAccount != null) {
+                                    Text(
+                                        text = "••${uiState.selectedAccount?.accountLast4}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
-                            TextFieldDefaults.colors(
-                                focusedContainerColor = color.copy(alpha = 0.2f),
-                                unfocusedContainerColor = color.copy(alpha = 0.2f),
-                                disabledContainerColor = color.copy(alpha = 0.2f),
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                disabledIndicatorColor = Color.Transparent,
-                                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f),
-                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                disabledTextColor = MaterialTheme.colorScheme.onSurface
-                            )
-                        } else {
-                            TextFieldDefaults.colors(
-                                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f),
-                                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                                disabledIndicatorColor = Color.Transparent,
-                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                disabledTextColor = MaterialTheme.colorScheme.onSurface
+
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowDown,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                    }
+                    
+                    // Category Selection
+                    val categoryInteractionSource = remember { MutableInteractionSource() }
+                    TextField(
+                        value = uiState.category,
+                        onValueChange = {},
+                        label = { Text("Category", fontWeight = FontWeight.SemiBold) },
+                        readOnly = true,
+                        singleLine = true,
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .clickable(
+                                    interactionSource = categoryInteractionSource,
+                                    indication = null
+                                ) {
+                                    showCategoryMenu = true
+                                },
+                        shape =
+                            RoundedCornerShape(
+                                topStart = 4.dp,
+                                topEnd = 4.dp,
+                                bottomStart = 16.dp,
+                                bottomEnd = 16.dp
+                            ),
+                        leadingIcon = {
+                            if (selectedCategoryObj != null && selectedCategoryObj.iconResId != 0) {
+                                Icon(
+                                    painter = painterResource(id = selectedCategoryObj.iconResId),
+                                    contentDescription = null,
+                                    tint = Color.Unspecified,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            } else {
+                                Icon(Icons.Default.Category, contentDescription = null)
+                            }
+                        },
+                        trailingIcon = {
+                            Icon(Icons.Default.KeyboardArrowDown, contentDescription = null)
+                        },
+                        isError = uiState.categoryError != null,
+                        supportingText = uiState.categoryError?.let { { Text(it) } },
+                        enabled = false, // Disable typing, handle click above
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f),
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            disabledIndicatorColor = Color.Transparent,
+                            disabledLabelColor = MaterialTheme.colorScheme.primary,
+                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                            disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     )
+
+                    // Subcategory Display (Read-only, selected via sheet)
+                    if (uiState.subcategory != null) {
+                        Spacer(modifier = Modifier.height(Spacing.md))
+                        TextField(
+                            value = uiState.subcategory ?: "None",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Subcategory") },
+                            leadingIcon = {
+                                if (selectedSubcategoryObj != null && selectedSubcategoryObj.iconResId != 0) {
+                                    Icon(
+                                        painter = painterResource(id = selectedSubcategoryObj.iconResId),
+                                        contentDescription = null,
+                                        tint = Color.Unspecified,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                } else {
+                                    Icon(
+                                        Icons.Default.SubdirectoryArrowRight,
+                                        contentDescription = null
+                                    )
+                                }
+                            },
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = false,
+                            colors = if (selectedSubcategoryObj != null) {
+                                val color = try {
+                                    Color(selectedSubcategoryObj.color.toColorInt())
+                                } catch (e: Exception) {
+                                    MaterialTheme.colorScheme.surfaceContainerLow
+                                }
+                                TextFieldDefaults.colors(
+                                    focusedContainerColor = color.copy(alpha = 0.2f),
+                                    unfocusedContainerColor = color.copy(alpha = 0.2f),
+                                    disabledContainerColor = color.copy(alpha = 0.2f),
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                    disabledIndicatorColor = Color.Transparent,
+                                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f),
+                                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    disabledTextColor = MaterialTheme.colorScheme.onSurface
+                                )
+                            } else {
+                                TextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f),
+                                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                    disabledIndicatorColor = Color.Transparent,
+                                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    disabledTextColor = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        )
+                    }
                 }
             }
+
+            // Show subcategory for Transfer type outside the conditional
+            if (uiState.transactionType == TransactionType.TRANSFER && uiState.subcategory != null) {
+                Spacer(modifier = Modifier.height(Spacing.md))
+                TextField(
+                    value = uiState.subcategory ?: "None",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Subcategory") },
+                    leadingIcon = {
+                        if (selectedSubcategoryObj != null && selectedSubcategoryObj.iconResId != 0) {
+                            Icon(
+                                painter = painterResource(id = selectedSubcategoryObj.iconResId),
+                                contentDescription = null,
+                                tint = Color.Unspecified,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.SubdirectoryArrowRight,
+                                contentDescription = null
+                            )
+                        }
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = false,
+                    colors = if (selectedSubcategoryObj != null) {
+                        val color = try {
+                            Color(selectedSubcategoryObj.color.toColorInt())
+                        } catch (e: Exception) {
+                            MaterialTheme.colorScheme.surfaceContainerLow
+                        }
+                        TextFieldDefaults.colors(
+                            focusedContainerColor = color.copy(alpha = 0.2f),
+                            unfocusedContainerColor = color.copy(alpha = 0.2f),
+                            disabledContainerColor = color.copy(alpha = 0.2f),
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f),
+                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            disabledTextColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    } else {
+                        TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f),
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            disabledIndicatorColor = Color.Transparent,
+                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            disabledTextColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                )
+            }
+
 
             if (showAccountSheet) {
                 ModalBottomSheet(
@@ -505,6 +829,64 @@ fun TransactionTabContent(viewModel: AddViewModel, onSave: () -> Unit) {
                     }
                 }
             }
+
+            // Target Account BottomSheet (for Transfer type)
+            if (showTargetAccountSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showTargetAccountSheet = false },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    dragHandle = { BottomSheetDefaults.DragHandle() }
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+                        Text(
+                            text = "Select Target Account",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+                        )
+
+                        if (accounts.isEmpty()) {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No accounts found",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // Filter out the source account from target selection
+                                val availableAccounts = accounts.filter { it.id != uiState.selectedAccount?.id }
+                                
+                                items(availableAccounts) { account ->
+                                    val isSelected = uiState.targetAccount?.id == account.id
+                                    Surface(
+                                        shape = CardDefaults.shape,
+                                        border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+                                        color = Color.Transparent,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        AccountCard(
+                                            account = account,
+                                            showMoreOptions = false,
+                                            onClick = {
+                                                viewModel.updateTransactionTargetAccount(account)
+                                                showTargetAccountSheet = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
 
             // Category Selection Sheet
             if (showCategoryMenu) {

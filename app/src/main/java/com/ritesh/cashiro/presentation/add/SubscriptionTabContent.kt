@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -27,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ritesh.cashiro.ui.components.AccountCard
 import com.ritesh.cashiro.ui.components.CategorySelectionSheet
+import com.ritesh.cashiro.ui.effects.overScrollVertical
+import com.ritesh.cashiro.ui.effects.rememberOverscrollFlingBehavior
 import com.ritesh.cashiro.ui.theme.*
 import java.time.format.DateTimeFormatter
 
@@ -60,13 +63,19 @@ fun SubscriptionTabContent(viewModel: AddViewModel, onSave: () -> Unit) {
     }
 
     val billingCycles = listOf("Monthly", "Quarterly", "Semi-Annual", "Annual", "Weekly")
+    val scrollState = rememberScrollState()
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
+                .overScrollVertical()
                 .imePadding() // Handle keyboard properly
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+                .verticalScroll(
+                    state = scrollState,
+                    flingBehavior = rememberOverscrollFlingBehavior { scrollState }
+                )
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+                .clip(RoundedCornerShape(Dimensions.Radius.md)),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Error Card
@@ -154,6 +163,7 @@ fun SubscriptionTabContent(viewModel: AddViewModel, onSave: () -> Unit) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
 
                 // Billing Cycle Dropdown
@@ -204,19 +214,26 @@ fun SubscriptionTabContent(viewModel: AddViewModel, onSave: () -> Unit) {
                         }
                     }
                 }
-
                 // Date Button
                 Box(
                     modifier = Modifier
                         .weight(1f)
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            shape = RoundedCornerShape(Dimensions.Radius.md)
+                        )
                         .padding(8.dp)
-                        .clickable { showDatePicker = true },
-                    contentAlignment = Alignment.CenterEnd
+                        .clickable(
+                            onClick = { showDatePicker = true },
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
                     Row(
                         modifier = Modifier.padding(vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.End
+                        horizontalArrangement = Arrangement.Center
                     ) {
                         val themeColors = MaterialTheme.colorScheme
                         Icon(

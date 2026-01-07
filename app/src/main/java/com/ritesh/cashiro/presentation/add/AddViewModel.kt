@@ -30,6 +30,7 @@ constructor(
     com.ritesh.cashiro.data.repository.AccountBalanceRepository
 ) : ViewModel() {
 
+
     // General UI State
     private val _uiState = MutableStateFlow(AddUiState())
     val uiState: StateFlow<AddUiState> = _uiState.asStateFlow()
@@ -83,6 +84,12 @@ constructor(
             StateFlow<List<com.ritesh.cashiro.data.database.entity.SubcategoryEntity>> =
         _subscriptionSubcategories.asStateFlow()
 
+    init {
+        // Load default subcategories for both tabs
+        updateTransactionSubcategories("Others")
+        updateSubscriptionSubcategories("Subscription")
+    }
+
     // Transaction Tab Functions
     fun updateTransactionAmount(amount: String) {
         val filtered = amount.filter { it.isDigit() || it == '.' }
@@ -95,19 +102,26 @@ constructor(
     }
 
     fun updateTransactionType(type: TransactionType) {
+        val newCategory = when (type) {
+            TransactionType.INCOME -> "Income"
+            TransactionType.EXPENSE -> "Others"
+            TransactionType.INVESTMENT -> "Investment"
+            TransactionType.CREDIT -> "Shopping"
+            TransactionType.TRANSFER -> "Self Transfer"
+            else -> _transactionUiState.value.category
+        }
+
         _transactionUiState.update { currentState ->
             currentState.copy(
                 transactionType = type,
-                category =
-                    when (type) {
-                        TransactionType.INCOME -> "Income"
-                        TransactionType.EXPENSE -> "Others"
-                        TransactionType.INVESTMENT -> "Investment"
-                        TransactionType.CREDIT -> "Shopping"
-                        else -> currentState.category
-                    }
+                category = newCategory,
+                subcategory = null,
+                categoryError = validateCategory(newCategory)
             )
         }
+
+        // Update subcategories for the new default category
+        updateTransactionSubcategories(newCategory)
     }
 
     fun updateTransactionMerchant(merchant: String) {
@@ -125,7 +139,10 @@ constructor(
             )
         }
 
-        // Update subcategories
+        updateTransactionSubcategories(category)
+    }
+
+    private fun updateTransactionSubcategories(category: String) {
         viewModelScope.launch {
             val cat = categories.value.find { it.name == category }
             if (cat != null) {
@@ -173,6 +190,27 @@ constructor(
         val merchantError = validateMerchant(state.merchant)
         val categoryError = validateCategory(state.category)
 
+        // Additional validation for Transfer transactions
+        if (state.transactionType == TransactionType.TRANSFER) {
+            if (state.selectedAccount == null || state.targetAccount == null) {
+                _transactionUiState.update { currentState ->
+                    currentState.copy(
+                        error = "Both source and target accounts are required for transfers"
+                    )
+                }
+                return
+            }
+            
+            if (state.selectedAccount?.id == state.targetAccount?.id) {
+                _transactionUiState.update { currentState ->
+                    currentState.copy(
+                        error = "Source and target accounts must be different"
+                    )
+                }
+                return
+            }
+        }
+
         if (amountError != null || merchantError != null || categoryError != null) {
             _transactionUiState.update { currentState ->
                 currentState.copy(
@@ -200,7 +238,10 @@ constructor(
                     notes = state.notes.takeIf { it.isNotBlank() },
                     isRecurring = state.isRecurring,
                     bankName = state.selectedAccount?.bankName,
-                    accountLast4 = state.selectedAccount?.accountLast4
+                    accountLast4 = state.selectedAccount?.accountLast4,
+                    sourceAccountId = state.selectedAccount?.id,
+                    targetAccountBankName = state.targetAccount?.bankName,
+                    targetAccountLast4 = state.targetAccount?.accountLast4
                 )
 
                 onSuccess()
@@ -219,6 +260,12 @@ constructor(
         account: com.ritesh.cashiro.data.database.entity.AccountBalanceEntity?
     ) {
         _transactionUiState.update { currentState -> currentState.copy(selectedAccount = account) }
+    }
+
+    fun updateTransactionTargetAccount(
+        account: com.ritesh.cashiro.data.database.entity.AccountBalanceEntity?
+    ) {
+        _transactionUiState.update { currentState -> currentState.copy(targetAccount = account) }
     }
 
     // Subscription Tab Functions
@@ -265,7 +312,10 @@ constructor(
             )
         }
 
-        // Update subcategories
+        updateSubscriptionSubcategories(category)
+    }
+
+    private fun updateSubscriptionSubcategories(category: String) {
         viewModelScope.launch {
             val cat = categories.value.find { it.name == category }
             if (cat != null) {
@@ -404,6 +454,7 @@ data class TransactionUiState(
     val notes: String = "",
     val isRecurring: Boolean = false,
     val selectedAccount: com.ritesh.cashiro.data.database.entity.AccountBalanceEntity? = null,
+    val targetAccount: com.ritesh.cashiro.data.database.entity.AccountBalanceEntity? = null,
     val isLoading: Boolean = false,
     val error: String? = null
 ) {
@@ -427,7 +478,7 @@ data class SubscriptionUiState(
     val billingCycle: String = "Monthly",
     val billingCycleError: String? = null,
     val nextPaymentDate: LocalDate = LocalDate.now().plusMonths(1),
-    val category: String = "Subscriptions",
+    val category: String = "Subscription",
     val subcategory: String? = null,
     val categoryError: String? = null,
     val selectedAccount: com.ritesh.cashiro.data.database.entity.AccountBalanceEntity? = null,
