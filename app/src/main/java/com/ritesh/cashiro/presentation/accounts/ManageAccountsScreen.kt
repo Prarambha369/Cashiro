@@ -644,7 +644,7 @@ fun ManageAccountsScreen(
                         accountToEdit = null
                         showDeleteConfirmDialog = true
                     },
-                    onSave = { bankName, balance, last4, icon, color, isCC, limit ->
+                    onSave = { bankName, balance, last4, icon, color, isCC, limit, currency ->
                         viewModel.editAccount(
                             oldBankName = accountToEdit!!.bankName,
                             accountLast4 = accountToEdit!!.accountLast4,
@@ -652,7 +652,8 @@ fun ManageAccountsScreen(
                             newBalance = balance,
                             newCreditLimit = limit,
                             isCreditCard = isCC,
-                            newIconResId = icon
+                            newIconResId = icon,
+                            newCurrency = currency
                         )
                         showEditSheet = false
                         accountToEdit = null
@@ -671,7 +672,7 @@ fun ManageAccountsScreen(
                 EditAccountSheet(
                     allAccounts = uiState.accounts,
                     onDismiss = { showAddSheet = false },
-                    onSave = { bankName, balance, last4, icon, color, isCC, limit ->
+                    onSave = { bankName, balance, last4, icon, color, isCC, limit, currency ->
                         viewModel.addAccount(
                             bankName = bankName,
                             balance = balance,
@@ -679,7 +680,8 @@ fun ManageAccountsScreen(
                             iconResId = icon,
                             colorHex = color,
                             isCreditCard = isCC,
-                            creditLimit = limit
+                            creditLimit = limit,
+                            currency = currency
                         )
                         showAddSheet = false
                     }
@@ -729,11 +731,6 @@ private fun CreditCardItem(
             modifier = Modifier.padding(horizontal = 16.dp,vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
-            HorizontalDivider(
-                modifier = Modifier.padding(bottom = 8.dp),
-                color = MaterialTheme.colorScheme.surface
-            )
-
             // Available Credit
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -828,8 +825,9 @@ private fun AccountItem(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = Spacing.xs),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            shape = MaterialTheme.shapes.small
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            shape = MaterialTheme.shapes.small,
+                            shadowElevation = 2.dp
                         ) {
                             Row(
                                 modifier = Modifier
@@ -911,7 +909,9 @@ private fun OrphanedCardItem(
         ),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+
     ) {
         Column {
             Row(

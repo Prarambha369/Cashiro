@@ -102,16 +102,16 @@ fun AccountCard(
                                     showMenu = false
                                     onUpdateBalance()
                                 },
-                                modifier =
-                                Modifier.shadow(
-                                    elevation = 2.dp,
-                                    shape = RoundedCornerShape(
-                                        topStart = 16.dp,
-                                        topEnd = 16.dp,
-                                        bottomStart = 4.dp,
-                                        bottomEnd = 4.dp
+                                modifier = Modifier
+                                    .shadow(
+                                        elevation = 2.dp,
+                                        shape = RoundedCornerShape(
+                                            topStart = 16.dp,
+                                            topEnd = 16.dp,
+                                            bottomStart = 4.dp,
+                                            bottomEnd = 4.dp
+                                        )
                                     )
-                                )
                                     .background(
                                         color = MaterialTheme.colorScheme.surfaceContainer,
                                         shape = RoundedCornerShape(

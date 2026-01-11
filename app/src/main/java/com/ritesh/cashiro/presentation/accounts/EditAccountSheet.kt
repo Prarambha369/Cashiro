@@ -1,7 +1,14 @@
 package com.ritesh.cashiro.presentation.accounts
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,6 +40,7 @@ import com.ritesh.cashiro.R
 import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
 import com.ritesh.cashiro.presentation.categories.IconSelector
 import com.ritesh.cashiro.ui.components.ColorPickerContent
+import com.ritesh.cashiro.ui.effects.BlurredAnimatedVisibility
 import com.ritesh.cashiro.ui.theme.Spacing
 import com.ritesh.cashiro.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -52,13 +60,15 @@ fun EditAccountSheet(
         iconResId: Int,
         colorHex: String,
         isCreditCard: Boolean,
-        creditLimit: BigDecimal?) -> Unit
+        creditLimit: BigDecimal?,
+        currency: String) -> Unit
 ) {
     var bankName by remember { mutableStateOf(account?.bankName ?: "") }
     var balance by remember { mutableStateOf(account?.balance ?: BigDecimal.ZERO) }
     var creditLimit by remember { mutableStateOf(account?.creditLimit ?: BigDecimal.ZERO) }
     var isCreditCard by remember { mutableStateOf(account?.isCreditCard ?: false) }
     var accountLast4 by remember { mutableStateOf(account?.accountLast4 ?: "") }
+    var selectedCurrency by remember { mutableStateOf(account?.currency ?: "INR") }
     var iconResId by remember {
         mutableStateOf(
             if (account?.iconResId != 0 && account?.iconResId != null) account.iconResId
@@ -70,6 +80,7 @@ fun EditAccountSheet(
     var showNumberPad by remember { mutableStateOf(false) }
     var editingCreditLimit by remember { mutableStateOf(false) }
     var showIconSelector by remember { mutableStateOf(false) }
+    var showCurrencySheet by remember { mutableStateOf(false) }
 
     // Merge Flow States
     var showMergeSelection by remember { mutableStateOf(false) }
@@ -123,6 +134,18 @@ fun EditAccountSheet(
             )
         }
     }
+
+    if (showCurrencySheet) {
+        CurrencyBottomSheet(
+            selectedCurrency = selectedCurrency,
+            onCurrencySelected = { currency ->
+                selectedCurrency = currency
+                showCurrencySheet = false
+            },
+            onDismiss = { showCurrencySheet = false }
+        )
+    }
+
 
     // Merge Dialogs
     if (showMergeSelection && account != null) {
@@ -246,7 +269,7 @@ fun EditAccountSheet(
                     accountLast4 = accountLast4.ifEmpty { "0000" },
                     iconResId = iconResId,
                     colorHex = colorHex,
-                    currency = account?.currency ?: "INR",
+                    currency = selectedCurrency,
                     isCreditCard = isCreditCard,
                     creditLimit = creditLimit
                 )
@@ -477,12 +500,7 @@ fun EditAccountSheet(
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("e.g. 1234") },
                     singleLine = true,
-                    shape = RoundedCornerShape(
-                        topStart = 4.dp,
-                        topEnd = 4.dp,
-                        bottomStart = 16.dp,
-                        bottomEnd = 16.dp
-                    ),
+                    shape = RoundedCornerShape(4.dp),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -496,7 +514,56 @@ fun EditAccountSheet(
                     leadingIcon = { Icon(Icons.Default.Pin, contentDescription = null) }
                 )
 
+                // Currency Selection
+                val currencyInteractionSource = remember { MutableInteractionSource() }
+                TextField(
+                    value = "$selectedCurrency (${com.ritesh.cashiro.utils.CurrencyFormatter.getCurrencySymbol(selectedCurrency)})",
+                    onValueChange = {},
+                    label = { Text("Currency", fontWeight = FontWeight.SemiBold) },
+                    readOnly = true,
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            interactionSource = currencyInteractionSource,
+                            indication = null
+                        ) {
+                            showCurrencySheet = true
+                        },
+                    shape = RoundedCornerShape(
+                        topStart = 4.dp,
+                        topEnd = 4.dp,
+                        bottomStart = 16.dp,
+                        bottomEnd = 16.dp
+                    ),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f),
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        disabledIndicatorColor = Color.Transparent,
+                        disabledLabelColor = MaterialTheme.colorScheme.primary,
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    leadingIcon = { 
+                        Icon(
+                            imageVector = Icons.Default.AttachMoney,
+                            contentDescription = null
+                        ) 
+                    },
+                    trailingIcon = {
+                        Icon(Icons.Default.KeyboardArrowDown, contentDescription = null)
+                    },
+                    enabled = false
+                )
+
                 Spacer(modifier = Modifier.height(8.dp))
+
 
                 // Color Picker Section
                 Card(
@@ -541,7 +608,7 @@ fun EditAccountSheet(
             SplitButtonLayout(
                 leadingButton = {
                     SplitButtonDefaults.LeadingButton(
-                        onClick = { onSave(bankName, balance, accountLast4, iconResId, colorHex, isCreditCard, if (isCreditCard) creditLimit else null) },
+                        onClick = { onSave(bankName, balance, accountLast4, iconResId, colorHex, isCreditCard, if (isCreditCard) creditLimit else null, selectedCurrency) },
                         enabled = bankName.isNotBlank() && accountLast4.length == 4,
                         modifier = Modifier.height(56.dp)
                     ) {
@@ -680,6 +747,7 @@ fun EditAccountSheet(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun PreviewAccountCard(
     bankName: String,
@@ -692,7 +760,7 @@ private fun PreviewAccountCard(
     creditLimit: BigDecimal = BigDecimal.ZERO
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.padding(bottom = Spacing.sm).fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer
         ),
@@ -700,7 +768,7 @@ private fun PreviewAccountCard(
         shape = RoundedCornerShape(24.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().animateContentSize(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Balance/Outstanding Section
@@ -721,7 +789,11 @@ private fun PreviewAccountCard(
                 )
             }
 
-            if (isCreditCard) {
+            BlurredAnimatedVisibility(
+                visible = isCreditCard,
+                enter = fadeIn() + slideInVertically(MaterialTheme.motionScheme.fastEffectsSpec()),
+                exit = fadeOut() + slideOutVertically(MaterialTheme.motionScheme.fastEffectsSpec())
+            ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)

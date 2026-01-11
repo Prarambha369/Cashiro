@@ -169,7 +169,8 @@ constructor(
         iconResId: Int,
         colorHex: String,
         isCreditCard: Boolean = false,
-        creditLimit: BigDecimal? = null
+        creditLimit: BigDecimal? = null,
+        currency: String = "INR"
     ) {
         viewModelScope.launch {
             // Check for duplicates
@@ -192,7 +193,8 @@ constructor(
                     creditLimit = creditLimit,
                     timestamp = LocalDateTime.now(),
                     isCreditCard = isCreditCard,
-                    iconResId = iconResId
+                    iconResId = iconResId,
+                    currency = currency
                 )
             )
 
@@ -471,7 +473,8 @@ constructor(
             newBalance: BigDecimal,
             newCreditLimit: BigDecimal?,
             isCreditCard: Boolean,
-            newIconResId: Int
+            newIconResId: Int,
+            newCurrency: String = "INR"
     ) {
         viewModelScope.launch {
             try {
@@ -505,7 +508,8 @@ constructor(
                         timestamp = LocalDateTime.now(),
                         isCreditCard = isCreditCard,
                         sourceType = "MANUAL",
-                        iconResId = newIconResId
+                        iconResId = newIconResId,
+                        currency = newCurrency
                     )
                 )
 

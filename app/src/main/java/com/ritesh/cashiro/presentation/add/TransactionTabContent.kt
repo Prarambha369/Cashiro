@@ -40,6 +40,7 @@ import androidx.core.graphics.toColorInt
 import com.ritesh.cashiro.ui.effects.overScrollVertical
 import com.ritesh.cashiro.ui.effects.rememberOverscrollFlingBehavior
 import kotlinx.coroutines.delay
+import com.ritesh.cashiro.presentation.accounts.NumberPad
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -68,6 +69,7 @@ fun TransactionTabContent(viewModel: AddViewModel, onSave: () -> Unit) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var showCategoryMenu by remember { mutableStateOf(false) }
+    var showNumberPad by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
     Box(modifier = Modifier.fillMaxSize()) {
@@ -85,31 +87,19 @@ fun TransactionTabContent(viewModel: AddViewModel, onSave: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Amount Input
-            TextField(
-                value = uiState.amount,
-                onValueChange = viewModel::updateTransactionAmount,
-                label = { Text("Amount", fontWeight = FontWeight.SemiBold) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                shape =
-                    RoundedCornerShape(
-                        topStart = 16.dp,
-                        topEnd = 16.dp,
-                        bottomStart = 16.dp,
-                        bottomEnd = 16.dp
-                    ),
-                isError = uiState.amountError != null,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    focusedLabelColor = MaterialTheme.colorScheme.primary,
-                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
+            val amountInteractionSource = remember { MutableInteractionSource() }
+            // Amount Input
+            AmountInput(
+                amount = uiState.amount.ifEmpty { "0" },
+                currencySymbol = com.ritesh.cashiro.utils.CurrencyFormatter.getCurrencySymbol(
+                    uiState.selectedAccount?.currency ?: "INR"
                 ),
-                supportingText = uiState.amountError?.let { { Text(it) } },
-                leadingIcon = { Icon(Icons.Default.CurrencyRupee, contentDescription = null) },
+                onClick = {
+                    showNumberPad = true
+                },
+                modifier = Modifier.fillMaxWidth()
             )
+
 
             // Transaction Type Selection
             Column(modifier = Modifier.fillMaxWidth()) {
@@ -887,7 +877,23 @@ fun TransactionTabContent(viewModel: AddViewModel, onSave: () -> Unit) {
                     }
                 }
             }
-
+            // NumberPad for Amount Input
+            if (showNumberPad) {
+                ModalBottomSheet(
+                    onDismissRequest = { showNumberPad = false },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    dragHandle = { BottomSheetDefaults.DragHandle() }
+                ) {
+                    NumberPad(
+                        initialValue = uiState.amount.ifEmpty { "0" },
+                        onDone = { newAmount ->
+                            viewModel.updateTransactionAmount(newAmount)
+                            showNumberPad = false
+                        },
+                        title = "Enter Amount"
+                    )
+                }
+            }
 
             // Category Selection Sheet
             if (showCategoryMenu) {
