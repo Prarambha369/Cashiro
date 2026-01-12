@@ -1,11 +1,15 @@
 package com.ritesh.cashiro.ui.screens.analytics
 
+import android.graphics.Color
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
@@ -16,6 +20,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -23,20 +32,28 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ritesh.cashiro.presentation.common.TimePeriod
 import com.ritesh.cashiro.presentation.common.TransactionTypeFilter
 import com.ritesh.cashiro.ui.components.*
-import com.ritesh.cashiro.ui.icons.CategoryMapping
-import com.ritesh.cashiro.ui.theme.*
-import com.ritesh.cashiro.utils.CurrencyFormatter
-import com.ritesh.cashiro.utils.DateRangeUtils
-import java.math.BigDecimal
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.haze
-import com.ritesh.cashiro.ui.components.CustomTitleTopAppBar
+import com.ritesh.cashiro.ui.effects.BlurredAnimatedVisibility
 import com.ritesh.cashiro.ui.effects.overScrollVertical
 import com.ritesh.cashiro.ui.effects.rememberOverscrollFlingBehavior
-import androidx.compose.foundation.lazy.rememberLazyListState
+import com.ritesh.cashiro.ui.icons.CategoryMapping
+import com.ritesh.cashiro.ui.theme.Dimensions
+import com.ritesh.cashiro.ui.theme.Spacing
+import com.ritesh.cashiro.utils.CurrencyFormatter
+import com.ritesh.cashiro.utils.DateRangeUtils
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.haze
+import dev.chrisbanes.haze.hazeChild
+import java.math.BigDecimal
+
+enum class ChartType(val icon: ImageVector, val label: String) {
+    LINE(Icons.AutoMirrored.Filled.ShowChart, "Line"),
+    BAR(Icons.Default.BarChart, "Bar"),
+    HEATMAP(Icons.Default.GridOn, "Heatmap")
+}
+
+enum class BreakdownType {
+    PIE, LIST
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,6 +71,11 @@ fun AnalyticsScreen(
     val customDateRange by viewModel.customDateRange.collectAsStateWithLifecycle()
     var showAdvancedFilters by remember { mutableStateOf(false) }
     var showDateRangePicker by remember { mutableStateOf(false) }
+    
+    // Chart Selection State
+    var selectedChartType by remember { mutableStateOf(ChartType.LINE) }
+    var showChartTypeSelector by remember { mutableStateOf(false) }
+    var selectedBreakdownType by remember { mutableStateOf(BreakdownType.PIE) }
 
     // Calculate active filter count
     val activeFilterCount = if (transactionTypeFilter != TransactionTypeFilter.EXPENSE) 1 else 0
@@ -68,7 +90,7 @@ fun AnalyticsScreen(
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val hazeState = remember { HazeState() }
     val context = LocalContext.current
-    val lazyListState = rememberLazyListState()
+    val lazyListState = androidx.compose.foundation.lazy.rememberLazyListState()
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -79,20 +101,12 @@ fun AnalyticsScreen(
                 scrollBehaviorLarge = scrollBehavior,
                 hazeState = hazeState,
                 hasBackButton = false,
-//                showSettingsButton = true,
-//                showDiscordButton = true,
-//                onSettingsClick = onNavigateToSettings,
-//                onDiscordClick = {
-//                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://discord.gg/H3xWeMWjKQ"))
-//                    context.startActivity(intent)
-//                }
+                onNavigateToSettings = onNavigateToSettings
             )
         }
     ) { paddingValues ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-
+            modifier = Modifier.fillMaxSize()
         ) {
             LazyColumn(
                 state = lazyListState,
@@ -103,54 +117,89 @@ fun AnalyticsScreen(
                     .overScrollVertical(),
                 flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
                 contentPadding = PaddingValues(
-                    start = Dimensions.Padding.content,
-                    end = Dimensions.Padding.content,
-                    top = paddingValues.calculateTopPadding(),
-                    bottom = Dimensions.Padding.content
+                    start = 0.dp,
+                    end = 0.dp,
+                    top = paddingValues.calculateTopPadding() + Dimensions.Padding.content,
+                    bottom = Dimensions.Padding.content + 80.dp // Extra padding for bottom nav
                 ),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
-                // Period Selector - Always visible
+                // Filters (Period and Type)
                 item {
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                    ) {
-                        items(timePeriods) { period ->
-                            FilterChip(
-                                // Only show CUSTOM as selected if both period is CUSTOM AND dates are set
-                                selected = if (period == TimePeriod.CUSTOM) {
-                                    selectedPeriod == period && customDateRange != null
-                                } else {
-                                    selectedPeriod == period
-                                },
-                                onClick = {
-                                    if (period == TimePeriod.CUSTOM) {
-                                        showDateRangePicker = true
-                                        // Don't change selectedPeriod until user confirms dates
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        // Time Period Filter
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            item{
+                                Spacer(modifier = Modifier.width(16.dp))
+                            }
+                            items(timePeriods) { period ->
+                                FilterChip(
+                                    selected = if (period == TimePeriod.CUSTOM) {
+                                        selectedPeriod == period && customDateRange != null
                                     } else {
-                                        viewModel.selectPeriod(period)
-                                    }
-                                },
-                                label = {
-                                    Text(
-                                        if (period == TimePeriod.CUSTOM && customRangeLabel != null) {
-                                            customRangeLabel
+                                        selectedPeriod == period
+                                    },
+                                    onClick = {
+                                        if (period == TimePeriod.CUSTOM) {
+                                            showDateRangePicker = true
                                         } else {
-                                            period.label
+                                            viewModel.selectPeriod(period)
                                         }
+                                    },
+                                    label = {
+                                        Text(
+                                            if (period == TimePeriod.CUSTOM && customRangeLabel != null) {
+                                                customRangeLabel
+                                            } else {
+                                                period.label
+                                            }
+                                        )
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
-                                },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
-                            )
+                            }
+                        }
+
+                        // Collapsible Filter Row for Type
+                        CollapsibleFilterRow(
+                            isExpanded = showAdvancedFilters,
+                            activeFilterCount = activeFilterCount,
+                            onToggle = { showAdvancedFilters = !showAdvancedFilters },
+                            modifier = Modifier.fillMaxWidth()
+
+                        ) {
+                            LazyRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            ) {
+                                items(TransactionTypeFilter.values().toList()) { typeFilter ->
+                                    FilterChip(
+                                        selected = transactionTypeFilter == typeFilter,
+                                        onClick = { viewModel.setTransactionTypeFilter(typeFilter) },
+                                        label = { Text(typeFilter.label) },
+                                        leadingIcon = if (transactionTypeFilter == typeFilter) {
+                                            {
+                                                TypeFilterIcon(typeFilter)
+                                            }
+                                        } else null,
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                            selectedLabelColor = MaterialTheme.colorScheme.onTertiaryContainer
+                                        )
+                                    )
+                                }
+                            }
                         }
                     }
                 }
 
-                // Currency Selector (if multiple currencies available)
+                // Currency Selector (if multiple available)
                 if (availableCurrencies.size > 1) {
                     item {
                         CurrencyFilterRow(
@@ -162,71 +211,7 @@ fun AnalyticsScreen(
                     }
                 }
 
-                // Collapsible Transaction Type Filter
-                item {
-                    CollapsibleFilterRow(
-                        isExpanded = showAdvancedFilters,
-                        activeFilterCount = activeFilterCount,
-                        onToggle = { showAdvancedFilters = !showAdvancedFilters },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        LazyRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                        ) {
-                            items(TransactionTypeFilter.values().toList()) { typeFilter ->
-                                FilterChip(
-                                    selected = transactionTypeFilter == typeFilter,
-                                    onClick = { viewModel.setTransactionTypeFilter(typeFilter) },
-                                    label = { Text(typeFilter.label) },
-                                    leadingIcon = if (transactionTypeFilter == typeFilter) {
-                                        {
-                                            when (typeFilter) {
-                                                TransactionTypeFilter.INCOME -> Icon(
-                                                    Icons.AutoMirrored.Filled.TrendingUp,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(Dimensions.Icon.small)
-                                                )
-
-                                                TransactionTypeFilter.EXPENSE -> Icon(
-                                                    Icons.AutoMirrored.Filled.TrendingDown,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(Dimensions.Icon.small)
-                                                )
-
-                                                TransactionTypeFilter.CREDIT -> Icon(
-                                                    Icons.Default.CreditCard,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(Dimensions.Icon.small)
-                                                )
-
-                                                TransactionTypeFilter.TRANSFER -> Icon(
-                                                    Icons.Default.SwapHoriz,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(Dimensions.Icon.small)
-                                                )
-
-                                                TransactionTypeFilter.INVESTMENT -> Icon(
-                                                    Icons.AutoMirrored.Filled.ShowChart,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(Dimensions.Icon.small)
-                                                )
-
-                                                else -> null
-                                            }
-                                        }
-                                    } else null,
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                        selectedLabelColor = MaterialTheme.colorScheme.onTertiaryContainer
-                                    )
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Analytics Summary Card
+                // Analytics Summary
                 if (uiState.totalSpending > BigDecimal.ZERO || uiState.transactionCount > 0) {
                     item {
                         AnalyticsSummaryCard(
@@ -236,83 +221,315 @@ fun AnalyticsScreen(
                             topCategory = uiState.topCategory,
                             topCategoryPercentage = uiState.topCategoryPercentage,
                             currency = uiState.currency,
-                            isLoading = uiState.isLoading
+                            isLoading = uiState.isLoading,
+                            modifier = Modifier.padding(
+                                start = Dimensions.Padding.content,
+                                end = Dimensions.Padding.content,
+                            )
                         )
                     }
                 }
 
-                // Category Breakdown Section
-                if (uiState.categoryBreakdown.isNotEmpty()) {
-                    item {
-                        CategoryBreakdownCard(
-                            categories = uiState.categoryBreakdown,
-                            currency = selectedCurrency,
-                            onCategoryClick = { category ->
-                                onNavigateToTransactions(
-                                    category.name,
-                                    null,
-                                    selectedPeriod.name,
-                                    selectedCurrency
-                                )
-                            }
-                        )
-                    }
-                }
-
-                // Top Merchants Section
-                if (uiState.topMerchants.isNotEmpty()) {
+                // Spending Trend Chart
+                if (uiState.spendingTrend.isNotEmpty()) {
                     item {
                         SectionHeader(
-                            title = "Top Merchants"
+                            title = "Trends",
+                            modifier = Modifier.padding(
+                                start = Dimensions.Padding.content,
+                                end = Dimensions.Padding.content,
+                            )
+                        )
+                    }
+                    
+                    // Premium Chart Type Selector
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    start = Dimensions.Padding.content,
+                                    end = Dimensions.Padding.content,
+                                )
+                                .animateContentSize()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(horizontal = Spacing.sm)
+                                    .fillMaxWidth()
+                                    .height(56.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .hazeChild(state = hazeState)
+                                    .background(MaterialTheme.colorScheme.surface.copy(0.2f), shape = RoundedCornerShape(16.dp))
+                                    .clickable { showChartTypeSelector = !showChartTypeSelector }
+                                    .padding(horizontal = Spacing.md),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = selectedChartType.icon,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(Spacing.sm))
+                                        Text(
+                                            text = "${selectedChartType.label} Chart",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                    Icon(
+                                        imageVector = if (showChartTypeSelector) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            BlurredAnimatedVisibility(
+                                visible = showChartTypeSelector,
+                                modifier = Modifier
+                                    .padding(horizontal = Spacing.sm)
+                                    .padding(top = 8.dp)
+                            ) {
+                                CashiroCard(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    containerColor = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                                    )
+                                ) {
+                                    Column(modifier = Modifier.padding(8.dp)) {
+                                        ChartType.values().forEach { type ->
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .clickable {
+                                                        selectedChartType = type
+                                                        showChartTypeSelector = false
+                                                    }
+                                                    .padding(12.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(
+                                                        imageVector = type.icon,
+                                                        contentDescription = null,
+                                                        tint = if (selectedChartType == type) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(12.dp))
+                                                    Text(
+                                                        text = type.label,
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        color = if (selectedChartType == type) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        fontWeight = if (selectedChartType == type) FontWeight.Bold else FontWeight.Normal
+                                                    )
+                                                }
+                                                if (selectedChartType == type) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Check,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    item {
+                        CashiroCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    start = Dimensions.Padding.content,
+                                    end = Dimensions.Padding.content,
+                                )
+                                .animateContentSize()
+                        ) {
+                            Column(modifier = Modifier.padding(Spacing.md)) {
+
+                                when (selectedChartType) {
+
+                                    ChartType.LINE ->  AnimatedVisibility(
+                                        visible = true,
+                                        enter = fadeIn() + expandVertically(),
+                                        exit = fadeOut() + shrinkVertically()
+                                    ) {
+                                        SpendingLineChart(
+                                            data = uiState.spendingTrend,
+                                            currency = uiState.currency
+                                        )
+                                    }
+                                    ChartType.BAR ->  AnimatedVisibility(
+                                        visible = true,
+                                        enter = fadeIn() + expandVertically(),
+                                        exit = fadeOut() + shrinkVertically()
+                                    ) {
+                                        SpendingBarChart(
+                                            data = uiState.spendingTrend,
+                                            currency = uiState.currency
+                                        )
+                                    }
+                                    ChartType.HEATMAP ->  AnimatedVisibility(
+                                        visible = true,
+                                        enter = fadeIn() + expandVertically(),
+                                        exit = fadeOut() + shrinkVertically()
+                                    ) {
+                                        SpendingHeatmap(
+                                            data = uiState.spendingTrend
+                                        )
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                }
+
+                // Category Breakdown
+                if (uiState.categoryBreakdown.isNotEmpty()) {
+                    item {
+                        SectionHeader(
+                            title = "Top Categories",
+                            action = {
+                                IconButton(onClick = {
+                                    selectedBreakdownType = if (selectedBreakdownType == BreakdownType.PIE) {
+                                        BreakdownType.LIST
+                                    } else {
+                                        BreakdownType.PIE
+                                    }
+                                }) {
+                                    Icon(
+                                        imageVector = if (selectedBreakdownType == BreakdownType.PIE) {
+                                            Icons.Default.List
+                                        } else {
+                                            Icons.Default.PieChart
+                                        },
+                                        contentDescription = "Toggle View",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            },
+                            modifier = Modifier.padding(
+                                start = Dimensions.Padding.content,
+                                end = Dimensions.Padding.content,
+                            )
                         )
                     }
 
-                    // All Merchants with expandable list
+                    if (selectedBreakdownType == BreakdownType.PIE) {
+                        // Pie Chart
+                        item {
+                            CashiroCard(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(
+                                        start = Dimensions.Padding.content,
+                                        end = Dimensions.Padding.content,
+                                    )
+                                    .animateContentSize()
+                            ) {
+                                Column(modifier = Modifier.padding(Spacing.md)) {
+                                    CategoryPieChart(
+                                        categories = uiState.categoryBreakdown,
+                                        currency = uiState.currency
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        // List
+                        items(uiState.categoryBreakdown.take(5)) { category ->
+                            CategoryProgressItem(
+                                name = category.name,
+                                amount = category.amount,
+                                percentage = category.percentage / 100f,
+                                currency = uiState.currency,
+                                onClick = {
+                                    onNavigateToTransactions(
+                                        category.name,
+                                        null,
+                                        selectedPeriod.name,
+                                        uiState.currency
+                                    )
+                                },
+                            )
+                        }
+                        if (uiState.categoryBreakdown.size > 5) {
+                            item {
+                                TextButton(
+                                    onClick = { /* TODO: Navigate to full Breakdown */ },
+                                    modifier = Modifier.fillMaxWidth().padding(
+                                        start = Dimensions.Padding.content,
+                                        end = Dimensions.Padding.content,
+                                    )
+                                ) {
+                                    Text("View All Categories")
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Top Merchants
+                if (uiState.topMerchants.isNotEmpty()) {
                     item {
-                        ExpandableList(
+                        SectionHeader(title = "Top Merchants", modifier = Modifier.padding(
+                            start = Dimensions.Padding.content,
+                            end = Dimensions.Padding.content,
+                        ))
+                    }
+                    item {
+                         ExpandableList(
                             items = uiState.topMerchants,
                             visibleItemCount = 3,
                             modifier = Modifier.fillMaxWidth()
                         ) { merchant ->
                             MerchantListItem(
                                 merchant = merchant,
-                                currency = selectedCurrency,
+                                currency = uiState.currency,
                                 onClick = {
                                     onNavigateToTransactions(
-                                        null,
-                                        merchant.name,
-                                        selectedPeriod.name,
-                                        selectedCurrency
+                                        null, // category
+                                        merchant.name, // merchant
+                                        selectedPeriod.name, // period
+                                        uiState.currency // currency
                                     )
-                                }
+                                },
+                                modifier = Modifier.padding(
+                                    start = Dimensions.Padding.content,
+                                    end = Dimensions.Padding.content,
+                                )
                             )
                         }
                     }
                 }
 
-
-                // Empty state
+                // Empty State
                 if (uiState.topMerchants.isEmpty() && uiState.categoryBreakdown.isEmpty() && !uiState.isLoading) {
                     item {
-                        EmptyAnalyticsState()
+                        EmptyAnalyticsState(
+                            modifier = Modifier.padding(
+                                start = Dimensions.Padding.content,
+                                end = Dimensions.Padding.content,
+                            )
+                        )
                     }
                 }
             }
-
-//    // Chat FAB
-//    SmallFloatingActionButton(
-//        onClick = onNavigateToChat,
-//        modifier = Modifier
-//            .align(Alignment.BottomEnd)
-//            .padding(Dimensions.Padding.content),
-//        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-//        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-//    ) {
-//        Icon(
-//            imageVector = Icons.AutoMirrored.Filled.Chat,
-//            contentDescription = "Open AI Assistant"
-//        )
-//    }
         }
 
         if (showDateRangePicker) {
@@ -330,47 +547,116 @@ fun AnalyticsScreen(
 }
 
 @Composable
-private fun CategoryListItem(
-    category: CategoryData,
-    currency: String
-) {
-    val categoryInfo = CategoryMapping.categories[category.name]
-        ?: CategoryMapping.categories["Others"]!!
-
-    ListItemCard(
-        leadingContent = {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(categoryInfo.color.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                CategoryIcon(
-                    category = category.name,
-                    size = 24.dp,
-                    tint = categoryInfo.color
-                )
-            }
-        },
-        title = category.name,
-        subtitle = "${category.transactionCount} transactions",
-        amount = CurrencyFormatter.formatCurrency(category.amount, currency),
-        trailingContent = {
-            Text(
-                text = "${category.percentage.toInt()}%",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    )
+private fun TypeFilterIcon(typeFilter: TransactionTypeFilter) {
+    when (typeFilter) {
+        TransactionTypeFilter.INCOME -> Icon(
+            Icons.AutoMirrored.Filled.TrendingUp,
+            contentDescription = null,
+            modifier = Modifier.size(Dimensions.Icon.small)
+        )
+        TransactionTypeFilter.EXPENSE -> Icon(
+            Icons.AutoMirrored.Filled.TrendingDown,
+            contentDescription = null,
+            modifier = Modifier.size(Dimensions.Icon.small)
+        )
+        TransactionTypeFilter.CREDIT -> Icon(
+            Icons.Default.CreditCard,
+            contentDescription = null,
+            modifier = Modifier.size(Dimensions.Icon.small)
+        )
+        TransactionTypeFilter.TRANSFER -> Icon(
+            Icons.Default.SwapHoriz,
+            contentDescription = null,
+            modifier = Modifier.size(Dimensions.Icon.small)
+        )
+        TransactionTypeFilter.INVESTMENT -> Icon(
+            Icons.AutoMirrored.Filled.ShowChart,
+            contentDescription = null,
+            modifier = Modifier.size(Dimensions.Icon.small)
+        )
+        else -> {}
+    }
 }
 
 @Composable
-private fun MerchantListItem(
+fun CategoryProgressItem(
+    name: String,
+    amount: BigDecimal,
+    percentage: Float,
+    currency: String,
+    onClick: () -> Unit
+) {
+    val categoryInfo = CategoryMapping.categories[name]
+        ?: CategoryMapping.categories["Others"]!!
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = Spacing.md, vertical = Spacing.md)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Category Icon
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(categoryInfo.color),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CategoryIcon(
+                        category = name,
+                        size = 16.dp,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(modifier = Modifier.width(Spacing.sm))
+                Column {
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "${(percentage * 100).toInt()}%",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Text(
+                text = CurrencyFormatter.formatCurrency(amount, currency),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        Spacer(modifier = Modifier.height(Spacing.xs))
+        LinearProgressIndicator(
+            progress = { percentage },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .clip(CircleShape),
+            trackColor = categoryInfo.color.copy(alpha = 0.2f),
+            color = categoryInfo.color,
+            strokeCap = StrokeCap.Round,
+        )
+    }
+}
+
+@Composable
+fun MerchantListItem(
+    modifier: Modifier = Modifier,
     merchant: MerchantData,
     currency: String,
-    onClick: () -> Unit = {}
+    onClick: () -> Unit
 ) {
     val subtitle = buildString {
         append("${merchant.transactionCount} ")
@@ -391,14 +677,17 @@ private fun MerchantListItem(
         title = merchant.name,
         subtitle = subtitle,
         amount = CurrencyFormatter.formatCurrency(merchant.amount, currency),
-        onClick = onClick
+        onClick = onClick,
+        modifier = modifier
     )
 }
 
 @Composable
-private fun EmptyAnalyticsState() {
+private fun EmptyAnalyticsState(
+    modifier: Modifier = Modifier
+) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(Dimensions.Padding.content),
         contentAlignment = Alignment.Center
@@ -412,13 +701,20 @@ private fun EmptyAnalyticsState() {
                     .padding(Dimensions.Padding.empty),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Icon(
+                    imageVector = Icons.Default.BarChart, // Changed icon for variety
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(Spacing.md))
                 Text(
-                    text = "No data available",
+                    text = "No analytics data",
                     style = MaterialTheme.typography.bodyLarge
                 )
-                Spacer(modifier = Modifier.height(Spacing.sm))
+                Spacer(modifier = Modifier.height(Spacing.xs))
                 Text(
-                    text = "Start tracking expenses to see analytics",
+                    text = "Try changing the filters or add more transactions",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center

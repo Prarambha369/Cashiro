@@ -12,6 +12,7 @@ plugins {
 android {
     namespace = "com.ritesh.cashiro"
     compileSdk = 36
+    buildToolsVersion = "34.0.0"
     
     buildFeatures {
         buildConfig = true
@@ -20,7 +21,7 @@ android {
     defaultConfig {
         applicationId = "com.ritesh.cashiro"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 78
         versionName = "2.15.43"
 
@@ -248,4 +249,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
     implementation(libs.coil.gif)
+
+    // Compose Charts
+    implementation(libs.compose.charts)
 }

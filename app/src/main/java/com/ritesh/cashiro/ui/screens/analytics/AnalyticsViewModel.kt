@@ -1,17 +1,21 @@
 package com.ritesh.cashiro.ui.screens.analytics
 
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ritesh.cashiro.data.repository.TransactionRepository
 import com.ritesh.cashiro.presentation.common.TimePeriod
 import com.ritesh.cashiro.presentation.common.TransactionTypeFilter
 import com.ritesh.cashiro.presentation.common.getDateRangeForPeriod
+import com.ritesh.cashiro.ui.components.BalancePoint
 import com.ritesh.cashiro.utils.CurrencyUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 @HiltViewModel
@@ -172,7 +176,8 @@ class AnalyticsViewModel @Inject constructor(
                     topCategory = topCategory?.name,
                     topCategoryPercentage = topCategory?.percentage ?: 0f,
                     currency = filterState.currency,
-                    isLoading = false
+                    isLoading = false,
+                    spendingTrend = calculateSpendingTrend(filteredTransactions, dateRange.first, dateRange.second)
                 )
             }
         }
@@ -222,7 +227,97 @@ class AnalyticsViewModel @Inject constructor(
             _selectedPeriod.value = TimePeriod.THIS_MONTH
         }
     }
+
+    private fun calculateSpendingTrend(
+        transactions: List<com.ritesh.cashiro.data.database.entity.TransactionEntity>,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): List<BalancePoint> {
+        val selectedPeriod = _selectedPeriod.value
+        val trend = mutableListOf<BalancePoint>()
+
+        val currency = transactions.firstOrNull()?.currency ?: _selectedCurrency.value
+
+        when {
+            selectedPeriod == TimePeriod.ALL || selectedPeriod == TimePeriod.CURRENT_FY -> {
+                // Determine the actual start date for "All Time" to avoid showing years of empty data
+                val actualStartDate = if (selectedPeriod == TimePeriod.ALL && transactions.isNotEmpty()) {
+                    val firstTxDate = transactions.minByOrNull { it.dateTime }?.dateTime?.toLocalDate() ?: startDate
+                    if (firstTxDate.isAfter(startDate)) firstTxDate.withDayOfMonth(1) else startDate
+                } else {
+                    startDate
+                }
+
+                // Decide aggregation level
+                val yearsInRange = java.time.temporal.ChronoUnit.YEARS.between(actualStartDate, endDate)
+                val aggregateByYear = selectedPeriod == TimePeriod.ALL && yearsInRange >= 2
+
+                if (aggregateByYear) {
+                    var currentYear = actualStartDate.withDayOfYear(1)
+                    val lastYear = endDate.withDayOfYear(1)
+
+                    while (!currentYear.isAfter(lastYear) && !currentYear.isAfter(LocalDate.now().withDayOfYear(1))) {
+                        val endOfYear = currentYear.withDayOfYear(currentYear.lengthOfYear())
+                        val transactionsForYear = transactions.filter {
+                            !it.dateTime.toLocalDate().isBefore(currentYear) && !it.dateTime.toLocalDate().isAfter(endOfYear)
+                        }
+                        val totalAmount = transactionsForYear.sumOf { it.amount.toDouble() }.toBigDecimal()
+
+                        trend.add(
+                            BalancePoint(
+                                timestamp = currentYear.atStartOfDay(),
+                                balance = totalAmount,
+                                currency = currency
+                            )
+                        )
+                        currentYear = currentYear.plusYears(1)
+                    }
+                } else {
+                    // Aggregate by Month
+                    var currentMonth = actualStartDate.withDayOfMonth(1)
+                    val lastMonth = endDate.withDayOfMonth(1)
+
+                    while (!currentMonth.isAfter(lastMonth) && !currentMonth.isAfter(LocalDate.now().withDayOfMonth(1))) {
+                        val endOfMonth = currentMonth.withDayOfMonth(currentMonth.lengthOfMonth())
+                        val transactionsForMonth = transactions.filter {
+                            !it.dateTime.toLocalDate().isBefore(currentMonth) && !it.dateTime.toLocalDate().isAfter(endOfMonth)
+                        }
+                        val totalAmount = transactionsForMonth.sumOf { it.amount.toDouble() }.toBigDecimal()
+
+                        trend.add(
+                            BalancePoint(
+                                timestamp = currentMonth.atStartOfDay(),
+                                balance = totalAmount,
+                                currency = currency
+                            )
+                        )
+                        currentMonth = currentMonth.plusMonths(1)
+                    }
+                }
+            }
+            else -> {
+                // Daily aggregation for smaller periods (This Month, Last Month, etc.)
+                val transactionsByDate = transactions.groupBy { it.dateTime.toLocalDate() }
+                var currentDate = startDate
+                while (!currentDate.isAfter(endDate) && !currentDate.isAfter(LocalDate.now())) {
+                    val transactionsForDay = transactionsByDate[currentDate] ?: emptyList()
+                    val totalAmount = transactionsForDay.sumOf { it.amount.toDouble() }.toBigDecimal()
+
+                    trend.add(
+                        BalancePoint(
+                            timestamp = currentDate.atStartOfDay(),
+                            balance = totalAmount,
+                            currency = currency
+                        )
+                    )
+                    currentDate = currentDate.plusDays(1)
+                }
+            }
+        }
+        return trend
+    }
 }
+
 
 /**
  * Internal state for combining all filter parameters.
@@ -244,7 +339,8 @@ data class AnalyticsUiState(
     val topCategory: String? = null,
     val topCategoryPercentage: Float = 0f,
     val currency: String = "INR",
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val spendingTrend: List<BalancePoint> = emptyList()
 )
 
 data class CategoryData(
