@@ -5,6 +5,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -55,7 +56,7 @@ enum class BreakdownType {
     PIE, LIST
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AnalyticsScreen(
     viewModel: AnalyticsViewModel = hiltViewModel(),
@@ -178,6 +179,9 @@ fun AnalyticsScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                             ) {
+                                item{
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                }
                                 items(TransactionTypeFilter.values().toList()) { typeFilter ->
                                     FilterChip(
                                         selected = transactionTypeFilter == typeFilter,
@@ -233,113 +237,108 @@ fun AnalyticsScreen(
                 // Spending Trend Chart
                 if (uiState.spendingTrend.isNotEmpty()) {
                     item {
-                        SectionHeader(
-                            title = "Trends",
-                            modifier = Modifier.padding(
-                                start = Dimensions.Padding.content,
-                                end = Dimensions.Padding.content,
-                            )
-                        )
-                    }
-                    
-                    // Premium Chart Type Selector
-                    item {
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    start = Dimensions.Padding.content,
-                                    end = Dimensions.Padding.content,
-                                )
-                                .animateContentSize()
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.Center
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .padding(horizontal = Spacing.sm)
-                                    .fillMaxWidth()
-                                    .height(56.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .hazeChild(state = hazeState)
-                                    .background(MaterialTheme.colorScheme.surface.copy(0.2f), shape = RoundedCornerShape(16.dp))
-                                    .clickable { showChartTypeSelector = !showChartTypeSelector }
-                                    .padding(horizontal = Spacing.md),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = selectedChartType.icon,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSurface,
-                                            modifier = Modifier.size(24.dp)
+                            SectionHeader(
+                                title = "Trends",
+                                action = {
+                                    Button(
+                                        onClick = {
+                                            showChartTypeSelector = !showChartTypeSelector
+                                        },
+                                        shapes = ButtonDefaults.shapes(),
+                                        contentPadding = PaddingValues(horizontal = Spacing.sm),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                                         )
-                                        Spacer(modifier = Modifier.width(Spacing.sm))
-                                        Text(
-                                            text = "${selectedChartType.label} Chart",
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = selectedChartType.icon,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onSurface,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(Spacing.sm))
+                                            Text(
+                                                text = "${selectedChartType.label} Chart",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                            )
+                                        }
                                     }
-                                    Icon(
-                                        imageVector = if (showChartTypeSelector) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-
-                            BlurredAnimatedVisibility(
-                                visible = showChartTypeSelector,
+                                },
+                                modifier = Modifier.padding(
+                                    start = Spacing.lg,
+                                    end = Spacing.lg,
+                                    top = Dimensions.Padding.content,
+                                    bottom = Spacing.sm
+                                )
+                            )
+                            // Premium Chart Type Selector
+                            Column(
                                 modifier = Modifier
-                                    .padding(horizontal = Spacing.sm)
-                                    .padding(top = 8.dp)
-                            ) {
-                                CashiroCard(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    containerColor = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                                    .fillMaxWidth()
+                                    .padding(
+                                        start = Dimensions.Padding.content,
+                                        end = Dimensions.Padding.content,
                                     )
+                                    .animateContentSize()
+                            ) {
+
+                                BlurredAnimatedVisibility(
+                                    visible = showChartTypeSelector,
+                                    modifier = Modifier
+                                        .padding(horizontal = Spacing.sm)
                                 ) {
-                                    Column(modifier = Modifier.padding(8.dp)) {
-                                        ChartType.values().forEach { type ->
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .clip(RoundedCornerShape(12.dp))
-                                                    .clickable {
-                                                        selectedChartType = type
-                                                        showChartTypeSelector = false
+                                    CashiroCard(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        containerColor = CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.surface.copy(
+                                                alpha = 0.9f
+                                            )
+                                        )
+                                    ) {
+                                        Column(modifier = Modifier.padding(horizontal = 8.dp)) {
+                                            ChartType.values().forEach { type ->
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .clickable {
+                                                            selectedChartType = type
+                                                            showChartTypeSelector = false
+                                                        }
+                                                        .padding(12.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Icon(
+                                                            imageVector = type.icon,
+                                                            contentDescription = null,
+                                                            tint = if (selectedChartType == type) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(12.dp))
+                                                        Text(
+                                                            text = type.label,
+                                                            style = MaterialTheme.typography.bodyMedium,
+                                                            color = if (selectedChartType == type) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            fontWeight = if (selectedChartType == type) FontWeight.Bold else FontWeight.Normal
+                                                        )
                                                     }
-                                                    .padding(12.dp),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Icon(
-                                                        imageVector = type.icon,
-                                                        contentDescription = null,
-                                                        tint = if (selectedChartType == type) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                        modifier = Modifier.size(20.dp)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(12.dp))
-                                                    Text(
-                                                        text = type.label,
-                                                        style = MaterialTheme.typography.bodyMedium,
-                                                        color = if (selectedChartType == type) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                        fontWeight = if (selectedChartType == type) FontWeight.Bold else FontWeight.Normal
-                                                    )
-                                                }
-                                                if (selectedChartType == type) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Check,
-                                                        contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(20.dp)
-                                                    )
+                                                    if (selectedChartType == type) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Check,
+                                                            contentDescription = null,
+                                                            tint = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
@@ -348,7 +347,7 @@ fun AnalyticsScreen(
                             }
                         }
                     }
-                    
+
                     item {
                         CashiroCard(
                             modifier = Modifier
@@ -424,8 +423,10 @@ fun AnalyticsScreen(
                                 }
                             },
                             modifier = Modifier.padding(
-                                start = Dimensions.Padding.content,
-                                end = Dimensions.Padding.content,
+                                start = Spacing.lg,
+                                end = Spacing.lg,
+                                top = Dimensions.Padding.content,
+                                bottom = Spacing.sm
                             )
                         )
                     }
@@ -487,10 +488,15 @@ fun AnalyticsScreen(
                 // Top Merchants
                 if (uiState.topMerchants.isNotEmpty()) {
                     item {
-                        SectionHeader(title = "Top Merchants", modifier = Modifier.padding(
-                            start = Dimensions.Padding.content,
-                            end = Dimensions.Padding.content,
-                        ))
+                        SectionHeader(
+                            title = "Top Merchants",
+                            modifier = Modifier.padding(
+                                start = Spacing.lg,
+                                end = Spacing.lg,
+                                top = Dimensions.Padding.content,
+                                bottom = Spacing.sm
+                            )
+                        )
                     }
                     item {
                          ExpandableList(

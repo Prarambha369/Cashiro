@@ -28,6 +28,7 @@ data class ManageAccountsUiState(
         emptyMap(), // accountLast4 -> List of cards
     val orphanedCards: List<CardEntity> = emptyList(),
     val isLoading: Boolean = false,
+    val mainAccountKey: String? = null,
     val errorMessage: String? = null,
     val successMessage: String? = null
 )
@@ -70,6 +71,7 @@ constructor(
     init {
         loadAccounts()
         loadHiddenAccounts()
+        loadMainAccount()
         loadCards()
     }
 
@@ -108,6 +110,21 @@ constructor(
     private fun loadHiddenAccounts() {
         val hidden = sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
         _uiState.update { it.copy(hiddenAccounts = hidden) }
+    }
+
+    private fun loadMainAccount() {
+        val main = sharedPrefs.getString("main_account", null)
+        _uiState.update { it.copy(mainAccountKey = main) }
+    }
+
+    fun setAsMainAccount(bankName: String, accountLast4: String) {
+        val key = "${bankName}_${accountLast4}"
+        sharedPrefs.edit().putString("main_account", key).apply()
+        _uiState.update { it.copy(mainAccountKey = key, successMessage = "Main account set successfully") }
+        viewModelScope.launch {
+            delay(3000)
+            _uiState.update { it.copy(successMessage = null) }
+        }
     }
 
     fun updateBankName(name: String) {
@@ -447,9 +464,15 @@ constructor(
                 hidden.remove(key)
                 sharedPrefs.edit().putStringSet("hidden_accounts", hidden).apply()
 
+                // Remove from main account if present
+                if (_uiState.value.mainAccountKey == key) {
+                    sharedPrefs.edit().remove("main_account").apply()
+                }
+
                 _uiState.update {
                     it.copy(
                             hiddenAccounts = hidden,
+                            mainAccountKey = if (it.mainAccountKey == key) null else it.mainAccountKey,
                             successMessage =
                                     "Account deleted successfully ($deletedCount balance records removed)"
                     )
@@ -495,6 +518,12 @@ constructor(
                         hidden.add(newKey)
                         sharedPrefs.edit().putStringSet("hidden_accounts", hidden).apply()
                         _uiState.update { it.copy(hiddenAccounts = hidden) }
+                    }
+
+                    // Update main account preference if bank name changed
+                    if (_uiState.value.mainAccountKey == oldKey) {
+                        sharedPrefs.edit().putString("main_account", newKey).apply()
+                        _uiState.update { it.copy(mainAccountKey = newKey) }
                     }
                 }
 

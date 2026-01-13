@@ -258,6 +258,13 @@ fun ManageAccountsScreen(
                                     linkedCards = uiState.linkedCards[account.accountLast4]
                                         ?: emptyList(),
                                     isHidden = false,
+                                    isMain = uiState.mainAccountKey == "${account.bankName}_${account.accountLast4}",
+                                    onSetAsMain = {
+                                        viewModel.setAsMainAccount(
+                                            account.bankName,
+                                            account.accountLast4
+                                        )
+                                    },
                                     onToggleVisibility = {
                                         viewModel.toggleAccountVisibility(
                                             account.bankName,
@@ -331,6 +338,13 @@ fun ManageAccountsScreen(
                                 CreditCardItem(
                                     card = card,
                                     isHidden = false,
+                                    isMain = uiState.mainAccountKey == "${card.bankName}_${card.accountLast4}",
+                                    onSetAsMain = {
+                                        viewModel.setAsMainAccount(
+                                            card.bankName,
+                                            card.accountLast4
+                                        )
+                                    },
                                     onToggleVisibility = {
                                         viewModel.toggleAccountVisibility(
                                             card.bankName,
@@ -421,6 +435,13 @@ fun ManageAccountsScreen(
                                         linkedCards = uiState.linkedCards[
                                             account.accountLast4] ?: emptyList(),
                                         isHidden = true,
+                                        isMain = uiState.mainAccountKey == "${account.bankName}_${account.accountLast4}",
+                                        onSetAsMain = {
+                                            viewModel.setAsMainAccount(
+                                                account.bankName,
+                                                account.accountLast4
+                                            )
+                                        },
                                         onToggleVisibility = {
                                             viewModel.toggleAccountVisibility(
                                                 account.bankName,
@@ -461,6 +482,13 @@ fun ManageAccountsScreen(
                                     CreditCardItem(
                                         card = card,
                                         isHidden = true,
+                                        isMain = uiState.mainAccountKey == "${card.bankName}_${card.accountLast4}",
+                                        onSetAsMain = {
+                                            viewModel.setAsMainAccount(
+                                                card.bankName,
+                                                card.accountLast4
+                                            )
+                                        },
                                         onToggleVisibility = {
                                             viewModel.toggleAccountVisibility(
                                                 card.bankName,
@@ -700,6 +728,8 @@ private fun CreditCardItem(
     onUpdateBalance: () -> Unit,
     onViewHistory: () -> Unit,
     onDeleteAccount: () -> Unit,
+    isMain: Boolean = false,
+    onSetAsMain: () -> Unit = {},
     onEditAccount: () -> Unit = {}
 ) {
     val available = (card.creditLimit ?: BigDecimal.ZERO) - card.balance
@@ -724,7 +754,9 @@ private fun CreditCardItem(
         onEditAccount = onEditAccount,
         onViewHistory = onViewHistory,
         onToggleVisibility = onToggleVisibility,
-        onDeleteAccount = onDeleteAccount
+        onDeleteAccount = onDeleteAccount,
+        isMain = isMain,
+        onSetAsMain = onSetAsMain
     ) {
         // Credit Card specific details appended to the card
         Column(
@@ -796,6 +828,8 @@ private fun AccountItem(
     onToggleVisibility: () -> Unit,
     onUpdateBalance: () -> Unit,
     onViewHistory: () -> Unit,
+    isMain: Boolean = false,
+    onSetAsMain: () -> Unit = {},
     onUnlinkCard: (cardId: Long) -> Unit = {},
     onDeleteAccount: () -> Unit = {},
     onEditAccount: () -> Unit = {}
@@ -808,7 +842,9 @@ private fun AccountItem(
             onEditAccount = onEditAccount,
             onViewHistory = onViewHistory,
             onToggleVisibility = onToggleVisibility,
-            onDeleteAccount = onDeleteAccount
+            onDeleteAccount = onDeleteAccount,
+            isMain = isMain,
+            onSetAsMain = onSetAsMain
         ) {
 
             // Linked Cards Section

@@ -1,5 +1,6 @@
 package com.ritesh.cashiro.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -31,11 +32,13 @@ fun AccountCard(
     isHidden: Boolean = false,
     showMoreOptions: Boolean = true,
     onClick: (() -> Unit)? = null,
+    isMain: Boolean = false,
     onUpdateBalance: () -> Unit = {},
     onEditAccount: () -> Unit = {},
     onViewHistory: () -> Unit = {},
     onToggleVisibility: () -> Unit = {},
     onDeleteAccount: () -> Unit = {},
+    onSetAsMain: () -> Unit = {},
     content: @Composable () -> Unit = {}
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -235,6 +238,42 @@ fun AccountCard(
                                     )
                             )
                             Spacer(modifier = Modifier.height(1.5.dp))
+                            if (!isMain) {
+                                DropdownMenuItem(
+                                    text = { Text("Set as Main") },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Star,
+                                            contentDescription = null,
+                                            tint = Color(0xFFFFD700) // Gold
+                                        )
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        onSetAsMain()
+                                    },
+                                    modifier = Modifier
+                                        .shadow(
+                                            elevation = 2.dp,
+                                            shape = RoundedCornerShape(
+                                                topStart = 4.dp,
+                                                topEnd = 4.dp,
+                                                bottomStart = 4.dp,
+                                                bottomEnd = 4.dp
+                                            )
+                                        )
+                                        .background(
+                                            color = MaterialTheme.colorScheme.surfaceContainer,
+                                            shape = RoundedCornerShape(
+                                                topStart = 4.dp,
+                                                topEnd = 4.dp,
+                                                bottomStart = 4.dp,
+                                                bottomEnd = 4.dp
+                                            )
+                                        )
+                                )
+                                Spacer(modifier = Modifier.height(1.5.dp))
+                            }
                             DropdownMenuItem(
                                 text = {
                                     Text(
@@ -320,32 +359,59 @@ fun AccountCard(
                         )
                         Text(
                             text =
-                            "**** **** **** ${account.accountLast4}",
+                                "**** **** **** ${account.accountLast4}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.6f)
                         )
                     }
-                    if (account.iconResId != 0) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surface,
-                            tonalElevation = 2.dp,
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    ) {
+                        if (isMain) {
+                            Surface(
+                                shape = RoundedCornerShape(Spacing.xxl),
+                                color = Color(0xFFFFD700).copy(alpha = 0.15f),
+                                border = BorderStroke(1.dp, Color(0xFFFFD700).copy(alpha = 0.3f))
                             ) {
-                                Icon(
-                                    painter = painterResource(id = account.iconResId),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
-                                    tint = Color.Unspecified
-                                )
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Star,
+                                        contentDescription = null,
+                                        tint = Color(0xFFFFD700),
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        if (account.iconResId != 0) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surface,
+                                tonalElevation = 2.dp,
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = account.iconResId),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(24.dp),
+                                        tint = Color.Unspecified
+                                    )
+                                }
                             }
                         }
                     }
                 }
+
             }
             // Extra content (e.g., Credit Card stats, Linked Cards)
             content()

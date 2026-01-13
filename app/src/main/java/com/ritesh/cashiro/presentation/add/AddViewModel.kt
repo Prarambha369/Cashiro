@@ -1,5 +1,6 @@
 package com.ritesh.cashiro.presentation.add
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,6 +10,7 @@ import com.ritesh.cashiro.domain.usecase.AddSubscriptionUseCase
 import com.ritesh.cashiro.domain.usecase.AddTransactionUseCase
 import com.ritesh.cashiro.domain.usecase.GetCategoriesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
@@ -27,8 +29,11 @@ constructor(
     private val getCategoriesUseCase: GetCategoriesUseCase,
     private val subcategoryRepository: SubcategoryRepository,
     private val accountBalanceRepository:
-    com.ritesh.cashiro.data.repository.AccountBalanceRepository
+    com.ritesh.cashiro.data.repository.AccountBalanceRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
+
+    private val sharedPrefs = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
 
 
     // General UI State
@@ -88,6 +93,22 @@ constructor(
         // Load default subcategories for both tabs
         updateTransactionSubcategories("Others")
         updateSubscriptionSubcategories("Subscription")
+
+        // Pre-select main account
+        viewModelScope.launch {
+            accounts.filter { it.isNotEmpty() }.first().let { availableAccounts ->
+                val mainAccountKey = sharedPrefs.getString("main_account", null)
+                if (mainAccountKey != null) {
+                    val mainAccount = availableAccounts.find { 
+                        "${it.bankName}_${it.accountLast4}" == mainAccountKey 
+                    }
+                    if (mainAccount != null) {
+                        _transactionUiState.update { it.copy(selectedAccount = mainAccount) }
+                        _subscriptionUiState.update { it.copy(selectedAccount = mainAccount) }
+                    }
+                }
+            }
+        }
     }
 
     // Transaction Tab Functions
