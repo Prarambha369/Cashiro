@@ -614,10 +614,20 @@ fun SettingsScreen(
                             )
                         },
                         onClick = { importLauncher.launch("*/*") },
-                        shape = ListItemPosition.Middle.toShape(),
+                        shape = ListItemPosition.Bottom.toShape(),
                         padding = PaddingValues(0.dp)
                     )
+                }
 
+                // SMS Section
+                SectionHeader(
+                    title = "SMS",
+                    modifier = Modifier.padding(start = Spacing.md)
+                )
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(1.5.dp)
+                ) {
                     // SMS Scan Period
                     ListItem(
                         headline = {
@@ -679,6 +689,68 @@ fun SettingsScreen(
                             }
                         },
                         onClick = { showSmsScanDialog = true },
+                        shape = ListItemPosition.Top.toShape(),
+                        padding = PaddingValues(0.dp)
+                    )
+
+                    // Unrecognized Bank Messages
+                    val unreportedCount by
+                    settingsViewModel.unreportedSmsCount.collectAsStateWithLifecycle()
+
+                    ListItem(
+                        headline = {
+                            Text(
+                                text = "Unrecognized Bank Messages",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                        },
+                        supporting = {
+                            Text(
+                                text =
+                                    if (unreportedCount > 0)
+                                        "$unreportedCount message${if (unreportedCount > 1) "s" else ""} from potential banks"
+                                    else "No unrecognized messages",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        leading = {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(
+                                        color = blue_light,
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.BugReport,
+                                    contentDescription = null,
+                                    tint = blue_dark
+                                )
+                            }
+                        },
+                        trailing = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (unreportedCount > 0) {
+                                    Badge(containerColor = MaterialTheme.colorScheme.primary) {
+                                        Text(unreportedCount.toString())
+                                    }
+                                }
+
+                                Icon(
+                                    Icons.Default.ChevronRight,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        },
+                        onClick = { onNavigateToUnrecognizedSms() },
                         shape = ListItemPosition.Bottom.toShape(),
                         padding = PaddingValues(0.dp)
                     )
@@ -844,61 +916,6 @@ fun SettingsScreen(
                     }
                 }
 
-                // Unrecognized Messages Section (only show if count > 0)
-                val unreportedCount by
-                settingsViewModel.unreportedSmsCount.collectAsStateWithLifecycle()
-
-                if (unreportedCount > 0) {
-                    SectionHeader(
-                        title = "Help Improve Cashiro",
-                        modifier = Modifier.padding(start = Spacing.md)
-                    )
-
-                    CashiroCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            Log.d("SettingsScreen", "Navigating to UnrecognizedSms screen")
-                            onNavigateToUnrecognizedSms()
-                        }
-                    ) {
-                        Row(
-                            modifier =
-                                Modifier.fillMaxWidth().padding(Dimensions.Padding.content),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Unrecognized Bank Messages",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text =
-                                        "$unreportedCount message${if (unreportedCount > 1) "s"
-                                        else ""} from potential banks",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Badge(containerColor = MaterialTheme.colorScheme.primary) {
-                                    Text(unreportedCount.toString())
-                                }
-
-                                Icon(
-                                    Icons.Default.ChevronRight,
-                                    contentDescription = "View Messages",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
 
                 // Developer Section
                 SectionHeader(title = "Developer", modifier = Modifier.padding(start = Spacing.md))
