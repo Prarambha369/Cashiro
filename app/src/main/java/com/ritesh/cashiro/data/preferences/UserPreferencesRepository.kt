@@ -55,6 +55,12 @@ constructor(@ApplicationContext private val context: Context) {
         val PROFILE_IMAGE_URI = stringPreferencesKey("profile_image_uri")
         val PROFILE_BACKGROUND_COLOR = intPreferencesKey("profile_background_color")
         val BANNER_IMAGE_URI = stringPreferencesKey("banner_image_uri")
+        
+        // Notification preferences
+        val SCAN_NEW_TRANSACTIONS_ENABLED = booleanPreferencesKey("scan_new_transactions_enabled")
+        val SCAN_NEW_TRANSACTIONS_ALERT_TIME = longPreferencesKey("scan_new_transactions_alert_time")
+        val UPCOMING_NOTIFICATIONS_ENABLED = booleanPreferencesKey("upcoming_notifications_enabled")
+        val DISABLED_SUBSCRIPTION_NOTIFICATION_IDS = androidx.datastore.preferences.core.stringSetPreferencesKey("disabled_subscription_notification_ids")
     }
 
     val userPreferences: Flow<UserPreferences> =
@@ -403,6 +409,56 @@ constructor(@ApplicationContext private val context: Context) {
                 preferences.remove(PreferencesKeys.BANNER_IMAGE_URI)
             } else {
                 preferences[PreferencesKeys.BANNER_IMAGE_URI] = uri
+            }
+        }
+    }
+
+    // Notification Preferences
+    val scanNewTransactionsEnabled: Flow<Boolean> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.SCAN_NEW_TRANSACTIONS_ENABLED] ?: true
+        }
+
+    suspend fun setScanNewTransactionsEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SCAN_NEW_TRANSACTIONS_ENABLED] = enabled
+        }
+    }
+
+    val scanNewTransactionsAlertTime: Flow<Long> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.SCAN_NEW_TRANSACTIONS_ALERT_TIME] ?: 1200L // Default 20:00 (1200 minutes)
+        }
+
+    suspend fun setScanNewTransactionsAlertTime(minutes: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SCAN_NEW_TRANSACTIONS_ALERT_TIME] = minutes
+        }
+    }
+
+    val upcomingNotificationsEnabled: Flow<Boolean> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.UPCOMING_NOTIFICATIONS_ENABLED] ?: true
+        }
+
+    suspend fun setUpcomingNotificationsEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.UPCOMING_NOTIFICATIONS_ENABLED] = enabled
+        }
+    }
+
+    val disabledSubscriptionNotificationIds: Flow<Set<String>> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.DISABLED_SUBSCRIPTION_NOTIFICATION_IDS] ?: emptySet()
+        }
+
+    suspend fun toggleSubscriptionNotification(id: Long, enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            val current = preferences[PreferencesKeys.DISABLED_SUBSCRIPTION_NOTIFICATION_IDS] ?: emptySet()
+            if (enabled) {
+                preferences[PreferencesKeys.DISABLED_SUBSCRIPTION_NOTIFICATION_IDS] = current - id.toString()
+            } else {
+                preferences[PreferencesKeys.DISABLED_SUBSCRIPTION_NOTIFICATION_IDS] = current + id.toString()
             }
         }
     }

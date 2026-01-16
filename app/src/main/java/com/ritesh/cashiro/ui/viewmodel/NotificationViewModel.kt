@@ -1,0 +1,72 @@
+package com.ritesh.cashiro.ui.viewmodel
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
+import com.ritesh.cashiro.data.preferences.UserPreferencesRepository
+import com.ritesh.cashiro.data.repository.SubscriptionRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@HiltViewModel
+class NotificationViewModel @Inject constructor(
+    private val userPreferencesRepository: UserPreferencesRepository,
+    subscriptionRepository: SubscriptionRepository
+) : ViewModel() {
+
+    val scanNewTransactionsEnabled: StateFlow<Boolean> = userPreferencesRepository.scanNewTransactionsEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val scanNewTransactionsAlertTime: StateFlow<Long> = userPreferencesRepository.scanNewTransactionsAlertTime
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 1200L) // 20:00
+
+    val upcomingNotificationsEnabled: StateFlow<Boolean> = userPreferencesRepository.upcomingNotificationsEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    // Combine active subscriptions with disabled notification IDs
+    val subscriptions: StateFlow<List<SubscriptionNotificationState>> = combine(
+        subscriptionRepository.getActiveSubscriptions(),
+        userPreferencesRepository.disabledSubscriptionNotificationIds
+    ) { subscriptions, disabledIds ->
+        subscriptions.map { subscription ->
+            SubscriptionNotificationState(
+                subscription = subscription,
+                isNotificationEnabled = !disabledIds.contains(subscription.id.toString())
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun setScanNewTransactionsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setScanNewTransactionsEnabled(enabled)
+        }
+    }
+
+    fun setScanNewTransactionsAlertTime(minutes: Long) {
+        viewModelScope.launch {
+            userPreferencesRepository.setScanNewTransactionsAlertTime(minutes)
+        }
+    }
+
+    fun setUpcomingNotificationsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setUpcomingNotificationsEnabled(enabled)
+        }
+    }
+
+    fun toggleSubscriptionNotification(id: Long, enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.toggleSubscriptionNotification(id, enabled)
+        }
+    }
+}
+
+data class SubscriptionNotificationState(
+    val subscription: SubscriptionEntity,
+    val isNotificationEnabled: Boolean
+)

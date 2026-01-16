@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
@@ -134,6 +135,7 @@ fun SettingsScreen(
     onNavigateToAppearance: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
     onNavigateToSms: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.ritesh.cashiro.ui.viewmodel.AppLockViewModel = hiltViewModel()
 ) {
@@ -308,6 +310,50 @@ fun SettingsScreen(
                             )
                         },
                         onClick = { onNavigateToAppearance() },
+                        shape = ListItemPosition.Middle.toShape(),
+                        padding = PaddingValues(0.dp)
+                    )
+
+                    ListItem(
+                        headline = {
+                            Text(
+                                text = "Notifications",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                        },
+                        supporting = {
+                            Text(
+                                text = "Manage reminder notification settings",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        leading = {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(
+                                        color = blue_light,
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Notifications,
+                                    contentDescription = null,
+                                    tint = blue_dark
+                                )
+                            }
+                        },
+                        trailing = {
+                            Icon(
+                                Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        onClick = { onNavigateToNotifications() },
                         shape = ListItemPosition.Bottom.toShape(),
                         padding = PaddingValues(0.dp)
                     )
