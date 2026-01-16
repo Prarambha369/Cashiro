@@ -9,6 +9,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import androidx.core.app.NotificationCompat
+import com.ritesh.cashiro.MainActivity
+import com.ritesh.cashiro.R
+import com.ritesh.cashiro.receiver.SmsBroadcastReceiver
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -52,38 +59,40 @@ class SettingsViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = 0
         )
-    
+
     private val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-    
+
     // Download state
     private val _downloadState = MutableStateFlow(DownloadState.NOT_DOWNLOADED)
     val downloadState: StateFlow<DownloadState> = _downloadState.asStateFlow()
-    
+
     private val _downloadProgress = MutableStateFlow(0)
     val downloadProgress: StateFlow<Int> = _downloadProgress.asStateFlow()
-    
+
     private val _downloadedMB = MutableStateFlow(0L)
     val downloadedMB: StateFlow<Long> = _downloadedMB.asStateFlow()
-    
+
     private val _totalMB = MutableStateFlow(0L)
     val totalMB: StateFlow<Long> = _totalMB.asStateFlow()
-    
+
     // Import/Export state
     private val _importExportMessage = MutableStateFlow<String?>(null)
     val importExportMessage: StateFlow<String?> = _importExportMessage.asStateFlow()
-    
+
     private val _exportedBackupFile = MutableStateFlow<File?>(null)
     val exportedBackupFile: StateFlow<File?> = _exportedBackupFile.asStateFlow()
-    
+
     private var currentDownloadId: Long? = null
-    
+
+    // Developer mode state
     // Developer mode state
     val isDeveloperModeEnabled = userPreferencesRepository.isDeveloperModeEnabled
-    
+    val isTestNotificationAlertsEnabled = userPreferencesRepository.isTestNotificationAlertsEnabled
+
     // SMS scan period state
     val smsScanMonths = userPreferencesRepository.smsScanMonths
     val smsScanAllTime = userPreferencesRepository.smsScanAllTime
-    
+
     // Unrecognized SMS state
     val unreportedSmsCount = unrecognizedSmsRepository.getUnreportedCount()
         .stateIn(
@@ -91,31 +100,31 @@ class SettingsViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = 0
         )
-    
+
     init {
         checkDownloadStatus()
         // Also sync with model repository
         modelRepository.checkModelState()
     }
-    
+
     private fun checkDownloadStatus() {
         viewModelScope.launch {
             // First check for active download
             val savedDownloadId = userPreferencesRepository.getActiveDownloadId()
             Log.d("SettingsViewModel", "Checking download status, saved ID: $savedDownloadId")
-            
+
             if (savedDownloadId != null) {
                 // Query DownloadManager for this ID
                 val query = DownloadManager.Query().setFilterById(savedDownloadId)
                 val cursor = downloadManager.query(query)
-                
+
                 if (cursor != null && cursor.moveToFirst()) {
                     val statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
-                    
+
                     if (statusIndex != -1) {
                         val status = cursor.getInt(statusIndex)
                         Log.d("SettingsViewModel", "Found active download with status: $status")
-                        
+
                         when (status) {
                             DownloadManager.STATUS_RUNNING,
                             DownloadManager.STATUS_PENDING -> {
@@ -170,17 +179,17 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
-    
+
     private fun checkModelFile() {
         val modelFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), Constants.ModelDownload.MODEL_FILE_NAME)
         Log.d("SettingsViewModel", "Checking model file at: ${modelFile.absolutePath}")
         Log.d("SettingsViewModel", "Model file exists: ${modelFile.exists()}, size: ${modelFile.length()}, expected: ${Constants.ModelDownload.MODEL_SIZE_BYTES}")
-        
+
         // Check against expected size to ensure it's complete
         // Allow 5% variance in file size as download sizes can vary slightly
         val minSize = (Constants.ModelDownload.MODEL_SIZE_BYTES * 0.95).toLong()
         val maxSize = (Constants.ModelDownload.MODEL_SIZE_BYTES * 1.05).toLong()
-        
+
         if (modelFile.exists() && modelFile.length() in minSize..maxSize) {
             _downloadState.value = DownloadState.COMPLETED
             _totalMB.value = modelFile.length() / (1024 * 1024)
@@ -207,7 +216,7 @@ class SettingsViewModel @Inject constructor(
             _downloadState.value = DownloadState.NOT_DOWNLOADED
         }
     }
-    
+
     fun startModelDownload() {
         viewModelScope.launch {
             // Check if download is already active
@@ -216,12 +225,12 @@ class SettingsViewModel @Inject constructor(
                 // Check if this download is still active
                 val query = DownloadManager.Query().setFilterById(existingDownloadId)
                 val cursor = downloadManager.query(query)
-                
+
                 if (cursor != null && cursor.moveToFirst()) {
                     val statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
                     if (statusIndex != -1) {
                         val status = cursor.getInt(statusIndex)
-                        if (status == DownloadManager.STATUS_RUNNING || 
+                        if (status == DownloadManager.STATUS_RUNNING ||
                             status == DownloadManager.STATUS_PENDING ||
                             status == DownloadManager.STATUS_PAUSED) {
                             // Download is already active, just monitor it
@@ -237,14 +246,14 @@ class SettingsViewModel @Inject constructor(
                     cursor.close()
                 }
             }
-            
+
             // Check storage space
             val availableSpace = context.filesDir.usableSpace
             if (availableSpace < Constants.ModelDownload.REQUIRED_SPACE_BYTES) {
                 _downloadState.value = DownloadState.ERROR_INSUFFICIENT_SPACE
                 return@launch
             }
-            
+
             // Create download request
             val request = DownloadManager.Request(Uri.parse(Constants.ModelDownload.MODEL_URL))
                 .setTitle("Qwen 2.5 Chat Model")
@@ -253,47 +262,47 @@ class SettingsViewModel @Inject constructor(
                 .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, Constants.ModelDownload.MODEL_FILE_NAME)
                 .setAllowedOverMetered(true) // Allow mobile data downloads
                 .setAllowedOverRoaming(false)
-            
+
             currentDownloadId = downloadManager.enqueue(request)
             _downloadState.value = DownloadState.DOWNLOADING
-            
+
             // Sync ModelRepository state
             modelRepository.updateModelState(ModelState.DOWNLOADING)
-            
+
             // Save download ID
             userPreferencesRepository.saveActiveDownloadId(currentDownloadId!!)
             Log.d("SettingsViewModel", "Started download with ID: $currentDownloadId")
-            
+
             // Start monitoring progress
             monitorDownload(currentDownloadId!!)
         }
     }
-    
+
     private fun monitorDownload(downloadId: Long) {
         viewModelScope.launch {
             while (isActive && _downloadState.value == DownloadState.DOWNLOADING) {
                 val query = DownloadManager.Query().setFilterById(downloadId)
                 val cursor = downloadManager.query(query)
-                
+
                 if (cursor != null && cursor.moveToFirst()) {
                     val bytesColumnIndex = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
                     val totalBytesColumnIndex = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
                     val statusColumnIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
-                    
+
                     if (bytesColumnIndex != -1 && totalBytesColumnIndex != -1) {
                         val bytesDownloaded = cursor.getLong(bytesColumnIndex)
                         val bytesTotal = cursor.getLong(totalBytesColumnIndex)
-                        
+
                         // Calculate progress
                         val progress = if (bytesTotal > 0) {
                             (bytesDownloaded * 100 / bytesTotal).toInt()
                         } else 0
-                        
+
                         _downloadProgress.value = progress
                         _downloadedMB.value = bytesDownloaded / (1024 * 1024)
                         _totalMB.value = bytesTotal / (1024 * 1024)
                     }
-                    
+
                     // Check status
                     if (statusColumnIndex != -1) {
                         when (cursor.getInt(statusColumnIndex)) {
@@ -325,7 +334,7 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun cancelDownload() {
         viewModelScope.launch {
             currentDownloadId?.let {
@@ -334,10 +343,10 @@ class SettingsViewModel @Inject constructor(
                 _downloadProgress.value = 0
                 _downloadedMB.value = 0
                 _totalMB.value = 0
-                
+
                 // Clear saved download ID
                 userPreferencesRepository.clearActiveDownloadId()
-                
+
                 // Delete partial file
                 val modelFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), Constants.ModelDownload.MODEL_FILE_NAME)
                 if (modelFile.exists()) {
@@ -347,7 +356,7 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun deleteModel() {
         viewModelScope.launch {
             val modelFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), Constants.ModelDownload.MODEL_FILE_NAME)
@@ -365,13 +374,64 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun toggleDeveloperMode(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.setDeveloperModeEnabled(enabled)
         }
     }
-    
+
+    fun toggleTestNotificationAlerts(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setTestNotificationAlertsEnabled(enabled)
+            if (enabled) {
+                sendTestNotification()
+            }
+        }
+    }
+
+    private fun sendTestNotification() {
+        try {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+            // Ensure channel exists
+            val channel = NotificationChannel(
+                SmsBroadcastReceiver.CHANNEL_ID,
+                SmsBroadcastReceiver.CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Notifications for new transactions"
+            }
+            notificationManager.createNotificationChannel(channel)
+
+            // Create intent to open app
+            val intent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+
+            val pendingIntent = PendingIntent.getActivity(
+                context,
+                0,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val notification = NotificationCompat.Builder(context, SmsBroadcastReceiver.CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle("Test Notification")
+                .setContentText("This is a test notification from PennyWise.")
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .build()
+
+            notificationManager.notify(999, notification) // ID 999 for test
+            Log.d("SettingsViewModel", "Sent test notification")
+        } catch (e: Exception) {
+            Log.e("SettingsViewModel", "Error sending test notification", e)
+        }
+    }
+
     fun updateSmsScanMonths(months: Int) {
         viewModelScope.launch {
             val currentMonths = userPreferencesRepository.getSmsScanMonths()
@@ -397,39 +457,39 @@ class SettingsViewModel @Inject constructor(
             userPreferencesRepository.updateSmsScanAllTime(allTime)
         }
     }
-    
+
     fun openUnrecognizedSmsReport(context: Context) {
         viewModelScope.launch {
             try {
                 val firstUnreported = unrecognizedSmsRepository.getFirstUnreported()
-                
+
                 if (firstUnreported != null) {
                     // URL encode the parameters
                     val encodedMessage = URLEncoder.encode(firstUnreported.smsBody, "UTF-8")
                     val encodedSender = URLEncoder.encode(firstUnreported.sender, "UTF-8")
-                    
+
                     // Encrypt device data for verification
                     val encryptedDeviceData = com.ritesh.cashiro.utils.DeviceEncryption.encryptDeviceData(context)
                     Log.d("SettingsViewModel", "Encrypted device data: ${encryptedDeviceData?.take(50)}... (length: ${encryptedDeviceData?.length})")
-                    
+
                     val encodedDeviceData = if (encryptedDeviceData != null) {
                         URLEncoder.encode(encryptedDeviceData, "UTF-8")
                     } else {
                         ""
                     }
                     Log.d("SettingsViewModel", "Encoded device data: ${encodedDeviceData.take(50)}... (length: ${encodedDeviceData.length})")
-                    
+
                     // Create the report URL using hash fragment for privacy
                     val url = "${Constants.Links.WEB_PARSER_URL}/#message=$encodedMessage&sender=$encodedSender&device=$encodedDeviceData&autoparse=true"
                     Log.d("SettingsViewModel", "Full URL length: ${url.length}")
-                    
+
                     // Open in browser
                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                     context.startActivity(intent)
-                    
+
                     // Mark as reported
                     unrecognizedSmsRepository.markAsReported(listOf(firstUnreported.id))
-                    
+
                     Log.d("SettingsViewModel", "Opened report for unrecognized SMS from: ${firstUnreported.sender}")
                 } else {
                     Log.d("SettingsViewModel", "No unreported SMS messages found")
@@ -439,7 +499,7 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun exportBackup() {
         viewModelScope.launch {
             try {
@@ -462,7 +522,7 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun saveBackupToFile(uri: android.net.Uri) {
         viewModelScope.launch {
             try {
@@ -481,13 +541,13 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun shareBackup() {
         _exportedBackupFile.value?.let { file ->
             shareBackupFile(file)
         }
     }
-    
+
     private fun shareBackupFile(file: File) {
         try {
             val uri = FileProvider.getUriForFile(
@@ -495,7 +555,7 @@ class SettingsViewModel @Inject constructor(
                 "${context.packageName}.fileprovider",
                 file
             )
-            
+
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "application/octet-stream"
                 putExtra(Intent.EXTRA_STREAM, uri)
@@ -503,7 +563,7 @@ class SettingsViewModel @Inject constructor(
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            
+
             context.startActivity(Intent.createChooser(intent, "Share Backup").apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             })
@@ -511,7 +571,7 @@ class SettingsViewModel @Inject constructor(
             Log.e("SettingsViewModel", "Error sharing backup file", e)
         }
     }
-    
+
     fun importBackup(uri: android.net.Uri) {
         viewModelScope.launch {
             try {
@@ -532,7 +592,7 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun clearImportExportMessage() {
         _importExportMessage.value = null
     }

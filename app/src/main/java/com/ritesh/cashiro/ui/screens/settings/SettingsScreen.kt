@@ -1,7 +1,6 @@
 package com.ritesh.cashiro.ui.screens.settings
 
 import android.content.Intent
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -34,15 +33,15 @@ import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeveloperMode
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SaveAlt
@@ -50,9 +49,9 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
@@ -77,16 +76,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
-import com.ritesh.cashiro.R
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
+import com.ritesh.cashiro.R
 import com.ritesh.cashiro.core.Constants
 import com.ritesh.cashiro.presentation.categories.NavigationContent
 import com.ritesh.cashiro.ui.components.CashiroCard
@@ -136,6 +135,7 @@ fun SettingsScreen(
     onNavigateToProfile: () -> Unit = {},
     onNavigateToSms: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
+    onNavigateToDeveloper: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.ritesh.cashiro.ui.viewmodel.AppLockViewModel = hiltViewModel()
 ) {
@@ -340,7 +340,7 @@ fun SettingsScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    Icons.Default.Notifications,
+                                    Icons.Default.NotificationsActive,
                                     contentDescription = null,
                                     tint = blue_dark
                                 )
@@ -713,170 +713,128 @@ fun SettingsScreen(
                     modifier = Modifier.padding(start = Spacing.md)
                 )
 
-                CashiroCard(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier.padding(Dimensions.Padding.content),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.md)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                val aiIconColor = yellow_dark
+                val aiBackgroundColor = yellow_light
+
+                ListItem(
+                    headline = {
+                        Text(
+                            text = "AI Chat Assistant",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                    },
+                    supporting = {
+                        Text(
+                            text = when (downloadState) {
+                                DownloadState.NOT_DOWNLOADED -> "Download Qwen 2.5 model (${Constants.ModelDownload.MODEL_SIZE_MB} MB)"
+                                DownloadState.DOWNLOADING -> "Downloading... $downloadProgress%"
+                                DownloadState.PAUSED -> "Download paused. Tap to resume."
+                                DownloadState.COMPLETED -> "Qwen ready for chat"
+                                DownloadState.FAILED -> "Download failed. Tap to retry."
+                                DownloadState.ERROR_INSUFFICIENT_SPACE -> "Not enough storage space"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (downloadState == DownloadState.FAILED || downloadState == DownloadState.ERROR_INSUFFICIENT_SPACE)
+                                MaterialTheme.colorScheme.error
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    leading = {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(
+                                    color = aiBackgroundColor,
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "AI Chat Assistant",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text =
-                                        when (downloadState) {
-                                            DownloadState.NOT_DOWNLOADED ->
-                                                "Download Qwen 2.5 model (${Constants.ModelDownload.MODEL_SIZE_MB} MB)"
-                                            DownloadState.DOWNLOADING ->
-                                                "Downloading Qwen model..."
-                                            DownloadState.PAUSED -> "Download interrupted"
-                                            DownloadState.COMPLETED -> "Qwen ready for chat"
-                                            DownloadState.FAILED -> "Download failed"
-                                            DownloadState.ERROR_INSUFFICIENT_SPACE ->
-                                                "Not enough storage space"
-                                        },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-
-                            // Action area based on state
-                            when (downloadState) {
-                                DownloadState.NOT_DOWNLOADED -> {
-                                    Button(onClick = { settingsViewModel.startModelDownload() }) {
-                                        Icon(Icons.Default.Download, contentDescription = null)
-                                        Spacer(modifier = Modifier.width(Spacing.xs))
-                                        Text("Download")
-                                    }
-                                }
-                                DownloadState.DOWNLOADING -> {
-                                    Text(
-                                        text = "$downloadProgress%",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                                DownloadState.PAUSED -> {
-                                    Button(onClick = { settingsViewModel.startModelDownload() }) {
-                                        Icon(Icons.Default.Download, contentDescription = null)
-                                        Spacer(modifier = Modifier.width(Spacing.xs))
-                                        Text("Retry")
-                                    }
-                                }
-                                DownloadState.COMPLETED -> {
-                                    Row(
-                                        horizontalArrangement =
-                                            Arrangement.spacedBy(Spacing.sm),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            Icons.Default.CheckCircle,
-                                            contentDescription = "Downloaded",
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                        TextButton(onClick = { settingsViewModel.deleteModel() }) {
-                                            Text("Delete")
-                                        }
-                                    }
-                                }
-                                DownloadState.FAILED -> {
-                                    Button(
-                                        onClick = { settingsViewModel.startModelDownload() },
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.error
-                                        )
-                                    ) {
-                                        Icon(Icons.Default.Refresh, contentDescription = null)
-                                        Spacer(modifier = Modifier.width(Spacing.xs))
-                                        Text("Retry")
-                                    }
-                                }
-                                DownloadState.ERROR_INSUFFICIENT_SPACE -> {
-                                    Icon(
-                                        Icons.Default.Error,
-                                        contentDescription = "Error",
-                                        tint = MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                        // Progress details during download
-                        AnimatedVisibility(
-                            visible = downloadState == DownloadState.DOWNLOADING,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
-                        ) {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-                            ) {
-                                LinearProgressIndicator(
-                                    progress = { downloadProgress / 100f },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        text = "$downloadedMB MB / $totalMB MB",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-
-                                Button(
-                                    onClick = { settingsViewModel.cancelDownload() },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(
-                                           containerColor = MaterialTheme.colorScheme.error
-                                    )
-                                ) {
-                                    Icon(Icons.Default.Cancel, contentDescription = null)
-                                    Spacer(modifier = Modifier.width(Spacing.xs))
-                                    Text("Cancel Download")
-                                }
-                            }
-                        }
-
-                        // Info about AI features
-                        if (downloadState == DownloadState.NOT_DOWNLOADED ||
-                            downloadState == DownloadState.ERROR_INSUFFICIENT_SPACE
-                        ) {
-                            HorizontalDivider()
-                            Text(
-                                text =
-                                    "Chat with Qwen AI about your expenses and get financial insights. " +
-                                            "All conversations stay private on your device.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            Icon(
+                                Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = aiIconColor
                             )
                         }
-                    }
-                }
+                    },
+                    trailing = {
+                        when (downloadState) {
+                            DownloadState.NOT_DOWNLOADED -> {
+                                Icon(
+                                    Icons.Default.Download,
+                                    contentDescription = "Download",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            DownloadState.DOWNLOADING -> {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp,
+                                    progress = { downloadProgress / 100f }
+                                )
+                            }
+                            DownloadState.PAUSED, DownloadState.FAILED -> {
+                                Icon(
+                                    Icons.Default.Refresh,
+                                    contentDescription = "Retry",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            DownloadState.COMPLETED -> {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            DownloadState.ERROR_INSUFFICIENT_SPACE -> {
+                                Icon(
+                                    Icons.Default.Error,
+                                    contentDescription = "Error",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    },
+                    onClick = {
+                        when (downloadState) {
+                            DownloadState.NOT_DOWNLOADED, DownloadState.PAUSED, DownloadState.FAILED -> {
+                                settingsViewModel.startModelDownload()
+                            }
+                            DownloadState.DOWNLOADING -> {
+                                settingsViewModel.cancelDownload()
+                            }
+                            DownloadState.COMPLETED -> {
+                                settingsViewModel.deleteModel()
+                            }
+                            else -> {}
+                        }
+                    },
+                    shape = ListItemPosition.Single.toShape(),
+                    padding = PaddingValues(0.dp)
+                )
 
 
                 // Developer Section
                 SectionHeader(title = "Developer", modifier = Modifier.padding(start = Spacing.md))
 
-                PreferenceSwitch(
-                    title = "Developer Mode",
-                    subtitle = "Show technical information in chat",
-                    checked = isDeveloperModeEnabled,
-                    onCheckedChange = { settingsViewModel.toggleDeveloperMode(it) },
-                    leadingIcon = {
+                ListItem(
+                    headline = {
+                        Text(
+                            text = "Developer Options",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                    },
+                    supporting = {
+                        Text(
+                            text = "Experimental features and developer settings",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    leading = {
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
@@ -893,8 +851,16 @@ fun SettingsScreen(
                             )
                         }
                     },
-                    padding = PaddingValues(0.dp),
-                    isSingle = true
+                    trailing = {
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    onClick = { onNavigateToDeveloper() },
+                    shape = ListItemPosition.Single.toShape(),
+                    padding = PaddingValues(0.dp)
                 )
 
                 // Support Section
