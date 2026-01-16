@@ -61,6 +61,7 @@ constructor(@ApplicationContext private val context: Context) {
         val SCAN_NEW_TRANSACTIONS_ALERT_TIME = longPreferencesKey("scan_new_transactions_alert_time")
         val UPCOMING_NOTIFICATIONS_ENABLED = booleanPreferencesKey("upcoming_notifications_enabled")
         val DISABLED_SUBSCRIPTION_NOTIFICATION_IDS = androidx.datastore.preferences.core.stringSetPreferencesKey("disabled_subscription_notification_ids")
+        val TEST_NOTIFICATION_ALERTS_ENABLED = booleanPreferencesKey("test_notification_alerts_enabled")
     }
 
     val userPreferences: Flow<UserPreferences> =
@@ -460,6 +461,17 @@ constructor(@ApplicationContext private val context: Context) {
             } else {
                 preferences[PreferencesKeys.DISABLED_SUBSCRIPTION_NOTIFICATION_IDS] = current + id.toString()
             }
+        }
+    }
+
+    val isTestNotificationAlertsEnabled: Flow<Boolean> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.TEST_NOTIFICATION_ALERTS_ENABLED] ?: false
+        }
+
+    suspend fun setTestNotificationAlertsEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.TEST_NOTIFICATION_ALERTS_ENABLED] = enabled
         }
     }
 }

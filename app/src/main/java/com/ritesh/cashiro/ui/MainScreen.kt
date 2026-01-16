@@ -54,6 +54,7 @@ import com.ritesh.cashiro.ui.screens.chat.ChatScreen
 import com.ritesh.cashiro.ui.screens.rules.CreateRuleScreen
 import com.ritesh.cashiro.ui.screens.rules.RulesScreen
 import com.ritesh.cashiro.ui.screens.settings.AppearanceScreen
+import com.ritesh.cashiro.ui.screens.settings.DeveloperScreen
 import com.ritesh.cashiro.ui.screens.settings.FAQScreen
 import com.ritesh.cashiro.ui.screens.settings.NotificationScreen
 import com.ritesh.cashiro.ui.screens.settings.SMSScreen
@@ -279,6 +280,16 @@ fun MainScreen(
                                 },
                                 onNavigateToNotifications = {
                                     navController.navigate("notification_settings")
+                                },
+                                onNavigateToDeveloper = {
+                                    navController.navigate("developer_options")
+                                }
+                            )
+                        },
+                        navPage("developer_options") {
+                            DeveloperScreen(
+                                onNavigateBack = {
+                                    navController.popBackStack()
                                 }
                             )
                         },

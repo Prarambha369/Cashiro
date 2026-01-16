@@ -43,27 +43,27 @@ object DatabaseModule {
     @Singleton
     fun providePennyWiseDatabase(@ApplicationContext context: Context): CashiroDatabase {
         val database =
-                Room.databaseBuilder(
-                                context,
-                                CashiroDatabase::class.java,
-                                CashiroDatabase.DATABASE_NAME
-                        )
-                        // Add manual migrations here when needed
-                        .addMigrations(
-                                CashiroDatabase.MIGRATION_12_14,
-                                CashiroDatabase.MIGRATION_13_14,
-                                CashiroDatabase.MIGRATION_14_15,
-                                CashiroDatabase.MIGRATION_20_21,
-                                CashiroDatabase.MIGRATION_21_22,
-                                CashiroDatabase.MIGRATION_22_23
-                        )
+            Room.databaseBuilder(
+                context,
+                CashiroDatabase::class.java,
+                CashiroDatabase.DATABASE_NAME
+            )
+                // Add manual migrations here when needed
+                .addMigrations(
+                    CashiroDatabase.MIGRATION_12_14,
+                    CashiroDatabase.MIGRATION_13_14,
+                    CashiroDatabase.MIGRATION_14_15,
+                    CashiroDatabase.MIGRATION_20_21,
+                    CashiroDatabase.MIGRATION_21_22,
+                    CashiroDatabase.MIGRATION_22_23
+                )
 
-                        // Enable auto-migrations
-                        // Room will automatically detect schema changes between versions
+                // Enable auto-migrations
+                // Room will automatically detect schema changes between versions
 
-                        // Add callback to seed default data on first creation
-                        .addCallback(DatabaseCallback())
-                        .build()
+                // Add callback to seed default data on first creation
+                .addCallback(DatabaseCallback())
+                .build()
 
         // Set the singleton instance so BroadcastReceivers can access it
         CashiroDatabase.setInstance(database)
