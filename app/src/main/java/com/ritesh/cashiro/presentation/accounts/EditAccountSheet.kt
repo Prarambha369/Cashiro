@@ -52,7 +52,8 @@ fun EditAccountSheet(
         iconResId: Int,
         colorHex: String,
         isCreditCard: Boolean,
-        creditLimit: BigDecimal?) -> Unit
+        creditLimit: BigDecimal?,
+        currency: String) -> Unit
 ) {
     var bankName by remember { mutableStateOf(account?.bankName ?: "") }
     var balance by remember { mutableStateOf(account?.balance ?: BigDecimal.ZERO) }
@@ -66,6 +67,7 @@ fun EditAccountSheet(
         )
     }
     var colorHex by remember { mutableStateOf("#33B5E5") } // Default color
+    var currency by remember { mutableStateOf(account?.currency ?: "INR") }
 
     var showNumberPad by remember { mutableStateOf(false) }
     var editingCreditLimit by remember { mutableStateOf(false) }
@@ -541,7 +543,7 @@ fun EditAccountSheet(
             SplitButtonLayout(
                 leadingButton = {
                     SplitButtonDefaults.LeadingButton(
-                        onClick = { onSave(bankName, balance, accountLast4, iconResId, colorHex, isCreditCard, if (isCreditCard) creditLimit else null) },
+                        onClick = { onSave(bankName, balance, accountLast4, iconResId, colorHex, isCreditCard, if (isCreditCard) creditLimit else null, currency) },
                         enabled = bankName.isNotBlank() && accountLast4.length == 4,
                         modifier = Modifier.height(56.dp)
                     ) {
