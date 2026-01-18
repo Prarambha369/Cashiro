@@ -400,7 +400,7 @@ fun HomeScreen(
                                                                         resizeMode =
                                                                                 SharedTransitionScope
                                                                                         .ResizeMode
-                                                                                        .ScaleToBounds()
+                                                                                        .scaleToBounds()
                                                                 )
                                                         }
                                                 } else {
