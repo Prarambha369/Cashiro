@@ -634,14 +634,14 @@ fun CategoryProgressItem(
                 // Category Icon
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(categoryInfo.color),
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(categoryInfo.color.copy(0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
                     CategoryIcon(
                         category = name,
-                        size = 16.dp,
+                        size = 32.dp,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -667,12 +667,12 @@ fun CategoryProgressItem(
                 fontWeight = FontWeight.SemiBold
             )
         }
-        Spacer(modifier = Modifier.height(Spacing.xs))
+        Spacer(modifier = Modifier.height(Spacing.sm))
         LinearProgressIndicator(
             progress = { percentage },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(6.dp)
+                .height(8.dp)
                 .clip(CircleShape),
             trackColor = categoryInfo.color.copy(alpha = 0.2f),
             color = categoryInfo.color,

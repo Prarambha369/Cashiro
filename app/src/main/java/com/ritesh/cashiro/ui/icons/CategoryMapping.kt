@@ -1,46 +1,10 @@
 package com.ritesh.cashiro.ui.icons
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.AddCircle
-import androidx.compose.material.icons.filled.AirplanemodeActive
-import androidx.compose.material.icons.filled.AttachMoney
-import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.Commute
-import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.Face
-import androidx.compose.material.icons.filled.Fastfood
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Flight
-import androidx.compose.material.icons.filled.HealthAndSafety
-import androidx.compose.material.icons.filled.LocalGroceryStore
-import androidx.compose.material.icons.filled.LocalHospital
-import androidx.compose.material.icons.filled.MoneyOff
-import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.MovieFilter
-import androidx.compose.material.icons.filled.Payment
-import androidx.compose.material.icons.filled.Payments
-import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.PlayCircle
-import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material.icons.filled.RemoveCircle
-import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material.icons.filled.School
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.ShoppingBag
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.Smartphone
-import androidx.compose.material.icons.filled.Spa
-import androidx.compose.material.icons.filled.SportsMartialArts
-import androidx.compose.material.icons.filled.Store
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.ritesh.cashiro.R
 import java.util.Locale
 
 /**
@@ -51,7 +15,7 @@ object CategoryMapping {
 
     data class CategoryInfo(
         val displayName: String,
-        val icon: ImageVector,
+        val iconResId: Int,
         val color: Color,
         val fallbackIcon: ImageVector = Icons.Default.Category
     )
@@ -798,6 +762,7 @@ object CategoryMapping {
         "vida dubai creek",
         "vida emirates hills",
 
+
         //Abu Dhabi Brands
         "emirates palace",
 
@@ -925,20 +890,20 @@ object CategoryMapping {
 
     private val RULES: List<Rule> = listOf(
         Rule("Tax", TAX),
-        Rule("Bank Charges", BANK_CHARGE),
-        Rule("Credit Card Payment", CC_PAYMENT),
-        Rule("Food & Dining", FOOD),
+        Rule("Hidden Charges", BANK_CHARGE),
+        Rule("Credit Bill", CC_PAYMENT),
+        Rule("Food & Drinks", FOOD),
         Rule("Groceries", GROCERY),
-        Rule("Transportation", TRANSPORT),
+        Rule("Transport", TRANSPORT),
         Rule("Shopping", SHOPPING + SHOPPING_EXTENDED, SHOPPING_EXCLUDE),
-        Rule("Bills & Utilities", UTILITIES),
+        Rule("Bill", UTILITIES),
         Rule("Entertainment", ENTERTAINMENT),
-        Rule("Healthcare", HEALTHCARE),
-        Rule("Investments", INVESTMENT),
-        Rule("Banking", BANKING),
-        Rule("Personal Care", PERSONAL_CARE),
-        Rule("Education", EDUCATION),
-        Rule("Mobile", MOBILE),
+        Rule("Medical", HEALTHCARE),
+        Rule("Investment", INVESTMENT),
+        Rule("Business", BANKING),
+        Rule("Personal", PERSONAL_CARE),
+        Rule("Children", EDUCATION),
+        Rule("Top-up", MOBILE),
         Rule("Fitness", FITNESS),
         Rule("Insurance", INSURANCE),
         Rule("Travel", TRAVEL),
@@ -956,131 +921,175 @@ object CategoryMapping {
 
     // Define all categories with their visual properties
     val categories = mapOf(
-        "Food & Dining" to CategoryInfo(
-            displayName = "Food & Dining",
-            icon = Icons.Default.Restaurant,
-            color = Color(0xFFFC8019), // Swiggy orange
-            fallbackIcon = Icons.Default.Fastfood
+        "Food & Drinks" to CategoryInfo(
+            displayName = "Food & Drinks",
+            iconResId = R.drawable.type_food_stuffed_flatbread,
+            color = Color(0xFFFC8019),
         ),
-        "Groceries" to CategoryInfo(
-            displayName = "Groceries",
-            icon = Icons.Default.ShoppingCart,
-            color = Color(0xFF5AC85A), // BigBasket green
-            fallbackIcon = Icons.Default.LocalGroceryStore
-        ),
-        "Transportation" to CategoryInfo(
-            displayName = "Transportation",
-            icon = Icons.Default.DirectionsCar,
-            color = Color(0xFF000000), // Uber black
-            fallbackIcon = Icons.Default.Commute
+        "Transport" to CategoryInfo(
+            displayName = "Transport",
+            iconResId = R.drawable.type_travel_transport_airplane,
+            color = Color(0xFF0066CC),
         ),
         "Shopping" to CategoryInfo(
             displayName = "Shopping",
-            icon = Icons.Default.ShoppingBag,
-            color = Color(0xFFFF9900), // Amazon orange
-            fallbackIcon = Icons.Default.Store
+            iconResId = R.drawable.type_shopping_shopping_bags,
+            color = Color(0xFF893BBE),
         ),
-        "Bills & Utilities" to CategoryInfo(
-            displayName = "Bills & Utilities",
-            icon = Icons.Default.Receipt,
-            color = Color(0xFF4CAF50), // Utility green
-            fallbackIcon = Icons.Default.Payment
+        "Groceries" to CategoryInfo(
+            displayName = "Groceries",
+            iconResId = R.drawable.type_groceries_bread,
+            color = Color(0xFF9E7155),
+        ),
+        "Home" to CategoryInfo(
+            displayName = "Home",
+            iconResId = R.drawable.type_event_and_place_house,
+            color = Color(0xFFFFC107),
         ),
         "Entertainment" to CategoryInfo(
             displayName = "Entertainment",
-            icon = Icons.Default.MovieFilter,
-            color = Color(0xFFE50914), // Netflix red
-            fallbackIcon = Icons.Default.PlayCircle
+            iconResId = R.drawable.type_snack_popcorn,
+            color = Color(0xFFCC1A56),
         ),
-        "Healthcare" to CategoryInfo(
-            displayName = "Healthcare",
-            icon = Icons.Default.LocalHospital,
-            color = Color(0xFF10847E), // PharmEasy teal
-            fallbackIcon = Icons.Default.HealthAndSafety
-        ),
-        "Investments" to CategoryInfo(
-            displayName = "Investments",
-            icon = Icons.AutoMirrored.Filled.TrendingUp,
-            color = Color(0xFF00D09C), // Groww green
-            fallbackIcon = Icons.AutoMirrored.Filled.ShowChart
-        ),
-        "Banking" to CategoryInfo(
-            displayName = "Banking",
-            icon = Icons.Default.AccountBalance,
-            color = Color(0xFF004C8F), // HDFC blue
-            fallbackIcon = Icons.Default.AccountBalanceWallet
-        ),
-        "Personal Care" to CategoryInfo(
-            displayName = "Personal Care",
-            icon = Icons.Default.Face,
-            color = Color(0xFF6A4C93), // Urban Company purple
-            fallbackIcon = Icons.Default.Spa
-        ),
-        "Education" to CategoryInfo(
-            displayName = "Education",
-            icon = Icons.Default.School,
-            color = Color(0xFF673AB7), // Byju's purple
-            fallbackIcon = Icons.Default.Book
-        ),
-        "Mobile" to CategoryInfo(
-            displayName = "Mobile & Recharge",
-            icon = Icons.Default.Smartphone,
-            color = Color(0xFF2A3890), // Jio blue
-            fallbackIcon = Icons.Default.PhoneAndroid
-        ),
-        "Fitness" to CategoryInfo(
-            displayName = "Fitness",
-            icon = Icons.Default.FitnessCenter,
-            color = Color(0xFFFF3278), // Cult.fit pink
-            fallbackIcon = Icons.Default.SportsMartialArts
-        ),
-        "Insurance" to CategoryInfo(
-            displayName = "Insurance",
-            icon = Icons.Default.Shield,
-            color = Color(0xFF0066CC), // LIC blue
-            fallbackIcon = Icons.Default.Security
-        ),
-        "Tax" to CategoryInfo(
-            displayName = "Tax",
-            icon = Icons.Default.AccountBalanceWallet,
-            color = Color(0xFF795548), // Brown for tax
-            fallbackIcon = Icons.Default.Receipt
-        ),
-        "Bank Charges" to CategoryInfo(
-            displayName = "Bank Charges",
-            icon = Icons.Default.MoneyOff,
-            color = Color(0xFF9E9E9E), // Grey for charges
-            fallbackIcon = Icons.Default.RemoveCircle
-        ),
-        "Credit Card Payment" to CategoryInfo(
-            displayName = "Credit Card Payment",
-            icon = Icons.Default.CreditCard,
-            color = Color(0xFF1976D2), // Blue for credit card
-            fallbackIcon = Icons.Default.Payment
-        ),
-        "Salary" to CategoryInfo(
-            displayName = "Salary",
-            icon = Icons.Default.Payments,
-            color = Color(0xFF4CAF50), // Income green
-            fallbackIcon = Icons.Default.AttachMoney
-        ),
-        "Income" to CategoryInfo(
-            displayName = "Other Income",
-            icon = Icons.Default.AddCircle,
-            color = Color(0xFF4CAF50), // Income green
-            fallbackIcon = Icons.AutoMirrored.Filled.TrendingUp
+        "Events" to CategoryInfo(
+            displayName = "Events",
+            iconResId = R.drawable.type_event_and_place_party_popper,
+            color = Color(0xFF9C27B0),
         ),
         "Travel" to CategoryInfo(
             displayName = "Travel",
-            icon = Icons.Default.Flight,
-            color = Color(0xFF00BCD4), // Travel blue
-            fallbackIcon = Icons.Default.AirplanemodeActive
+            iconResId = R.drawable.type_travel_transport_luggage,
+            color = Color(0xFF0066CC),
+        ),
+        "Medical" to CategoryInfo(
+            displayName = "Medical",
+            iconResId = R.drawable.type_health_pill,
+            color = Color(0xFFFF0041),
+        ),
+        "Personal" to CategoryInfo(
+            displayName = "Personal",
+            iconResId = R.drawable.type_tool_electronic_scissors,
+            color = Color(0xFF9C27B0),
+        ),
+        "Fitness" to CategoryInfo(
+            displayName = "Fitness",
+            iconResId = R.drawable.type_sports_baseball,
+            color = Color(0xFF91CC4D),
+        ),
+        "Services" to CategoryInfo(
+            displayName = "Services",
+            iconResId = R.drawable.type_tool_electronic_high_voltage,
+            color = Color(0xFFFF9800),
+        ),
+        "Bill" to CategoryInfo(
+            displayName = "Bill",
+            iconResId = R.drawable.type_travel_transport_admission_tickets,
+            color = Color(0xFFFF0041),
+        ),
+        "Subscription" to CategoryInfo(
+            displayName = "Subscription",
+            iconResId = R.drawable.type_logo_spotify,
+            color = Color(0xFF5CCC4D),
+        ),
+        "EMI" to CategoryInfo(
+            displayName = "EMI",
+            iconResId = R.drawable.type_travel_transport_automobile,
+            color = Color(0xFFFF0041),
+        ),
+        "Credit Bill" to CategoryInfo(
+            displayName = "Credit Bill",
+            iconResId = R.drawable.type_stationary_card_file_box,
+            color = Color(0xFFFF9800),
+        ),
+        "Investment" to CategoryInfo(
+            displayName = "Investment",
+            iconResId = R.drawable.type_flower_and_tree_herb,
+            color = Color(0xFF91CC4D),
+        ),
+        "Support" to CategoryInfo(
+            displayName = "Support",
+            iconResId = R.drawable.type_health_stethoscope,
+            color = Color(0xFF673AB7),
+        ),
+        "Insurance" to CategoryInfo(
+            displayName = "Insurance",
+            iconResId = R.drawable.type_health_mending_heart,
+            color = Color(0xFFFF0041),
+        ),
+        "Tax" to CategoryInfo(
+            displayName = "Tax",
+            iconResId = R.drawable.type_finance_chart_decreasing,
+            color = Color(0xFFFF5722),
+        ),
+        "Top-up" to CategoryInfo(
+            displayName = "Top-up",
+            iconResId = R.drawable.type_finance_money_bag,
+            color = Color(0xFFFF9800),
+        ),
+        "Children" to CategoryInfo(
+            displayName = "Children",
+            iconResId = R.drawable.type_fruit_kiwi_fruit,
+            color = Color(0xFF8BC34A),
+        ),
+        "Pet Care" to CategoryInfo(
+            displayName = "Pet Care",
+            iconResId = R.drawable.type_animal_dog_face,
+            color = Color(0xFFF44336),
+        ),
+        "Business" to CategoryInfo(
+            displayName = "Business",
+            iconResId = R.drawable.type_finance_classical_building,
+            color = Color(0xFF795548),
+        ),
+        "Miscellaneous" to CategoryInfo(
+            displayName = "Miscellaneous",
+            iconResId = R.drawable.type_stationary_clipboard,
+            color = Color(0xFF9E9E9E),
+        ),
+        "Self Transfer" to CategoryInfo(
+            displayName = "Self Transfer",
+            iconResId = R.drawable.type_finance_bank,
+            color = Color(0xFF795548),
+        ),
+        "Savings" to CategoryInfo(
+            displayName = "Savings",
+            iconResId = R.drawable.type_sports_bullseye,
+            color = Color(0xFFFF0041),
+        ),
+        "Gift" to CategoryInfo(
+            displayName = "Gift",
+            iconResId = R.drawable.type_stationary_wrapped_gift,
+            color = Color(0xFFFF5722),
+        ),
+        "Lent" to CategoryInfo(
+            displayName = "Lent",
+            iconResId = R.drawable.type_finance_money_with_wings,
+            color = Color(0xFF4CAF50),
+        ),
+        "Donation" to CategoryInfo(
+            displayName = "Donation",
+            iconResId = R.drawable.type_health_drop_of_blood,
+            color = Color(0xFFFF4081),
+        ),
+        "Hidden Charges" to CategoryInfo(
+            displayName = "Hidden Charges",
+            iconResId = R.drawable.type_animal_goblin,
+            color = Color(0xFFF44336),
+        ),
+        "Cash Withdrawal" to CategoryInfo(
+            displayName = "Cash Withdrawal",
+            iconResId = R.drawable.type_finance_dollar_banknote,
+            color = Color(0xFF8BC34A),
+        ),
+        "Return" to CategoryInfo(
+            displayName = "Return",
+            iconResId = R.drawable.type_finance_currency_exchange,
+            color = Color(0xFF33B5E5),
         ),
         "Others" to CategoryInfo(
             displayName = "Others",
-            icon = Icons.Default.Category,
-            color = Color(0xFF757575), // Grey
-            fallbackIcon = Icons.Default.MoreHoriz
+            iconResId = R.drawable.type_food_dining,
+            color = Color(0xFF757575),
         )
     )
 
@@ -1094,7 +1103,7 @@ object CategoryMapping {
                 return rule.categoryName
             }
         }
-        return "Others"
+        return "Miscellaneous"
     }
 }
 
@@ -1118,10 +1127,10 @@ object IconProvider {
         // Fall back to category icon
         val category = CategoryMapping.getCategory(merchantName)
         val categoryInfo = CategoryMapping.categories[category]
-            ?: CategoryMapping.categories["Others"]!!
+            ?: CategoryMapping.categories["Miscellaneous"]!!
 
-        return IconResource.VectorIcon(
-            icon = categoryInfo.icon,
+        return IconResource.TintedResIcon(
+            resId = categoryInfo.iconResId,
             tint = categoryInfo.color
         )
     }
@@ -1132,7 +1141,7 @@ object IconProvider {
     fun getCategoryInfo(merchantName: String): CategoryMapping.CategoryInfo {
         val category = CategoryMapping.getCategory(merchantName)
         return CategoryMapping.categories[category]
-            ?: CategoryMapping.categories["Others"]!!
+            ?: CategoryMapping.categories["Miscellaneous"]!!
     }
 }
 
@@ -1142,4 +1151,5 @@ object IconProvider {
 sealed class IconResource {
     data class DrawableResource(val resId: Int) : IconResource()
     data class VectorIcon(val icon: ImageVector, val tint: Color) : IconResource()
+    data class TintedResIcon(val resId: Int, val tint: Color) : IconResource()
 }

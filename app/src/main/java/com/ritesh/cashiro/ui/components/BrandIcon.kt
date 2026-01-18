@@ -73,6 +73,15 @@ fun BrandIcon(
                     modifier = Modifier.fillMaxSize()
                 )
             }
+            is IconResource.TintedResIcon -> {
+                // Tinted resource icon (e.g. category icons)
+                Icon(
+                    painter = painterResource(id = iconResource.resId),
+                    contentDescription = merchantName,
+                    tint = Color.Unspecified,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         }
     }
 }
@@ -118,12 +127,12 @@ fun CategoryIcon(
     tint: Color? = null
 ) {
     val categoryInfo = CategoryMapping.categories[category]
-        ?: CategoryMapping.categories["Others"]!!
+        ?: CategoryMapping.categories["Miscellaneous"]!!
     
     Icon(
-        imageVector = categoryInfo.icon,
+        painter = painterResource(id = categoryInfo.iconResId),
         contentDescription = category,
-        tint = tint ?: categoryInfo.color,
+        tint = Color.Unspecified,
         modifier = modifier.size(size)
     )
 }
