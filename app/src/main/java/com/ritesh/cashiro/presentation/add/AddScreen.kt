@@ -48,7 +48,7 @@ fun AddScreen(
                     Modifier.sharedBounds(
                         rememberSharedContentState(key = "fab_to_add"),
                         animatedVisibilityScope = animatedContentScope,
-                        resizeMode = SharedTransitionScope.ResizeMode.ScaleToBounds()
+                        resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
                     )
                 }
             } else {
