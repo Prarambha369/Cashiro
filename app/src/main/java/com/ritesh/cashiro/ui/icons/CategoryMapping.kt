@@ -1044,7 +1044,7 @@ object CategoryMapping {
         "Miscellaneous" to CategoryInfo(
             displayName = "Miscellaneous",
             iconResId = R.drawable.type_stationary_clipboard,
-            color = Color(0xFF9E9E9E),
+            color = Color(0xFF91CC4D),
         ),
         "Self Transfer" to CategoryInfo(
             displayName = "Self Transfer",

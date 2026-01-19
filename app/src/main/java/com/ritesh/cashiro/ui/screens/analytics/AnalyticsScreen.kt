@@ -262,7 +262,7 @@ fun AnalyticsScreen(
                                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                                             contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                                         ),
-                                        modifier = Modifier.height(20.dp)
+                                        modifier = Modifier.height(22.dp)
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(
@@ -275,6 +275,7 @@ fun AnalyticsScreen(
                                             Text(
                                                 text = "${selectedChartType.label} Chart",
                                                 style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.Medium,
                                                 color = MaterialTheme.colorScheme.onSurface,
                                             )
                                         }

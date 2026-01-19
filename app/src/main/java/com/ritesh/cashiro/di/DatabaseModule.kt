@@ -461,7 +461,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
                 name = "Miscellaneous",
                 description = "Everything else",
                 iconResId = R.drawable.type_stationary_clipboard,
-                color = "#9E9E9E",
+                color = "#91CC4D",
                 isIncome = false,
                 displayOrder = 25
             ),
