@@ -224,8 +224,12 @@ fun AnalyticsScreen(
                 }
 
                 // Analytics Summary
-                if (uiState.totalSpending > BigDecimal.ZERO || uiState.transactionCount > 0) {
-                    item {
+                item {
+                    BlurredAnimatedVisibility(
+                        uiState.totalSpending > BigDecimal.ZERO || uiState.transactionCount > 0,
+                        enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
+                        exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
+                    ) {
                         AnalyticsSummaryCard(
                             totalAmount = uiState.totalSpending,
                             transactionCount = uiState.transactionCount,
@@ -241,6 +245,7 @@ fun AnalyticsScreen(
                         )
                     }
                 }
+
 
                 // Spending Trend Chart
                 if (uiState.spendingTrend.isNotEmpty()) {

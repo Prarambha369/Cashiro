@@ -152,7 +152,7 @@ fun SpendingLineChart(
             enabled = true,
             textStyle = TextStyle.Default.copy(
                 fontSize = 10.sp,
-                color = themeColors.onSurfaceVariant.copy(0.6f),
+                color = themeColors.onSurface.copy(0.6f),
                 textAlign = TextAlign.End
             ),
             labels = labels,
@@ -266,11 +266,19 @@ fun SpendingBarChart(
             ),
             contentBuilder = { value -> formatPremiumCurrency(value, currency) }
         ),
+        labelHelperProperties = LabelHelperProperties(
+            enabled = true,
+            textStyle = TextStyle.Default.copy(
+                fontSize = 10.sp,
+                color = themeColors.onSurface,
+                textAlign = TextAlign.End
+            ),
+        ),
         labelProperties = LabelProperties(
             enabled = true,
             textStyle = TextStyle.Default.copy(
                 fontSize = 10.sp,
-                color = themeColors.onSurfaceVariant.copy(0.6f),
+                color = themeColors.onSurface.copy(0.6f),
                 textAlign = TextAlign.End
             ),
             padding = 16.dp,
