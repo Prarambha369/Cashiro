@@ -6,12 +6,15 @@ import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material.icons.automirrored.rounded.LiveHelp
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -23,32 +26,45 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.rounded.Chat
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.MarkChatUnread
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.MarkChatUnread
+import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material3.*
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil3.compose.AsyncImage
 import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionType
@@ -57,16 +73,25 @@ import com.ritesh.cashiro.ui.components.AccountCarousel
 import com.ritesh.cashiro.ui.components.BalanceCard
 import com.ritesh.cashiro.ui.components.BrandIcon
 import com.ritesh.cashiro.ui.components.CashiroCard
-import com.ritesh.cashiro.ui.components.CustomTitleTopAppBar
-import com.ritesh.cashiro.ui.components.ListItemCard
 import com.ritesh.cashiro.ui.components.SectionHeader
 import com.ritesh.cashiro.ui.components.SmsParsingProgressDialog
+import com.ritesh.cashiro.ui.components.GreetingCard
 import com.ritesh.cashiro.ui.components.spotlightTarget
+import com.ritesh.cashiro.navigation.UnrecognizedSms
+import com.ritesh.cashiro.navigation.Profile
+import com.ritesh.cashiro.navigation.NotificationSettings
+import com.ritesh.cashiro.ui.components.CustomTitleTopAppBar
+import com.ritesh.cashiro.ui.components.ListItem
+import com.ritesh.cashiro.ui.components.ListItemPosition
+import com.ritesh.cashiro.ui.components.toShape
+import com.ritesh.cashiro.ui.components.ListItemCard
+import com.ritesh.cashiro.ui.components.SubscriptionIconsStack
 import com.ritesh.cashiro.ui.effects.overScrollVertical
 import com.ritesh.cashiro.ui.effects.rememberOverscrollFlingBehavior
 import com.ritesh.cashiro.ui.theme.*
 import com.ritesh.cashiro.utils.CurrencyFormatter
 import com.ritesh.cashiro.utils.formatAmount
+import com.ritesh.cashiro.R
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
@@ -100,6 +125,7 @@ fun HomeScreen(
 
     // State for full resync confirmation dialog
     var showFullResyncDialog by remember { mutableStateOf(false) }
+    var showMoreBottomSheet by remember { mutableStateOf(false) }
 
     // Haptic feedback
     val view = LocalView.current
@@ -160,11 +186,11 @@ fun HomeScreen(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val hazeState = remember { HazeState() }
-    val context = LocalContext.current
     val lazyListState = rememberLazyListState()
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = Color.Transparent,
         topBar = {
             CustomTitleTopAppBar(
                 title = "Cashiro",
@@ -173,25 +199,64 @@ fun HomeScreen(
                 hazeState = hazeState,
                 hasBackButton = false,
                 onNavigateToSettings = onNavigateToSettings,
+                greetingCard = {
+                    GreetingCard(
+                        userName = uiState.userName,
+                        profileImageUri = uiState.profileImageUri,
+                        profileBackgroundColor = uiState.profileBackgroundColor,
+                        unreadUpdatesCount = uiState.unreadUpdatesCount,
+                        onProfileClick = { navController.navigate(Profile) },
+                        onNotificationClick = { navController.navigate(NotificationSettings) },
+                        onMoreClick = { showMoreBottomSheet = true },
+                        onUpdatesClick = { navController.navigate(UnrecognizedSms) }
+                    )
+                },
+                navigationContent = {
+                    Box(
+                        modifier = Modifier
+                            .padding(start = 16.dp)
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(uiState.profileBackgroundColor)
+                            .clickable { navController.navigate(Profile) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (uiState.profileImageUri != null) {
+                            AsyncImage(
+                                model = uiState.profileImageUri,
+                                contentDescription = "Profile",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Image(
+                                painter = painterResource(id = R.drawable.avatar_1),
+                                contentDescription = "Profile",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+                },
                 actionContent = {
                     Box(
                         modifier =
-                            Modifier.padding(end = 24.dp)
+                            Modifier.padding(end = 16.dp)
                                 .size(40.dp)
                                 .background(
-                                    color = MaterialTheme.colorScheme.surface,
+                                    color = MaterialTheme.colorScheme.surfaceContainerLow,
                                     shape = CircleShape
                                 )
                                 .clickable(
-                                    onClick = onNavigateToChat,
+                                    onClick = { showMoreBottomSheet = true },
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null,
                                 ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.MarkChatUnread,
-                            contentDescription = "Chat Screen",
+                            imageVector = Icons.Outlined.MoreHoriz,
+                            contentDescription = "More options",
                             tint = MaterialTheme.colorScheme.inverseSurface,
                             modifier = Modifier.size(24.dp)
                         )
@@ -202,12 +267,63 @@ fun HomeScreen(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                // Banner Image Background
+                AnimatedVisibility(
+                    visible = uiState.showBannerImage,
+                    enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
+                    exit = fadeOut() + slideOutVertically(targetOffsetY = { -it }),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp)
+                            .align(Alignment.TopCenter)
+                    ) {
+                        if (uiState.bannerImageUri != null) {
+                            AsyncImage(
+                                model = uiState.bannerImageUri,
+                                contentDescription = "Banner",
+                                modifier = Modifier.fillMaxSize().alpha(0.5f),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Image(
+                                painter = painterResource(id = R.drawable.banner_bg_image),
+                                contentDescription = "Banner",
+                                modifier = Modifier.fillMaxSize().alpha(0.5f),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                        Spacer(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .height(100.dp)
+                                .fillMaxWidth()
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(
+                                            Color.Transparent,
+                                            MaterialTheme.colorScheme.background
+                                        )
+                                    )
+                                )
+                        )
+                    }
+                }
+            }
+
             LazyColumn(
                 state = lazyListState,
                 modifier = Modifier
                     .fillMaxSize()
                     .hazeSource(state = hazeState)
-                    .background(MaterialTheme.colorScheme.background)
                     .overScrollVertical(),
                 flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
                 contentPadding =
@@ -224,7 +340,6 @@ fun HomeScreen(
                         onCurrencySelected = {
                             viewModel.selectCurrency(it)
                         },
-                        onNavigateToAddScreen = onNavigateToAddScreen
                     )
                 }
 
@@ -346,76 +461,142 @@ fun HomeScreen(
                 }
             }
 
-            // FABs - Direct access (no speed dial)
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(Dimensions.Padding.content)
-                    .padding(bottom = 65.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                horizontalAlignment = Alignment.End
-            ) {
-                // Add FAB (top, small)
-                SmallFloatingActionButton(
-                    onClick = onNavigateToAddScreen,
-                    modifier =
-                        if (sharedTransitionScope != null &&
-                            animatedContentScope != null
-                        ) {
-                            with(sharedTransitionScope) {
-                                Modifier.sharedBounds(
-                                    rememberSharedContentState(key = "fab_to_add"),
-                                    animatedVisibilityScope = animatedContentScope,
-                                    resizeMode = SharedTransitionScope
-                                            .ResizeMode
-                                            .scaleToBounds()
-                                )
-                            }
-                        } else {
-                            Modifier
-                        },
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+            // More Options BottomSheet
+            if (showMoreBottomSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showMoreBottomSheet = false },
+                    sheetState = rememberModalBottomSheetState(),
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    dragHandle = { BottomSheetDefaults.DragHandle() }
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add Transaction or Subscription"
-                    )
-                }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 32.dp)
+                            .padding(horizontal = 16.dp),
+//                        verticalArrangement = Arrangement.spacedBy(1.dp)
+                    ) {
+                        Text(
+                            text = "More Options",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(bottom = Spacing.sm).fillMaxWidth()
+                        )
 
-                // Sync FAB (bottom, primary)
-                // Single tap: incremental scan, Long press: full resync
-                Surface(
-                    modifier =
-                        Modifier.spotlightTarget(onFabPositioned)
-                            .size(56.dp)
-                            .pointerInput(Unit) {
+
+                        // Settings Option
+                        ListItem(
+                            headline = { Text("Settings") },
+                            leading = {
+                                Icon(
+                                    imageVector = Icons.Outlined.Settings,
+                                    contentDescription = null,
+                                    tint = blue_light
+                                )
+                            },
+                            onClick = {
+                                showMoreBottomSheet = false
+                                onNavigateToSettings()
+                            },
+                            shape = ListItemPosition.Top.toShape()
+                        )
+
+                        // Ask AI Option
+                        ListItem(
+                            headline = { Text("Ask AI") },
+                            leading = {
+                                Icon(
+                                    imageVector = Icons.Outlined.MarkChatUnread,
+                                    contentDescription = null,
+                                    tint = red_light
+                                )
+                            },
+                            onClick = {
+                                showMoreBottomSheet = false
+                                onNavigateToChat()
+                            },
+                            shape = ListItemPosition.Middle.toShape()
+                        )
+
+                        // Sync SMS Option
+                        ListItem(
+                            headline = { Text("Sync SMS") },
+                            leading = {
+                                Icon(
+                                    imageVector = Icons.Outlined.Sync,
+                                    contentDescription = null,
+                                    tint = orange_light
+                                )
+                            },
+                            supporting = { Text("Long press for full resync") },
+                            modifier = Modifier.pointerInput(Unit) {
                                 detectTapGestures(
-                                    onTap = { viewModel.scanSmsMessages() },
+                                    onTap = {
+                                        showMoreBottomSheet = false
+                                        viewModel.scanSmsMessages()
+                                    },
                                     onLongPress = {
-                                        // Haptic feedback for long press
                                         view.performHapticFeedback(
                                             HapticFeedbackConstants.LONG_PRESS
                                         )
+                                        showMoreBottomSheet = false
                                         showFullResyncDialog = true
                                     }
                                 )
                             },
-                    shape = FloatingActionButtonDefaults.shape,
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    shadowElevation = 6.dp
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Sync,
-                            contentDescription = "Sync SMS (long press for full resync)"
+                            onClick = null,
+                            shape = ListItemPosition.Middle.toShape()
+                        )
+
+                        // Banner Image Toggle
+                        ListItem(
+                            headline = { Text("Show Banner Image") },
+                            leading = {
+                                Icon(
+                                    imageVector = Icons.Outlined.Image,
+                                    contentDescription = null,
+                                    tint = green_light
+                                )
+                            },
+                            trailing = {
+                                Switch(
+                                    checked = uiState.showBannerImage,
+                                    onCheckedChange = { viewModel.toggleBannerImage() }
+                                )
+                            },
+                            shape = ListItemPosition.Bottom.toShape()
                         )
                     }
                 }
+            }
+
+            // Add FAB (bottom end)
+            FloatingActionButton(
+                onClick = onNavigateToAddScreen,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(Dimensions.Padding.content)
+                    .padding(bottom = 72.dp)
+                    .then(
+                        if (sharedTransitionScope != null && animatedContentScope != null) {
+                            with(sharedTransitionScope) {
+                                Modifier.sharedBounds(
+                                    rememberSharedContentState(key = "fab_to_add"),
+                                    animatedVisibilityScope = animatedContentScope,
+                                    resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
+                                )
+                            }
+                        } else Modifier
+                    ),
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Transaction or Subscription",
+                    modifier = Modifier.size(24.dp)
+                )
             }
 
             // Full Resync Confirmation Dialog
@@ -431,9 +612,10 @@ fun HomeScreen(
                     },
                     title = { Text("Full Resync") },
                     text = {
-                        Text("This will reprocess all SMS messages from scratch. " +
-                                "Use this to fix issues caused by updated bank parsers.\n\n" +
-                                "This may take a few seconds depending on your message history."
+                        Text(
+                            "This will reprocess all SMS messages from scratch. " +
+                                    "Use this to fix issues caused by updated bank parsers.\n\n" +
+                                    "This may take a few seconds depending on your message history."
                         )
                     },
                     confirmButton = {
@@ -476,14 +658,15 @@ fun HomeScreen(
             }
         }
     }
+
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SimpleTransactionItem(
+    modifier: Modifier = Modifier,
     transaction: TransactionEntity,
     onClick: () -> Unit = {},
-    modifier: Modifier = Modifier
 ) {
     val amountColor =
         when (transaction.transactionType) {
@@ -518,125 +701,126 @@ private fun SimpleTransactionItem(
         modifier = modifier
     )
 }
+//
+//@Composable
+//private fun TransactionItem(
+//    transaction: TransactionEntity,
+//    onClick: () -> Unit = {}
+//) {
+//    val amountColor =
+//        when (transaction.transactionType) {
+//            TransactionType.INCOME ->
+//                if (!isSystemInDarkTheme()) income_light else income_dark
+//            TransactionType.EXPENSE ->
+//                if (!isSystemInDarkTheme()) expense_light else expense_dark
+//            TransactionType.CREDIT ->
+//                if (!isSystemInDarkTheme()) credit_light else credit_dark
+//            TransactionType.TRANSFER ->
+//                if (!isSystemInDarkTheme()) transfer_light else transfer_dark
+//            TransactionType.INVESTMENT ->
+//                if (!isSystemInDarkTheme()) investment_light else investment_dark
+//        }
+//
+//    // Get subtle background color based on transaction type
+//    val cardBackgroundColor =
+//        when (transaction.transactionType) {
+//            TransactionType.CREDIT ->
+//                (if (!isSystemInDarkTheme()) credit_light else credit_dark).copy(
+//                    alpha = 0.05f
+//                )
+//            TransactionType.TRANSFER ->
+//                (if (!isSystemInDarkTheme()) transfer_light else transfer_dark)
+//                    .copy(alpha = 0.05f)
+//            TransactionType.INVESTMENT ->
+//                (if (!isSystemInDarkTheme()) investment_light else investment_dark)
+//                    .copy(alpha = 0.05f)
+//            TransactionType.INCOME ->
+//                (if (!isSystemInDarkTheme()) income_light else income_dark).copy(
+//                    alpha = 0.03f
+//                )
+//            else -> Color.Transparent // Default for regular expenses
+//        }
+//
+//    ListItemCard(
+//        title = transaction.merchantName,
+//        subtitle =
+//            transaction.dateTime.format(DateTimeFormatter.ofPattern("MMM d, h:mm a")),
+//        amount = transaction.formatAmount(),
+//        amountColor = amountColor,
+//        onClick = onClick,
+//        leadingContent = {
+//            BrandIcon(
+//                merchantName = transaction.merchantName,
+//                size = 40.dp,
+//                showBackground = true
+//            )
+//        },
+//        trailingContent = {
+//            Row(
+//                verticalAlignment = Alignment.CenterVertically,
+//                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+//            ) {
+//                // Show icon for transaction types
+//                when (transaction.transactionType) {
+//                    TransactionType.CREDIT ->
+//                        Icon(
+//                            Icons.Default.CreditCard,
+//                            contentDescription = "Credit Card",
+//                            modifier = Modifier.size(Dimensions.Icon.small),
+//                            tint =
+//                                if (!isSystemInDarkTheme()) credit_light
+//                                else credit_dark
+//                        )
+//                    TransactionType.TRANSFER ->
+//                        Icon(
+//                            Icons.Default.SwapHoriz,
+//                            contentDescription = "Transfer",
+//                            modifier = Modifier.size(Dimensions.Icon.small),
+//                            tint =
+//                                if (!isSystemInDarkTheme()) transfer_light
+//                                else transfer_dark
+//                        )
+//                    TransactionType.INVESTMENT ->
+//                        Icon(
+//                            Icons.AutoMirrored.Filled.ShowChart,
+//                            contentDescription = "Investment",
+//                            modifier = Modifier.size(Dimensions.Icon.small),
+//                            tint =
+//                                if (!isSystemInDarkTheme()) investment_light
+//                                else investment_dark
+//                        )
+//                    TransactionType.INCOME ->
+//                        Icon(
+//                            Icons.AutoMirrored.Filled.TrendingUp,
+//                            contentDescription = "Income",
+//                            modifier = Modifier.size(Dimensions.Icon.small),
+//                            tint =
+//                                if (!isSystemInDarkTheme()) income_light
+//                                else income_dark
+//                        )
+//                    TransactionType.EXPENSE ->
+//                        Icon(
+//                            Icons.AutoMirrored.Filled.TrendingDown,
+//                            contentDescription = "Expense",
+//                            modifier = Modifier.size(Dimensions.Icon.small),
+//                            tint =
+//                                if (!isSystemInDarkTheme()) expense_light
+//                                else expense_dark
+//                        )
+//                }
+//
+//                // Always show amount
+//                Text(
+//                    text = transaction.formatAmount(),
+//                    style = MaterialTheme.typography.bodyLarge,
+//                    fontWeight = FontWeight.SemiBold,
+//                    color = amountColor
+//                )
+//            }
+//        }
+//    )
+//}
 
-@Composable
-private fun TransactionItem(
-    transaction: TransactionEntity,
-    onClick: () -> Unit = {}
-) {
-    val amountColor =
-        when (transaction.transactionType) {
-            TransactionType.INCOME ->
-                if (!isSystemInDarkTheme()) income_light else income_dark
-            TransactionType.EXPENSE ->
-                if (!isSystemInDarkTheme()) expense_light else expense_dark
-            TransactionType.CREDIT ->
-                if (!isSystemInDarkTheme()) credit_light else credit_dark
-            TransactionType.TRANSFER ->
-                if (!isSystemInDarkTheme()) transfer_light else transfer_dark
-            TransactionType.INVESTMENT ->
-                if (!isSystemInDarkTheme()) investment_light else investment_dark
-        }
-
-    // Get subtle background color based on transaction type
-    val cardBackgroundColor =
-        when (transaction.transactionType) {
-            TransactionType.CREDIT ->
-                (if (!isSystemInDarkTheme()) credit_light else credit_dark).copy(
-                    alpha = 0.05f
-                )
-            TransactionType.TRANSFER ->
-                (if (!isSystemInDarkTheme()) transfer_light else transfer_dark)
-                    .copy(alpha = 0.05f)
-            TransactionType.INVESTMENT ->
-                (if (!isSystemInDarkTheme()) investment_light else investment_dark)
-                    .copy(alpha = 0.05f)
-            TransactionType.INCOME ->
-                (if (!isSystemInDarkTheme()) income_light else income_dark).copy(
-                    alpha = 0.03f
-                )
-            else -> Color.Transparent // Default for regular expenses
-        }
-
-    ListItemCard(
-        title = transaction.merchantName,
-        subtitle =
-            transaction.dateTime.format(DateTimeFormatter.ofPattern("MMM d, h:mm a")),
-        amount = transaction.formatAmount(),
-        amountColor = amountColor,
-        onClick = onClick,
-        leadingContent = {
-            BrandIcon(
-                merchantName = transaction.merchantName,
-                size = 40.dp,
-                showBackground = true
-            )
-        },
-        trailingContent = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-            ) {
-                // Show icon for transaction types
-                when (transaction.transactionType) {
-                    TransactionType.CREDIT ->
-                        Icon(
-                            Icons.Default.CreditCard,
-                            contentDescription = "Credit Card",
-                            modifier = Modifier.size(Dimensions.Icon.small),
-                            tint =
-                                if (!isSystemInDarkTheme()) credit_light
-                                else credit_dark
-                        )
-                    TransactionType.TRANSFER ->
-                        Icon(
-                            Icons.Default.SwapHoriz,
-                            contentDescription = "Transfer",
-                            modifier = Modifier.size(Dimensions.Icon.small),
-                            tint =
-                                if (!isSystemInDarkTheme()) transfer_light
-                                else transfer_dark
-                        )
-                    TransactionType.INVESTMENT ->
-                        Icon(
-                            Icons.AutoMirrored.Filled.ShowChart,
-                            contentDescription = "Investment",
-                            modifier = Modifier.size(Dimensions.Icon.small),
-                            tint =
-                                if (!isSystemInDarkTheme()) investment_light
-                                else investment_dark
-                        )
-                    TransactionType.INCOME ->
-                        Icon(
-                            Icons.AutoMirrored.Filled.TrendingUp,
-                            contentDescription = "Income",
-                            modifier = Modifier.size(Dimensions.Icon.small),
-                            tint =
-                                if (!isSystemInDarkTheme()) income_light
-                                else income_dark
-                        )
-                    TransactionType.EXPENSE ->
-                        Icon(
-                            Icons.AutoMirrored.Filled.TrendingDown,
-                            contentDescription = "Expense",
-                            modifier = Modifier.size(Dimensions.Icon.small),
-                            tint =
-                                if (!isSystemInDarkTheme()) expense_light
-                                else expense_dark
-                        )
-                }
-
-                // Always show amount
-                Text(
-                    text = transaction.formatAmount(),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = amountColor
-                )
-            }
-        }
-    )
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -805,7 +989,7 @@ private fun UpcomingSubscriptionsCard(
             CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
             ),
-        shape = RoundedCornerShape(Spacing.xl)
+        shape = RoundedCornerShape(Spacing.xxl)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(Dimensions.Padding.content),
@@ -840,11 +1024,10 @@ private fun UpcomingSubscriptionsCard(
                     )
                 }
             }
-            Text(
-                text = "View",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium
+            SubscriptionIconsStack(
+                subscriptions = subscriptions,
+                iconSize = 32.dp,
+                modifier = Modifier.padding(end = Spacing.md)
             )
         }
     }
@@ -855,9 +1038,7 @@ private fun UpcomingSubscriptionsCard(
 private fun TransactionSummaryCards(
     uiState: HomeUiState,
     onCurrencySelected: (String) -> Unit = {},
-    onNavigateToAddScreen: () -> Unit = {}
 ) {
-    val context = LocalContext.current
     val now = LocalDate.now()
     val lastMonth = now.minusMonths(1)
     val periodLabel = "vs ${
@@ -959,40 +1140,43 @@ private fun CurrencySelectionBottomSheet(
         ) {
             Text(
                 text = "Select Currency",
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 16.dp)
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(bottom = 16.dp).fillMaxWidth()
             )
 
-            availableCurrencies.forEach { currency ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onCurrencySelected(currency) }
-                        .padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(
-                        selected = currency == selectedCurrency,
-                        onClick = { onCurrencySelected(currency) }
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = when (currency) {
-                            "INR" -> "Indian Rupee (₹)"
-                            "USD" -> "US Dollar ($)"
-                            "AED" -> "UAE Dirham (AED)"
-                            "NPR" -> "Nepalese Rupee (₨)"
-                            "ETB" -> "Ethiopian Birr (ብር)"
-                            else -> currency
-                        },
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = if (currency == selectedCurrency) FontWeight.Bold else FontWeight.Normal
-                    )
-                }
+            availableCurrencies.forEachIndexed { index, currency ->
+                ListItem(
+                    headline = {
+                        Text(
+                            text = when (currency) {
+                                "INR" -> "Indian Rupee (₹)"
+                                "USD" -> "US Dollar ($)"
+                                "AED" -> "UAE Dirham (AED)"
+                                "NPR" -> "Nepalese Rupee (₨)"
+                                "ETB" -> "Ethiopian Birr (ብር)"
+                                else -> currency
+                            }
+                        )
+                    },
+                    trailing = {
+                        RadioButton(
+                            selected = currency == selectedCurrency,
+                            onClick = null
+                        )
+                    },
+                    selected = currency == selectedCurrency,
+                    onClick = {
+                        onCurrencySelected(currency)
+                        onDismiss()
+                    },
+                    shape = ListItemPosition.from(index, availableCurrencies.size).toShape()
+                )
             }
         }
     }
 }
+
 
 

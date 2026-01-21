@@ -62,6 +62,7 @@ constructor(@ApplicationContext private val context: Context) {
         val UPCOMING_NOTIFICATIONS_ENABLED = booleanPreferencesKey("upcoming_notifications_enabled")
         val DISABLED_SUBSCRIPTION_NOTIFICATION_IDS = androidx.datastore.preferences.core.stringSetPreferencesKey("disabled_subscription_notification_ids")
         val TEST_NOTIFICATION_ALERTS_ENABLED = booleanPreferencesKey("test_notification_alerts_enabled")
+        val SHOW_BANNER_IMAGE = booleanPreferencesKey("show_banner_image")
     }
 
     val userPreferences: Flow<UserPreferences> =
@@ -87,7 +88,8 @@ constructor(@ApplicationContext private val context: Context) {
                         profileImageUri = preferences[PreferencesKeys.PROFILE_IMAGE_URI],
                         profileBackgroundColor =
                                 preferences[PreferencesKeys.PROFILE_BACKGROUND_COLOR] ?: 0,
-                        bannerImageUri = preferences[PreferencesKeys.BANNER_IMAGE_URI]
+                        bannerImageUri = preferences[PreferencesKeys.BANNER_IMAGE_URI],
+                        showBannerImage = preferences[PreferencesKeys.SHOW_BANNER_IMAGE] ?: true
                 )
             }
 
@@ -414,6 +416,12 @@ constructor(@ApplicationContext private val context: Context) {
         }
     }
 
+    suspend fun updateShowBannerImage(show: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHOW_BANNER_IMAGE] = show
+        }
+    }
+
     // Notification Preferences
     val scanNewTransactionsEnabled: Flow<Boolean> =
         context.dataStore.data.map { preferences ->
@@ -489,5 +497,6 @@ data class UserPreferences(
         val userName: String = "User",
         val profileImageUri: String? = null,
         val profileBackgroundColor: Int = 0,
-        val bannerImageUri: String? = null
+        val bannerImageUri: String? = null,
+        val showBannerImage: Boolean = true
 )

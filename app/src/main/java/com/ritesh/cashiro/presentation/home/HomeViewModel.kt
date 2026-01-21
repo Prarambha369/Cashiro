@@ -1,6 +1,7 @@
 package com.ritesh.cashiro.presentation.home
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.ViewModel
@@ -20,7 +21,10 @@ import com.ritesh.cashiro.data.repository.AccountBalanceRepository
 import com.ritesh.cashiro.data.repository.LlmRepository
 import com.ritesh.cashiro.data.repository.SubscriptionRepository
 import com.ritesh.cashiro.data.repository.TransactionRepository
+import com.ritesh.cashiro.data.repository.UnrecognizedSmsRepository
+import com.ritesh.cashiro.data.preferences.UserPreferencesRepository
 import com.ritesh.cashiro.worker.OptimizedSmsReaderWorker
+import androidx.compose.ui.graphics.Color
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,6 +44,8 @@ class HomeViewModel @Inject constructor(
     private val currencyConversionService: CurrencyConversionService,
     private val inAppUpdateManager: InAppUpdateManager,
     private val inAppReviewManager: InAppReviewManager,
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     
@@ -60,6 +66,27 @@ class HomeViewModel @Inject constructor(
     
     init {
         loadHomeData()
+        loadUserData()
+    }
+
+    private fun loadUserData() {
+        viewModelScope.launch {
+            userPreferencesRepository.userPreferences.collect { preferences ->
+                _uiState.value = _uiState.value.copy(
+                    userName = preferences.userName,
+                    profileImageUri = preferences.profileImageUri?.let { Uri.parse(it) },
+                    profileBackgroundColor = Color(preferences.profileBackgroundColor),
+                    bannerImageUri = preferences.bannerImageUri?.let { Uri.parse(it) },
+                    showBannerImage = preferences.showBannerImage
+                )
+            }
+        }
+
+        viewModelScope.launch {
+            unrecognizedSmsRepository.getUnreportedCount().collect { count ->
+                _uiState.value = _uiState.value.copy(unreadUpdatesCount = count)
+            }
+        }
     }
     
     private fun loadHomeData() {
@@ -539,6 +566,12 @@ class HomeViewModel @Inject constructor(
         calculateMonthlyChange()
     }
 
+    fun toggleBannerImage() {
+        viewModelScope.launch {
+            userPreferencesRepository.updateShowBannerImage(!_uiState.value.showBannerImage)
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         inAppUpdateManager.cleanup()
@@ -568,5 +601,11 @@ data class HomeUiState(
     val availableCurrencies: List<String> = emptyList(),
     val isLoading: Boolean = true,
     val isScanning: Boolean = false,
-    val showBreakdownDialog: Boolean = false
+    val showBreakdownDialog: Boolean = false,
+    val userName: String = "User",
+    val profileImageUri: Uri? = null,
+    val profileBackgroundColor: Color = Color.Transparent,
+    val unreadUpdatesCount: Int = 0,
+    val bannerImageUri: Uri? = null,
+    val showBannerImage: Boolean = true
 )

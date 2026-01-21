@@ -115,7 +115,7 @@ private fun Modifier.animatedOffsetModifier(
     val targetOffsetX = when {
         hasBackButton && isProfileScreen-> 0.dp
         isTransactionScreen -> (0).dp
-        hasOnlyActionButtons && isHomeScreen-> (26).dp
+        isHomeScreen-> (0).dp
         hasBackButton && isCategoryScreen-> 0.dp
         hasBackButton && isRuleScreen-> 0.dp
         hasBackButton -> (-26).dp
@@ -183,12 +183,14 @@ private fun LargerTopAppBar(
         navigationIcon = {
             NavigationForLargeTopAppBar(
                 hasBackButton = hasBackButton,
-                navigationContent = navigationContent
+                navigationContent = navigationContent,
+                isHomeScreen = title == "Cashiro"
             )
         },
         actions = {
             ActionForLargeTopAppBar(
-                actionContent = actionContent
+                actionContent = actionContent,
+                isHomeScreen = title == "Cashiro"
             )
         },
         collapsedHeight = TopAppBarDefaults.LargeAppBarCollapsedHeight,
@@ -231,7 +233,7 @@ private fun TitleForLargeTopAppBar(
     greetingCard: @Composable () -> Unit = {},
 ){
     BlurredAnimatedVisibility(
-        visible = title != "Home",
+        visible = title != "Cashiro",
         enter = fadeIn() + scaleIn(),
         exit = fadeOut() + scaleOut()
     ) {
@@ -255,10 +257,11 @@ private fun TitleForLargeTopAppBar(
 @Composable
 private fun NavigationForLargeTopAppBar(
     hasBackButton: Boolean = false,
+    isHomeScreen: Boolean = false,
     navigationContent: @Composable () -> Unit = {},
 ){
     BlurredAnimatedVisibility(
-        visible = hasBackButton,
+        visible = hasBackButton && !isHomeScreen,
         enter = fadeIn() + scaleIn(),
         exit = fadeOut() + scaleOut()
     ) {
@@ -269,9 +272,10 @@ private fun NavigationForLargeTopAppBar(
 @Composable
 private fun ActionForLargeTopAppBar(
     actionContent: @Composable () -> Unit = {},
+    isHomeScreen: Boolean = false,
 ){
     BlurredAnimatedVisibility(
-        visible = true,
+        visible = !isHomeScreen,
         enter = fadeIn() + scaleIn(),
         exit = fadeOut() + scaleOut()
     ) {
@@ -302,6 +306,7 @@ private fun RegularTopAppBar(
         enter = fadeIn(),
         exit = fadeOut()
     ) {
+        val isHomeScreen = title == "Cashiro"
         val isProfileScreen = title == "Profile"
         val isTransactionScreen = title == "Transactions"
         val isSearchTransactionScreen = title == "Search Transactions"
@@ -332,7 +337,7 @@ private fun RegularTopAppBar(
             ),
             navigationIcon = {
                 BlurredAnimatedVisibility(
-                    visible = hasBackButton,
+                    visible = hasBackButton || isHomeScreen,
                     enter = fadeIn() + scaleIn(),
                     exit = fadeOut() + scaleOut()
                 ) {
