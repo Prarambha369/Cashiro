@@ -14,7 +14,7 @@ plugins {
 android {
     namespace = "com.ritesh.cashiro"
     compileSdk = 36
-    buildToolsVersion = "34.0.0"
+//    buildToolsVersion = "34.0.0"
     
     buildFeatures {
         buildConfig = true

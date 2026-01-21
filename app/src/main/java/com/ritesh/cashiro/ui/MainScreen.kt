@@ -120,7 +120,7 @@ fun MainScreen(
                                 animatedContentScope = animatedContentScope
                             ) },
                         navPage(
-                            route = "transactions?category={category}&merchant={merchant}&period={period}&currency={currency}&focusSearch={focusSearch}",
+                            route = "transactions?category={category}&merchant={merchant}&period={period}&currency={currency}&type={type}&focusSearch={focusSearch}",
                             arguments =
                                 listOf(
                                     navArgument("category") {
@@ -144,6 +144,11 @@ fun MainScreen(
                                         nullable = true
                                         defaultValue = null
                                     },
+                                    navArgument("type") {
+                                        type = NavType.StringType
+                                        nullable = true
+                                        defaultValue = null
+                                    },
                                     navArgument("focusSearch") {
                                         type = NavType.BoolType
                                         defaultValue = false
@@ -158,6 +163,8 @@ fun MainScreen(
                                 backStackEntry.arguments?.getString("period")
                             val currency =
                                 backStackEntry.arguments?.getString("currency")
+                            val type =
+                                backStackEntry.arguments?.getString("type")
                             val focusSearch =
                                 backStackEntry.arguments?.getBoolean(
                                     "focusSearch"
@@ -168,6 +175,7 @@ fun MainScreen(
                                 initialMerchant = merchant,
                                 initialPeriod = period,
                                 initialCurrency = currency,
+                                initialType = type,
                                 focusSearch = focusSearch,
                                 onNavigateBack = {
                                     navController.popBackStack()

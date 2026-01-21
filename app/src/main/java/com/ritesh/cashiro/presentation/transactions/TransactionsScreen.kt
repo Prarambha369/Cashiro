@@ -50,6 +50,7 @@ fun TransactionsScreen(
     initialMerchant: String? = null,
     initialPeriod: String? = null,
     initialCurrency: String? = null,
+    initialType: String? = null,
     focusSearch: Boolean = false,
     viewModel: TransactionsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
@@ -106,18 +107,20 @@ fun TransactionsScreen(
             initialCategory,
             initialMerchant,
             initialPeriod,
-            initialCurrency
+            initialCurrency,
+            initialType
         )
     }
 
     // Apply navigation filters when navigation parameters change (for deep links)
-    LaunchedEffect(initialCategory, initialMerchant, initialPeriod, initialCurrency) {
-        if (initialCategory != null || initialMerchant != null || initialPeriod != null || initialCurrency != null) {
+    LaunchedEffect(initialCategory, initialMerchant, initialPeriod, initialCurrency, initialType) {
+        if (initialCategory != null || initialMerchant != null || initialPeriod != null || initialCurrency != null || initialType != null) {
             viewModel.applyNavigationFilters(
                 initialCategory,
                 initialMerchant,
                 initialPeriod,
-                initialCurrency
+                initialCurrency,
+                initialType
             )
         }
     }

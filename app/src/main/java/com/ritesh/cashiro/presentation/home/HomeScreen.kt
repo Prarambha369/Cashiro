@@ -35,6 +35,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -52,14 +53,14 @@ import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionType
 import com.ritesh.cashiro.navigation.AccountDetail
+import com.ritesh.cashiro.ui.components.AccountCarousel
+import com.ritesh.cashiro.ui.components.BalanceCard
 import com.ritesh.cashiro.ui.components.BrandIcon
 import com.ritesh.cashiro.ui.components.CashiroCard
 import com.ritesh.cashiro.ui.components.CustomTitleTopAppBar
 import com.ritesh.cashiro.ui.components.ListItemCard
 import com.ritesh.cashiro.ui.components.SectionHeader
 import com.ritesh.cashiro.ui.components.SmsParsingProgressDialog
-import com.ritesh.cashiro.ui.components.SummaryCard
-import com.ritesh.cashiro.ui.components.UnifiedAccountsCard
 import com.ritesh.cashiro.ui.components.spotlightTarget
 import com.ritesh.cashiro.ui.effects.overScrollVertical
 import com.ritesh.cashiro.ui.effects.rememberOverscrollFlingBehavior
@@ -211,10 +212,7 @@ fun HomeScreen(
                 flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
                 contentPadding =
                     PaddingValues(
-                        start = Dimensions.Padding.content,
-                        end = Dimensions.Padding.content,
-                        top = Dimensions.Padding.content +
-                                    paddingValues.calculateTopPadding(),
+                        top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
                         bottom = 0.dp
                     ),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
@@ -225,7 +223,8 @@ fun HomeScreen(
                         uiState = uiState,
                         onCurrencySelected = {
                             viewModel.selectCurrency(it)
-                        }
+                        },
+                        onNavigateToAddScreen = onNavigateToAddScreen
                     )
                 }
 
@@ -234,12 +233,9 @@ fun HomeScreen(
                     uiState.accountBalances.isNotEmpty()
                 ) {
                     item {
-                        UnifiedAccountsCard(
+                        AccountCarousel(
                             creditCards = uiState.creditCards,
                             bankAccounts = uiState.accountBalances,
-                            totalBalance = uiState.totalBalance,
-                            totalAvailableCredit = uiState.totalAvailableCredit,
-                            selectedCurrency = uiState.selectedCurrency,
                             onAccountClick = { bankName, accountLast4 ->
                                 navController.navigate(
                                     AccountDetail(
@@ -258,7 +254,11 @@ fun HomeScreen(
                         UpcomingSubscriptionsCard(
                             subscriptions = uiState.upcomingSubscriptions,
                             totalAmount = uiState.upcomingSubscriptionsTotal,
-                            onClick = onNavigateToSubscriptions
+                            onClick = onNavigateToSubscriptions,
+                            modifier = Modifier.padding(
+                                start = Dimensions.Padding.content,
+                                end = Dimensions.Padding.content,
+                            )
                         )
                     }
                 }
@@ -266,7 +266,7 @@ fun HomeScreen(
                 // Recent Transactions Section
                 item {
                     SectionHeader(
-                        title = "Recent Transactions",
+                        title = "Recent",
                         action = {
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -289,7 +289,11 @@ fun HomeScreen(
                                     onClick = onNavigateToTransactions
                                 ) { Text("View All") }
                             }
-                        }
+                        },
+                        modifier = Modifier.padding(
+                            start = Dimensions.Padding.content + 10.dp,
+                            end = Dimensions.Padding.content + 10.dp,
+                        )
                     )
                 }
 
@@ -297,6 +301,10 @@ fun HomeScreen(
                     item {
                         Box(
                             modifier = Modifier
+                                .padding(
+                                    start = Dimensions.Padding.content,
+                                    end = Dimensions.Padding.content
+                                )
                                 .fillMaxWidth()
                                 .height(Dimensions.Component.minTouchTarget * 2),
                             contentAlignment = Alignment.Center
@@ -328,7 +336,11 @@ fun HomeScreen(
                             transaction = transaction,
                             onClick = {
                                 onTransactionClick(transaction.id)
-                            }
+                            },
+                            modifier = Modifier.padding(
+                                start = Dimensions.Padding.content,
+                                end = Dimensions.Padding.content,
+                            )
                         )
                     }
                 }
@@ -470,7 +482,8 @@ fun HomeScreen(
 @Composable
 private fun SimpleTransactionItem(
     transaction: TransactionEntity,
-    onClick: () -> Unit = {}
+    onClick: () -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val amountColor =
         when (transaction.transactionType) {
@@ -501,79 +514,8 @@ private fun SimpleTransactionItem(
                 size = 40.dp,
                 showBackground = true
             )
-        }
-    )
-}
-
-@Composable
-private fun MonthSummaryCard(
-    monthTotal: BigDecimal,
-    monthlyChange: BigDecimal,
-    monthlyChangePercent: Int,
-    currency: String,
-    currentExpenses: BigDecimal = BigDecimal.ZERO,
-    lastExpenses: BigDecimal = BigDecimal.ZERO,
-    onShowBreakdown: () -> Unit = {}
-) {
-    val isPositive = monthTotal >= BigDecimal.ZERO
-    val displayAmount =
-        if (isPositive) {
-            "+${CurrencyFormatter.formatCurrency(monthTotal, currency)}"
-        } else {
-            CurrencyFormatter.formatCurrency(monthTotal, currency)
-        }
-    val amountColor =
-        if (isPositive) {
-            if (!isSystemInDarkTheme()) income_light else income_dark
-        } else {
-            if (!isSystemInDarkTheme()) expense_light else expense_dark
-        }
-
-    val expenseChange = currentExpenses - lastExpenses
-    val now = LocalDate.now()
-    val lastMonth = now.minusMonths(1)
-    val periodLabel =
-        "vs ${lastMonth.month.name.lowercase().replaceFirstChar { it.uppercase() }} 1-${now.dayOfMonth}"
-
-    val subtitle =
-        when {
-            // No transactions yet
-            currentExpenses == BigDecimal.ZERO && lastExpenses == BigDecimal.ZERO -> {
-                "No transactions yet"
-            }
-            // Spent more than last period
-            expenseChange > BigDecimal.ZERO -> {
-                "😟 Spent ${CurrencyFormatter.formatCurrency(expenseChange.abs(), currency)} more $periodLabel"
-            }
-            // Spent less than last period
-            expenseChange < BigDecimal.ZERO -> {
-                "😊 Spent ${CurrencyFormatter.formatCurrency(expenseChange.abs(), currency)} less $periodLabel"
-            }
-            // Saved more (higher positive balance)
-            monthlyChange > BigDecimal.ZERO && monthTotal > BigDecimal.ZERO -> {
-                "🎉 Saved ${CurrencyFormatter.formatCurrency(monthlyChange.abs(), currency)} more $periodLabel"
-            }
-            // No change
-            else -> {
-                "Same as last period"
-            }
-        }
-
-    val currentMonth = now.month.name.lowercase().replaceFirstChar { it.uppercase() }
-
-    // Currency symbol mapping for display
-    val currencySymbols =
-        mapOf("INR" to "₹", "USD" to "$", "AED" to "AED", "NPR" to "₨", "ETB" to "ብর")
-    val currencySymbol = currencySymbols[currency] ?: currency
-
-    val titleText = "Net Balance ($currencySymbol) • $currentMonth 1-${now.dayOfMonth}"
-
-    SummaryCard(
-        title = titleText,
-        amount = displayAmount,
-        subtitle = subtitle,
-        amountColor = amountColor,
-        onClick = onShowBreakdown
+        },
+        modifier = modifier
     )
 }
 
@@ -851,17 +793,19 @@ private fun BreakdownRow(
 
 @Composable
 private fun UpcomingSubscriptionsCard(
+    modifier: Modifier = Modifier,
     subscriptions: List<SubscriptionEntity>,
     totalAmount: BigDecimal,
-    onClick: () -> Unit = {}
+    onClick: () -> Unit = {},
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         onClick = onClick,
         colors =
             CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
-            )
+            ),
+        shape = RoundedCornerShape(Spacing.xl)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(Dimensions.Padding.content),
@@ -910,231 +854,145 @@ private fun UpcomingSubscriptionsCard(
 @Composable
 private fun TransactionSummaryCards(
     uiState: HomeUiState,
-    onCurrencySelected: (String) -> Unit = {}
+    onCurrencySelected: (String) -> Unit = {},
+    onNavigateToAddScreen: () -> Unit = {}
 ) {
-    val pagerState = rememberPagerState(pageCount = { 4 })
+    val context = LocalContext.current
+    val now = LocalDate.now()
+    val lastMonth = now.minusMonths(1)
+    val periodLabel = "vs ${
+        lastMonth.month.name.lowercase().replaceFirstChar { it.uppercase() }
+    } 1-${now.dayOfMonth}"
 
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        // Enhanced Currency Selector (if multiple currencies available)
-        if (uiState.availableCurrencies.size > 1) {
-            EnhancedCurrencySelector(
-                selectedCurrency = uiState.selectedCurrency,
-                availableCurrencies = uiState.availableCurrencies,
-                onCurrencySelected = onCurrencySelected,
-                modifier = Modifier.fillMaxWidth()
-            )
+    val expenseChange = uiState.currentMonthExpenses - uiState.lastMonthExpenses
+
+    val comparisonMessage = when {
+        uiState.currentMonthExpenses == BigDecimal.ZERO && uiState.lastMonthExpenses == BigDecimal.ZERO -> {
+            "No transactions yet"
         }
-
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxWidth(),
-            pageSpacing = Spacing.md
-        ) { page ->
-            when (page) {
-                0 -> {
-                    // Net Balance Card (existing implementation)
-                    MonthSummaryCard(
-                        monthTotal = uiState.currentMonthTotal,
-                        monthlyChange = uiState.monthlyChange,
-                        monthlyChangePercent = uiState.monthlyChangePercent,
-                        currency = uiState.selectedCurrency,
-                        currentExpenses = uiState.currentMonthExpenses,
-                        lastExpenses = uiState.lastMonthExpenses,
-                        onShowBreakdown = { /* TODO */}
-                    )
-                }
-                1 -> {
-                    // Credit Card Summary
-                    TransactionTypeCard(
-                        title = "Credit Card",
-                        icon = Icons.Default.CreditCard,
-                        amount = uiState.currentMonthCreditCard,
-                        color =
-                            if (!isSystemInDarkTheme()) credit_light
-                            else credit_dark,
-                        emoji = "💳",
-                        currency = uiState.selectedCurrency
-                    )
-                }
-                2 -> {
-                    // Transfer Summary
-                    TransactionTypeCard(
-                        title = "Transfers",
-                        icon = Icons.Default.SwapHoriz,
-                        amount = uiState.currentMonthTransfer,
-                        color =
-                            if (!isSystemInDarkTheme()) transfer_light
-                            else transfer_dark,
-                        emoji = "↔️",
-                        currency = uiState.selectedCurrency
-                    )
-                }
-                3 -> {
-                    // Investment Summary
-                    TransactionTypeCard(
-                        title = "Investments",
-                        icon = Icons.AutoMirrored.Filled.ShowChart,
-                        amount = uiState.currentMonthInvestment,
-                        color =
-                            if (!isSystemInDarkTheme()) investment_light
-                            else investment_dark,
-                        emoji = "📈",
-                        currency = uiState.selectedCurrency
-                    )
-                }
-            }
+        expenseChange > BigDecimal.ZERO -> {
+            "${CurrencyFormatter.formatCurrency(expenseChange.abs(), uiState.selectedCurrency)} more $periodLabel"
         }
-
-        // Page Indicators
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = Spacing.xs),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            repeat(4) { index ->
-                val color =
-                    if (pagerState.currentPage == index) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                            alpha = 0.3f
-                        )
-                    }
-                Box(
-                    modifier =
-                        Modifier.padding(horizontal = 2.dp)
-                            .size(8.dp)
-                            .background(
-                                color = color,
-                                shape = CircleShape
-                            )
+        expenseChange < BigDecimal.ZERO -> {
+            "${CurrencyFormatter.formatCurrency(expenseChange.abs(), uiState.selectedCurrency)} less $periodLabel"
+        }
+        uiState.monthlyChange > BigDecimal.ZERO && uiState.currentMonthTotal > BigDecimal.ZERO -> {
+            "Saved ${
+                CurrencyFormatter.formatCurrency(
+                    uiState.monthlyChange.abs(),
+                    uiState.selectedCurrency
                 )
-            }
+            } more $periodLabel"
         }
+        else -> {
+            "Same as last period"
+        }
+    }
+
+    var showCurrencySheet by remember { mutableStateOf(false) }
+
+    if (showCurrencySheet) {
+        CurrencySelectionBottomSheet(
+            selectedCurrency = uiState.selectedCurrency,
+            availableCurrencies = uiState.availableCurrencies,
+            onCurrencySelected = {
+                onCurrencySelected(it)
+                showCurrencySheet = false
+            },
+            onDismiss = { showCurrencySheet = false }
+        )
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+
+        BalanceCard(
+            totalBalance = uiState.totalBalance,
+            monthlyChange = uiState.monthlyChange,
+            currency = uiState.selectedCurrency,
+            subtitle = comparisonMessage,
+            transfersAmount = CurrencyFormatter.formatCurrency(
+                uiState.currentMonthTransfer,
+                uiState.selectedCurrency
+            ),
+            investmentsAmount = CurrencyFormatter.formatCurrency(
+                uiState.currentMonthInvestment,
+                uiState.selectedCurrency
+            ),
+            onTransfersClick = {
+//                navController.navigate("transactions?type=TRANSFER")
+                /* Show Breakdown or something else */
+            },
+            onInvestmentsClick = {
+//                navController.navigate("transactions?type=INVESTMENT")
+                /* Show Breakdown or something else */
+            },
+            onHandleClick = { /* Show Breakdown or something else */ },
+            availableCurrenciesCount = uiState.availableCurrencies.size,
+            onCurrencyClick = { showCurrencySheet = true },
+            modifier = Modifier.padding(
+                start = Dimensions.Padding.content,
+                end = Dimensions.Padding.content,
+            )
+        )
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TransactionTypeCard(
-    title: String,
-    icon: ImageVector,
-    amount: BigDecimal,
-    color: Color,
-    emoji: String,
-    currency: String
-) {
-    val currentMonth =
-        LocalDate.now().month.name.lowercase().replaceFirstChar { it.uppercase() }
-    val now = LocalDate.now()
-
-    val subtitle =
-        when {
-            amount > BigDecimal.ZERO -> {
-                when (title) {
-                    "Credit Card" -> "Spent on credit this month"
-                    "Transfers" -> "Moved between accounts"
-                    "Investments" -> "Invested this month"
-                    else -> "Total this month"
-                }
-            }
-            else -> {
-                when (title) {
-                    "Credit Card" -> "No credit card spending"
-                    "Transfers" -> "No transfers this month"
-                    "Investments" -> "No investments this month"
-                    else -> "No transactions"
-                }
-            }
-        }
-
-    SummaryCard(
-        title = "$emoji $title • $currentMonth",
-        subtitle = subtitle,
-        amount = CurrencyFormatter.formatCurrency(amount, currency),
-        amountColor = color,
-        onClick = { /* TODO: Navigate to filtered view */}
-    )
-}
-
-@Composable
-private fun EnhancedCurrencySelector(
+private fun CurrencySelectionBottomSheet(
     selectedCurrency: String,
     availableCurrencies: List<String>,
     onCurrencySelected: (String) -> Unit,
-    modifier: Modifier = Modifier
+    onDismiss: () -> Unit
 ) {
-    // Currency symbol mapping
-    val currencySymbols =
-        mapOf("INR" to "₹", "USD" to "$", "AED" to "AED", "NPR" to "₨", "ETB" to "ብር")
-
-    // Compact segmented button style
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border =
-            BorderStroke(
-                width = 0.5.dp,
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-            )
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { BottomSheetDefaults.DragHandle() }
     ) {
-        Row(
-            modifier =
-                Modifier.fillMaxWidth()
-                    .padding(horizontal = Spacing.xs, vertical = Spacing.xs),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 48.dp)
         ) {
-            availableCurrencies.forEach { currency ->
-                val isSelected = selectedCurrency == currency
-                val symbol = currencySymbols[currency] ?: currency
+            Text(
+                text = "Select Currency",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
 
-                Surface(
-                    onClick = { onCurrencySelected(currency) },
-                    modifier = Modifier.weight(1f).animateContentSize(),
-                    shape = RoundedCornerShape(8.dp),
-                    color =
-                        if (isSelected) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            Color.Transparent
-                        }
+            availableCurrencies.forEach { currency ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onCurrencySelected(currency) }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                vertical = Spacing.sm,
-                                horizontal = Spacing.xs
-                            ),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = symbol,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight =
-                                if (isSelected) FontWeight.Bold
-                                else FontWeight.Medium,
-                            color =
-                                if (isSelected) { MaterialTheme.colorScheme.onPrimary
-                                } else { MaterialTheme.colorScheme.onSurfaceVariant }
-                        )
-                        if (symbol != currency) {
-                            Spacer(modifier = Modifier.width(2.dp))
-                            Text(
-                                text = currency,
-                                style = MaterialTheme.typography.labelSmall,
-                                color =
-                                    if (isSelected) { MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f)
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                                    }
-                            )
-                        }
-                    }
+                    RadioButton(
+                        selected = currency == selectedCurrency,
+                        onClick = { onCurrencySelected(currency) }
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = when (currency) {
+                            "INR" -> "Indian Rupee (₹)"
+                            "USD" -> "US Dollar ($)"
+                            "AED" -> "UAE Dirham (AED)"
+                            "NPR" -> "Nepalese Rupee (₨)"
+                            "ETB" -> "Ethiopian Birr (ብር)"
+                            else -> currency
+                        },
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = if (currency == selectedCurrency) FontWeight.Bold else FontWeight.Normal
+                    )
                 }
             }
         }
     }
 }
+
+

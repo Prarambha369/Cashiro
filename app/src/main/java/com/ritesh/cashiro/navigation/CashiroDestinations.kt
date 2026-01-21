@@ -9,7 +9,16 @@ import kotlinx.serialization.Serializable
 
 @Serializable object Home
 
-@Serializable object Transactions
+@Serializable
+data class Transactions(
+    val category: String? = null,
+    val merchant: String? = null,
+    val period: String? = null,
+    val currency: String? = null,
+    val type: String? = null,
+    val focusSearch: Boolean = false
+)
+
 
 @Serializable object Settings
 

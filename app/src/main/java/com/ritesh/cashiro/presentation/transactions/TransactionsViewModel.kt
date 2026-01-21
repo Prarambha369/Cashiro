@@ -337,7 +337,8 @@ class TransactionsViewModel @Inject constructor(
         category: String?,
         merchant: String?,
         period: String?,
-        currency: String?
+        currency: String?,
+        type: String?
     ) {
         if (!hasAppliedInitialFilters) {
             // Only apply filters once, when first navigating to the screen
@@ -372,6 +373,18 @@ class TransactionsViewModel @Inject constructor(
                 timePeriod?.let { selectPeriod(it) }
             }
 
+            type?.let { typeName ->
+                val typeFilter = when (typeName) {
+                    "INCOME" -> TransactionTypeFilter.INCOME
+                    "EXPENSE" -> TransactionTypeFilter.EXPENSE
+                    "CREDIT" -> TransactionTypeFilter.CREDIT
+                    "TRANSFER" -> TransactionTypeFilter.TRANSFER
+                    "INVESTMENT" -> TransactionTypeFilter.INVESTMENT
+                    else -> TransactionTypeFilter.ALL
+                }
+                setTransactionTypeFilter(typeFilter)
+            }
+
             // Only set currency if it's provided (from navigation)
             currency?.let { selectCurrency(it) }
 
@@ -383,7 +396,8 @@ class TransactionsViewModel @Inject constructor(
         category: String?,
         merchant: String?,
         period: String?,
-        currency: String?
+        currency: String?,
+        type: String?
     ) {
         // This function can be called multiple times for navigation updates
         clearCategoryFilter()
@@ -415,6 +429,18 @@ class TransactionsViewModel @Inject constructor(
                 else -> null
             }
             timePeriod?.let { selectPeriod(it) }
+        }
+
+        type?.let { typeName ->
+            val typeFilter = when (typeName) {
+                "INCOME" -> TransactionTypeFilter.INCOME
+                "EXPENSE" -> TransactionTypeFilter.EXPENSE
+                "CREDIT" -> TransactionTypeFilter.CREDIT
+                "TRANSFER" -> TransactionTypeFilter.TRANSFER
+                "INVESTMENT" -> TransactionTypeFilter.INVESTMENT
+                else -> TransactionTypeFilter.ALL
+            }
+            setTransactionTypeFilter(typeFilter)
         }
 
         // Only set currency if it's provided (from navigation)
