@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -28,12 +29,17 @@ fun SubscriptionIconsStack(
     borderColor: Color = MaterialTheme.colorScheme.secondaryContainer
 ) {
     val displaySubscriptions = subscriptions.take(maxIcons)
+    val outerIconSize = iconSize + 4.dp
     
-    // Total width will be (iconSize) + (maxIcons - 1) * (offset)
-    // For iconSize 32.dp and 0.5 overlap, offset is 16.dp
-    // 4 icons = 32 + 3 * 16 = 80dp approx
+    if (displaySubscriptions.isEmpty()) return
+
+    val totalWidth = if (displaySubscriptions.size > 1) {
+        (iconSize * (displaySubscriptions.size - 1).toFloat() * 0.55f) + outerIconSize
+    } else {
+        outerIconSize
+    }
     
-    Box(modifier = modifier) {
+    Box(modifier = modifier.width(totalWidth)) {
         displaySubscriptions.forEachIndexed { index, subscription ->
             val overlapOffset = (iconSize * index.toFloat() * 0.55f)
             
@@ -41,9 +47,9 @@ fun SubscriptionIconsStack(
                 modifier = Modifier
                     .offset(x = overlapOffset)
                     .zIndex(index.toFloat())
-                    .size(iconSize + 10.dp)
+                    .size(outerIconSize)
                     .background(borderColor, CircleShape)
-                    .padding(1.dp) // Border thickness
+//                    .padding(1.dp) // Border thickness
                     .clip(CircleShape),
                 contentAlignment = Alignment.Center
             ) {

@@ -195,10 +195,42 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             // Load all active subscriptions
             subscriptionRepository.getActiveSubscriptions().collect { subscriptions ->
-                val totalAmount = subscriptions.sumOf { it.amount }
+                // Get main account currency for conversion
+                val mainAccountKey = sharedPrefs.getString("main_account", null)
+                val targetCurrency = if (mainAccountKey != null) {
+                    val parts = mainAccountKey.split("_")
+                    if (parts.size >= 2) {
+                        accountBalanceRepository.getLatestBalance(parts[0], parts[1])?.currency
+                            ?: _uiState.value.selectedCurrency
+                    } else {
+                        _uiState.value.selectedCurrency
+                    }
+                } else {
+                    _uiState.value.selectedCurrency
+                }
+
+                // Check if we need to refresh rates for subscription currencies
+                val subscriptionCurrencies = subscriptions.map { it.currency }.distinct()
+                if (subscriptionCurrencies.any { it != targetCurrency }) {
+                    currencyConversionService.refreshExchangeRatesForAccount(subscriptionCurrencies + targetCurrency)
+                }
+
+                val totalAmount = subscriptions.sumOf { subscription ->
+                    if (subscription.currency == targetCurrency) {
+                        subscription.amount
+                    } else {
+                        currencyConversionService.convertAmount(
+                            amount = subscription.amount,
+                            fromCurrency = subscription.currency,
+                            toCurrency = targetCurrency
+                        ) ?: subscription.amount
+                    }
+                }
+
                 _uiState.value = _uiState.value.copy(
                     upcomingSubscriptions = subscriptions,
-                    upcomingSubscriptionsTotal = totalAmount
+                    upcomingSubscriptionsTotal = totalAmount,
+                    upcomingSubscriptionsCurrency = targetCurrency
                 )
             }
         }
@@ -593,6 +625,7 @@ data class HomeUiState(
     val recentTransactions: List<TransactionEntity> = emptyList(),
     val upcomingSubscriptions: List<SubscriptionEntity> = emptyList(),
     val upcomingSubscriptionsTotal: BigDecimal = BigDecimal.ZERO,
+    val upcomingSubscriptionsCurrency: String = "INR",
     val accountBalances: List<AccountBalanceEntity> = emptyList(),
     val creditCards: List<AccountBalanceEntity> = emptyList(),
     val totalBalance: BigDecimal = BigDecimal.ZERO,

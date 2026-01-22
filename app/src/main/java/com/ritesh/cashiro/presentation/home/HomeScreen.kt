@@ -244,7 +244,7 @@ fun HomeScreen(
                             Modifier.padding(end = 16.dp)
                                 .size(40.dp)
                                 .background(
-                                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                                    color = MaterialTheme.colorScheme.surfaceContainer,
                                     shape = CircleShape
                                 )
                                 .clickable(
@@ -369,6 +369,7 @@ fun HomeScreen(
                         UpcomingSubscriptionsCard(
                             subscriptions = uiState.upcomingSubscriptions,
                             totalAmount = uiState.upcomingSubscriptionsTotal,
+                            currency = uiState.upcomingSubscriptionsCurrency,
                             onClick = onNavigateToSubscriptions,
                             modifier = Modifier.padding(
                                 start = Dimensions.Padding.content,
@@ -701,125 +702,7 @@ private fun SimpleTransactionItem(
         modifier = modifier
     )
 }
-//
-//@Composable
-//private fun TransactionItem(
-//    transaction: TransactionEntity,
-//    onClick: () -> Unit = {}
-//) {
-//    val amountColor =
-//        when (transaction.transactionType) {
-//            TransactionType.INCOME ->
-//                if (!isSystemInDarkTheme()) income_light else income_dark
-//            TransactionType.EXPENSE ->
-//                if (!isSystemInDarkTheme()) expense_light else expense_dark
-//            TransactionType.CREDIT ->
-//                if (!isSystemInDarkTheme()) credit_light else credit_dark
-//            TransactionType.TRANSFER ->
-//                if (!isSystemInDarkTheme()) transfer_light else transfer_dark
-//            TransactionType.INVESTMENT ->
-//                if (!isSystemInDarkTheme()) investment_light else investment_dark
-//        }
-//
-//    // Get subtle background color based on transaction type
-//    val cardBackgroundColor =
-//        when (transaction.transactionType) {
-//            TransactionType.CREDIT ->
-//                (if (!isSystemInDarkTheme()) credit_light else credit_dark).copy(
-//                    alpha = 0.05f
-//                )
-//            TransactionType.TRANSFER ->
-//                (if (!isSystemInDarkTheme()) transfer_light else transfer_dark)
-//                    .copy(alpha = 0.05f)
-//            TransactionType.INVESTMENT ->
-//                (if (!isSystemInDarkTheme()) investment_light else investment_dark)
-//                    .copy(alpha = 0.05f)
-//            TransactionType.INCOME ->
-//                (if (!isSystemInDarkTheme()) income_light else income_dark).copy(
-//                    alpha = 0.03f
-//                )
-//            else -> Color.Transparent // Default for regular expenses
-//        }
-//
-//    ListItemCard(
-//        title = transaction.merchantName,
-//        subtitle =
-//            transaction.dateTime.format(DateTimeFormatter.ofPattern("MMM d, h:mm a")),
-//        amount = transaction.formatAmount(),
-//        amountColor = amountColor,
-//        onClick = onClick,
-//        leadingContent = {
-//            BrandIcon(
-//                merchantName = transaction.merchantName,
-//                size = 40.dp,
-//                showBackground = true
-//            )
-//        },
-//        trailingContent = {
-//            Row(
-//                verticalAlignment = Alignment.CenterVertically,
-//                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-//            ) {
-//                // Show icon for transaction types
-//                when (transaction.transactionType) {
-//                    TransactionType.CREDIT ->
-//                        Icon(
-//                            Icons.Default.CreditCard,
-//                            contentDescription = "Credit Card",
-//                            modifier = Modifier.size(Dimensions.Icon.small),
-//                            tint =
-//                                if (!isSystemInDarkTheme()) credit_light
-//                                else credit_dark
-//                        )
-//                    TransactionType.TRANSFER ->
-//                        Icon(
-//                            Icons.Default.SwapHoriz,
-//                            contentDescription = "Transfer",
-//                            modifier = Modifier.size(Dimensions.Icon.small),
-//                            tint =
-//                                if (!isSystemInDarkTheme()) transfer_light
-//                                else transfer_dark
-//                        )
-//                    TransactionType.INVESTMENT ->
-//                        Icon(
-//                            Icons.AutoMirrored.Filled.ShowChart,
-//                            contentDescription = "Investment",
-//                            modifier = Modifier.size(Dimensions.Icon.small),
-//                            tint =
-//                                if (!isSystemInDarkTheme()) investment_light
-//                                else investment_dark
-//                        )
-//                    TransactionType.INCOME ->
-//                        Icon(
-//                            Icons.AutoMirrored.Filled.TrendingUp,
-//                            contentDescription = "Income",
-//                            modifier = Modifier.size(Dimensions.Icon.small),
-//                            tint =
-//                                if (!isSystemInDarkTheme()) income_light
-//                                else income_dark
-//                        )
-//                    TransactionType.EXPENSE ->
-//                        Icon(
-//                            Icons.AutoMirrored.Filled.TrendingDown,
-//                            contentDescription = "Expense",
-//                            modifier = Modifier.size(Dimensions.Icon.small),
-//                            tint =
-//                                if (!isSystemInDarkTheme()) expense_light
-//                                else expense_dark
-//                        )
-//                }
-//
-//                // Always show amount
-//                Text(
-//                    text = transaction.formatAmount(),
-//                    style = MaterialTheme.typography.bodyLarge,
-//                    fontWeight = FontWeight.SemiBold,
-//                    color = amountColor
-//                )
-//            }
-//        }
-//    )
-//}
+
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -980,6 +863,7 @@ private fun UpcomingSubscriptionsCard(
     modifier: Modifier = Modifier,
     subscriptions: List<SubscriptionEntity>,
     totalAmount: BigDecimal,
+    currency: String,
     onClick: () -> Unit = {},
 ) {
     Card(
@@ -1016,7 +900,7 @@ private fun UpcomingSubscriptionsCard(
                     )
                     Text(
                         text =
-                            "Monthly total: ${CurrencyFormatter.formatCurrency(totalAmount)}",
+                            "Monthly total: ${CurrencyFormatter.formatCurrency(totalAmount, currency)}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer.copy(
                             alpha = Dimensions.Alpha.subtitle
@@ -1026,8 +910,8 @@ private fun UpcomingSubscriptionsCard(
             }
             SubscriptionIconsStack(
                 subscriptions = subscriptions,
-                iconSize = 32.dp,
-                modifier = Modifier.padding(end = Spacing.md)
+                iconSize = 38.dp,
+                modifier = Modifier.padding(end = Spacing.sm)
             )
         }
     }
