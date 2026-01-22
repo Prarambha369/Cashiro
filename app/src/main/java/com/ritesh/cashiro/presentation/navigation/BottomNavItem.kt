@@ -30,4 +30,10 @@ sealed class BottomNavItem(
         icon = Icons.Rounded.Settings
     )
 
+    data object Chat : BottomNavItem(
+        route = "chat",
+        title = "Chat",
+        icon = Icons.AutoMirrored.Filled.Chat
+    )
+
 }

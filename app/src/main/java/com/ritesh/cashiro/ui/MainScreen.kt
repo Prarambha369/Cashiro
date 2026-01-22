@@ -85,7 +85,7 @@ fun MainScreen(
     val spotlightState by spotlightViewModel.spotlightState.collectAsState()
 
     val navigationItems =
-            listOf(BottomNavItem.Home, BottomNavItem.Analytics, BottomNavItem.Settings)
+            listOf(BottomNavItem.Home, BottomNavItem.Analytics, BottomNavItem.Chat)
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold { paddingValues ->
@@ -388,7 +388,7 @@ fun MainScreen(
                 )
 
                 // HorizontalFloatingToolbar
-                if (currentRoute in listOf("home", "analytics", "settings")) {
+                if (currentRoute in listOf("home", "analytics")) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
