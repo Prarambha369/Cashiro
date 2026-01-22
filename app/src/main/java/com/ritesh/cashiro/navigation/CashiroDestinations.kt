@@ -21,7 +21,7 @@ data class Transactions(
 
 
 @Serializable object Settings
-
+@Serializable object Subscriptions
 @Serializable object Categories
 
 @Serializable object Analytics
@@ -30,7 +30,7 @@ data class Transactions(
 
 @Serializable data class TransactionDetail(val transactionId: Long)
 
-@Serializable object AddTransaction
+@Serializable data class AddTransaction(val initialTab: Int = 0)
 
 @Serializable data class AccountDetail(val bankName: String, val accountLast4: String)
 

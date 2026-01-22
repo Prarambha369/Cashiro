@@ -368,16 +368,34 @@ fun HomeScreen(
                 // Upcoming Subscriptions Alert
                 if (uiState.upcomingSubscriptions.isNotEmpty()) {
                     item {
-                        UpcomingSubscriptionsCard(
-                            subscriptions = uiState.upcomingSubscriptions,
-                            totalAmount = uiState.upcomingSubscriptionsTotal,
-                            currency = uiState.upcomingSubscriptionsCurrency,
-                            onClick = onNavigateToSubscriptions,
-                            modifier = Modifier.padding(
-                                start = Dimensions.Padding.content,
-                                end = Dimensions.Padding.content,
-                            )
+                        val cardModifier = Modifier.padding(
+                            start = Dimensions.Padding.content,
+                            end = Dimensions.Padding.content,
                         )
+                        
+                        if (sharedTransitionScope != null && animatedContentScope != null) {
+                            with(sharedTransitionScope) {
+                                UpcomingSubscriptionsCard(
+                                    subscriptions = uiState.upcomingSubscriptions,
+                                    totalAmount = uiState.upcomingSubscriptionsTotal,
+                                    currency = uiState.upcomingSubscriptionsCurrency,
+                                    onClick = onNavigateToSubscriptions,
+                                    modifier = cardModifier.sharedBounds(
+                                        rememberSharedContentState(key = "upcoming_subscriptions_card"),
+                                        animatedVisibilityScope = animatedContentScope,
+                                        resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
+                                    )
+                                )
+                            }
+                        } else {
+                            UpcomingSubscriptionsCard(
+                                subscriptions = uiState.upcomingSubscriptions,
+                                totalAmount = uiState.upcomingSubscriptionsTotal,
+                                currency = uiState.upcomingSubscriptionsCurrency,
+                                onClick = onNavigateToSubscriptions,
+                                modifier = cardModifier
+                            )
+                        }
                     }
                 }
 

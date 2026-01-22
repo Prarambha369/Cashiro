@@ -1,5 +1,8 @@
 package com.ritesh.cashiro.presentation.subscriptions
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,28 +20,39 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
+import com.ritesh.cashiro.presentation.categories.NavigationContent
 import com.ritesh.cashiro.ui.components.*
 import com.ritesh.cashiro.ui.theme.*
 import com.ritesh.cashiro.ui.effects.overScrollVertical
 import com.ritesh.cashiro.ui.effects.rememberOverscrollFlingBehavior
-import androidx.compose.foundation.lazy.rememberLazyListState
 import com.ritesh.cashiro.utils.CurrencyFormatter
 import com.ritesh.cashiro.utils.formatAmount
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun SubscriptionsScreen(
     viewModel: SubscriptionsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
-    onAddSubscriptionClick: () -> Unit = {}
+    onAddSubscriptionClick: () -> Unit = {},
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedContentScope: AnimatedVisibilityScope? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -57,98 +71,218 @@ fun SubscriptionsScreen(
         }
     }
     
-    Box(modifier = Modifier.fillMaxSize()) {
-        val lazyListState = rememberLazyListState()
+    val hazeState = remember { HazeState() }
+    val lazyListState = rememberLazyListState()
+    val scrollBehaviorSmall = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    
+    Box(
+        modifier = Modifier.then(
+            if (sharedTransitionScope != null && animatedContentScope != null) {
+                with(sharedTransitionScope) {
+                    Modifier.sharedBounds(
+                        rememberSharedContentState(key = "upcoming_subscriptions_card"),
+                        animatedVisibilityScope = animatedContentScope,
+                        boundsTransform = { _, _ ->
+                            spring(
+                                stiffness = Spring.StiffnessLow,
+                                dampingRatio = Spring.DampingRatioLowBouncy
+                            )
+                        },
+                        resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
+                    )
+                }
+            } else Modifier
+        ).background(MaterialTheme.colorScheme.background)
+    ) {
+        Scaffold(
+            modifier = Modifier
+                .fillMaxSize()
+                .nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        topBar = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = "Subscriptions",
+                onBackClick = onNavigateBack,
+                hasBackButton = true,
+                hazeState = hazeState,
+                navigationContent = { NavigationContent(onNavigateBack) }
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onAddSubscriptionClick,
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.then(
+                    if (sharedTransitionScope != null && animatedContentScope != null) {
+                        with(sharedTransitionScope) {
+                            Modifier.sharedBounds(
+                                rememberSharedContentState(key = "fab_to_add"),
+                                animatedVisibilityScope = animatedContentScope,
+                                resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
+                            )
+                        }
+                    } else Modifier
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Subscription"
+                )
+            }
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ) { paddingValues ->
         LazyColumn(
             state = lazyListState,
             modifier = Modifier
                 .fillMaxSize()
+                .hazeSource(state = hazeState)
                 .overScrollVertical(),
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
-            contentPadding = PaddingValues(Dimensions.Padding.content),
+            contentPadding = PaddingValues(
+                start = Dimensions.Padding.content,
+                end = Dimensions.Padding.content,
+                top = paddingValues.calculateTopPadding() + Spacing.md,
+                bottom = paddingValues.calculateBottomPadding() + Dimensions.Padding.content
+            ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-        // Total Monthly Subscriptions Summary
-        item {
-            TotalSubscriptionsSummary(
-                totalAmount = uiState.totalMonthlyAmount,
-                activeCount = uiState.activeSubscriptions.size
-            )
-        }
-        
-        // Active Subscriptions
-        if (uiState.activeSubscriptions.isNotEmpty()) {
-            items(
-                items = uiState.activeSubscriptions,
-                key = { it.id }
-            ) { subscription ->
-                SwipeableSubscriptionItem(
-                    subscription = subscription,
-                    onHide = { viewModel.hideSubscription(subscription.id) }
+            // Total Monthly & Yearly Subscriptions Summary
+            item {
+                TotalSubscriptionsSummary(
+                    monthlyAmount = uiState.totalMonthlyAmount,
+                    yearlyAmount = uiState.totalYearlyAmount,
+                    activeCount = uiState.activeSubscriptions.size,
+                    currency = uiState.targetCurrency
                 )
             }
-        }
-        
-        // Empty State
-        if (uiState.activeSubscriptions.isEmpty() && !uiState.isLoading) {
-            item {
-                EmptySubscriptionsState()
+            
+            // Active Subscriptions
+            if (uiState.activeSubscriptions.isNotEmpty()) {
+                items(
+                    items = uiState.activeSubscriptions,
+                    key = { it.id }
+                ) { subscription ->
+                    SwipeableSubscriptionItem(
+                        subscription = subscription,
+                        onHide = { viewModel.hideSubscription(subscription.id) }
+                    )
+                }
             }
-        }
-        
-        // Loading State
-        if (uiState.isLoading) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+            
+            // Empty State
+            if (uiState.activeSubscriptions.isEmpty() && !uiState.isLoading) {
+                item {
+                    EmptySubscriptionsState()
+                }
+            }
+            
+            // Loading State
+            if (uiState.isLoading) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
                 }
             }
         }
-        }
-        
-        // Add Subscription FAB (consistent with other screens)
-        SmallFloatingActionButton(
-            onClick = onAddSubscriptionClick,
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(Dimensions.Padding.content)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Add Subscription"
-            )
-        }
-        
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
+    }
     }
 }
 
 @Composable
 private fun TotalSubscriptionsSummary(
-    totalAmount: BigDecimal,
-    activeCount: Int
+    monthlyAmount: BigDecimal,
+    yearlyAmount: BigDecimal,
+    activeCount: Int,
+    currency: String
 ) {
-    val amountColor = if (!isSystemInDarkTheme()) expense_light else expense_dark
+    val expenseColor = if (!isSystemInDarkTheme()) expense_light else expense_dark
     
-    SummaryCard(
-        title = "Monthly Subscriptions",
-        amount = CurrencyFormatter.formatCurrency(totalAmount),
-        subtitle = "$activeCount active subscription${if (activeCount != 1) "s" else ""}",
-        amountColor = amountColor,
+    CashiroCard(
+        modifier = Modifier.fillMaxWidth(),
         containerColor = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer
         )
-    )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Dimensions.Padding.content)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "Total Subscriptions",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Text(
+                        text = "$activeCount active",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                    )
+                }
+                
+                Icon(
+                    imageVector = Icons.Default.Subscriptions,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.5f),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(Spacing.md))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xl)
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "MONTHLY",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f),
+                        letterSpacing = 1.sp
+                    )
+                    Text(
+                        text = CurrencyFormatter.formatCurrency(monthlyAmount, currency),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = expenseColor
+                    )
+                }
+                
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "YEARLY",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f),
+                        letterSpacing = 1.sp
+                    )
+                    Text(
+                        text = CurrencyFormatter.formatCurrency(yearlyAmount, currency),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = expenseColor
+                    )
+                }
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -207,7 +341,7 @@ private fun SwipeableSubscriptionItem(
                             showSmsBody = !showSmsBody
                         },
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                     )
                 ) {
                     Row(

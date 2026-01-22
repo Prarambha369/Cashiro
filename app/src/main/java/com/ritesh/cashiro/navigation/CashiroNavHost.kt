@@ -27,6 +27,7 @@ import com.ritesh.cashiro.ui.screens.settings.FAQScreen
 import com.ritesh.cashiro.ui.screens.settings.NotificationScreen
 import com.ritesh.cashiro.ui.screens.settings.SettingsScreen
 import com.ritesh.cashiro.ui.screens.unrecognized.UnrecognizedSmsScreen
+import com.ritesh.cashiro.presentation.subscriptions.SubscriptionsScreen
 import com.ritesh.cashiro.ui.viewmodel.ThemeViewModel
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -174,11 +175,13 @@ fun CashiroNavHost(
                 exitTransition = { ExitTransition.None },
                 popEnterTransition = { EnterTransition.None },
                 popExitTransition = { ExitTransition.None }
-            ) {
+            ) { backStackEntry ->
+                val addTransaction = backStackEntry.toRoute<AddTransaction>()
                 AddScreen(
                     onNavigateBack = { navController.popBackStack() },
                     sharedTransitionScope = this@SharedTransitionLayout,
-                    animatedContentScope = this@composable
+                    animatedContentScope = this@composable,
+                    initialTab = addTransaction.initialTab
                 )
             }
 
@@ -207,6 +210,22 @@ fun CashiroNavHost(
                     navController = navController,
                     bankName = accountDetail.bankName,
                     accountLast4 = accountDetail.accountLast4,
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedContentScope = this@composable
+                )
+            }
+
+            composable<Subscriptions>(
+                enterTransition = { EnterTransition.None },
+                exitTransition = { ExitTransition.None },
+                popEnterTransition = { EnterTransition.None },
+                popExitTransition = { ExitTransition.None }
+            ) {
+                SubscriptionsScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onAddSubscriptionClick = {
+                        navController.navigate(AddTransaction(initialTab = 1))
+                    },
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedContentScope = this@composable
                 )

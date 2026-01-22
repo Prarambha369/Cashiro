@@ -37,6 +37,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.ritesh.cashiro.navigation.AddTransaction
 import com.ritesh.cashiro.navigation.AnimatedNavHost
+import com.ritesh.cashiro.navigation.Subscriptions
 import com.ritesh.cashiro.navigation.TransactionDetail
 import com.ritesh.cashiro.navigation.navPage
 import com.ritesh.cashiro.presentation.accounts.AddAccountScreen
@@ -108,8 +109,8 @@ fun MainScreen(
                                 onNavigateToTransactions = { navController.navigate("transactions") },
                                 onNavigateToTransactionsWithSearch = { navController.navigate(
                                     route = "transactions?focusSearch=true") },
-                                onNavigateToSubscriptions = { navController.navigate("subscriptions") },
-                                onNavigateToAddScreen = { rootNavController?.navigate(AddTransaction) },
+                                onNavigateToSubscriptions = { rootNavController?.navigate(Subscriptions) },
+                                onNavigateToAddScreen = { rootNavController?.navigate(AddTransaction()) },
                                 onTransactionClick = { transactionId ->
                                     rootNavController?.navigate(
                                         TransactionDetail(transactionId)
@@ -186,20 +187,10 @@ fun MainScreen(
                                     )
                                 },
                                 onAddTransactionClick = {
-                                    rootNavController?.navigate(AddTransaction)
+                                    rootNavController?.navigate(AddTransaction())
                                 },
                                 onNavigateToSettings = {
                                     navController.navigate("settings")
-                                }
-                            )
-                        },
-                        navPage("subscriptions") {
-                            SubscriptionsScreen(
-                                onNavigateBack = {
-                                    navController.popBackStack()
-                                },
-                                onAddSubscriptionClick = {
-                                    rootNavController?.navigate(AddTransaction)
                                 }
                             )
                         },

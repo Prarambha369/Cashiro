@@ -30,9 +30,13 @@ fun AddScreen(
     viewModel: AddViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
     sharedTransitionScope: SharedTransitionScope? = null,
-    animatedContentScope: AnimatedContentScope? = null
+    animatedContentScope: AnimatedContentScope? = null,
+    initialTab: Int = 0
 ) {
-    val pagerState = rememberPagerState(pageCount = { 2 })
+    val pagerState = rememberPagerState(
+        initialPage = initialTab,
+        pageCount = { 2 }
+    )
     val coroutineScope = rememberCoroutineScope()
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
