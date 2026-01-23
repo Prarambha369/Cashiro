@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -106,7 +107,10 @@ fun AccountCarouselCard(
                                     dampingRatio = Spring.DampingRatioLowBouncy
                                 )
                             },
-                            resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
+                            resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(
+                                contentScale = ContentScale.Inside,
+                                alignment = Alignment.Center
+                            )
                         )
                     }
                 } else Modifier

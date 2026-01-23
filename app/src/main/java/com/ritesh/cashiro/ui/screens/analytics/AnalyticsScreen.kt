@@ -4,6 +4,7 @@ import android.graphics.Color
 import androidx.compose.animation.*
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -58,13 +59,15 @@ enum class BreakdownType {
     PIE, LIST
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun AnalyticsScreen(
     viewModel: AnalyticsViewModel = hiltViewModel(),
     onNavigateToChat: () -> Unit = {},
     onNavigateToTransactions: (category: String?, merchant: String?, period: String?, currency: String?) -> Unit = { _, _, _, _ -> },
-    onNavigateToSettings: () -> Unit = {}
+    onNavigateToSettings: () -> Unit = {},
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedContentScope: AnimatedContentScope? = null
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedPeriod by viewModel.selectedPeriod.collectAsStateWithLifecycle()
@@ -496,6 +499,8 @@ fun AnalyticsScreen(
                                                 uiState.currency
                                             )
                                         },
+//                                        sharedTransitionScope = sharedTransitionScope,
+//                                        animatedContentScope = animatedContentScope
                                     )
                                 }
                             }
@@ -550,7 +555,9 @@ fun AnalyticsScreen(
                                 modifier = Modifier.padding(
                                     start = Dimensions.Padding.content,
                                     end = Dimensions.Padding.content,
-                                )
+                                ),
+//                                sharedTransitionScope = sharedTransitionScope,
+//                                animatedContentScope = animatedContentScope
                             )
                         }
                     }
@@ -616,13 +623,16 @@ private fun TypeFilterIcon(typeFilter: TransactionTypeFilter) {
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun CategoryProgressItem(
     name: String,
     amount: BigDecimal,
     percentage: Float,
     currency: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedContentScope: AnimatedContentScope? = null
 ) {
     val categoryInfo = CategoryMapping.categories[name]
         ?: CategoryMapping.categories["Miscellaneous"]!!
@@ -659,7 +669,25 @@ fun CategoryProgressItem(
                         text = name,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier
+//                            .then(
+//                                if (sharedTransitionScope != null && animatedContentScope != null) {
+//                                    with(sharedTransitionScope) {
+//                                        Modifier.sharedBounds(
+//                                            rememberSharedContentState(key = "category_$name"),
+//                                            animatedVisibilityScope = animatedContentScope,
+//                                            boundsTransform = { _, _ ->
+//                                                spring(
+//                                                    stiffness = Spring.StiffnessLow,
+//                                                    dampingRatio = Spring.DampingRatioLowBouncy
+//                                                )
+//                                            },
+//                                            resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(ContentScale.FillWidth, Alignment.Center)
+//                                        )
+//                                    }
+//                                } else Modifier
+//                            )
                     )
                     Text(
                         text = "${(percentage * 100).toInt()}%",
@@ -689,12 +717,15 @@ fun CategoryProgressItem(
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun MerchantListItem(
     modifier: Modifier = Modifier,
     merchant: MerchantData,
     currency: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedContentScope: AnimatedContentScope? = null
 ) {
     val subtitle = buildString {
         append("${merchant.transactionCount} ")
@@ -716,7 +747,24 @@ fun MerchantListItem(
         subtitle = subtitle,
         amount = CurrencyFormatter.formatCurrency(merchant.amount, currency),
         onClick = onClick,
-        modifier = modifier
+        modifier = modifier,
+//        titleModifier = Modifier.then(
+//            if (sharedTransitionScope != null && animatedContentScope != null) {
+//                with(sharedTransitionScope) {
+//                    Modifier.sharedBounds(
+//                        rememberSharedContentState(key = "merchant_${merchant.name}"),
+//                        animatedVisibilityScope = animatedContentScope,
+//                        boundsTransform = { _, _ ->
+//                            spring(
+//                                stiffness = Spring.StiffnessLow,
+//                                dampingRatio = Spring.DampingRatioLowBouncy
+//                            )
+//                        },
+//                        resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(ContentScale.FillWidth, Alignment.Center)
+//                    )
+//                }
+//            } else Modifier
+//        )
     )
 }
 

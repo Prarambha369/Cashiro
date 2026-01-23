@@ -25,6 +25,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -121,7 +122,16 @@ fun SubscriptionsScreen(
                             Modifier.sharedBounds(
                                 rememberSharedContentState(key = "fab_to_add"),
                                 animatedVisibilityScope = animatedContentScope,
-                                resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
+                                boundsTransform = { _, _ ->
+                                    spring(
+                                        stiffness = Spring.StiffnessLow,
+                                        dampingRatio = Spring.DampingRatioLowBouncy
+                                    )
+                                },
+                                resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(
+                                    contentScale = ContentScale.FillBounds,
+                                    alignment = Alignment.Center
+                                )
                             )
                         }
                     } else Modifier

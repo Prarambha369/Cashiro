@@ -70,6 +70,8 @@ class TransactionsViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(TransactionsUiState())
     val uiState: StateFlow<TransactionsUiState> = _uiState.asStateFlow()
+
+    private val _canLoadData = MutableStateFlow(false)
     
     private val _currencyGroupedTotals = MutableStateFlow(CurrencyGroupedTotals())
     val currencyGroupedTotals: StateFlow<CurrencyGroupedTotals> = _currencyGroupedTotals.asStateFlow()
@@ -191,16 +193,19 @@ class TransactionsViewModel @Inject constructor(
     }
     
     init {
-        // Manually combine all flows using transformLatest
-        merge(
-            searchQuery.debounce(300).map { "search" },
-            selectedPeriod.map { "period" },
-            categoryFilter.map { "category" },
-            transactionTypeFilter.map { "typeFilter" },
-            selectedCurrency.map { "currency" },
-            sortOption.map { "sort" },
-            customDateRange.map { "customDate" }
-        )
+        _canLoadData
+            .filter { it }
+            .flatMapLatest {
+                merge(
+                    searchQuery.debounce(300).map { "search" },
+                    selectedPeriod.map { "period" },
+                    categoryFilter.map { "category" },
+                    transactionTypeFilter.map { "typeFilter" },
+                    selectedCurrency.map { "currency" },
+                    sortOption.map { "sort" },
+                    customDateRange.map { "customDate" }
+                )
+            }
             .transformLatest { trigger ->
                 // Get current values from all StateFlows
                 val query = searchQuery.value
@@ -236,6 +241,13 @@ class TransactionsViewModel @Inject constructor(
                 }
             }
             .launchIn(viewModelScope)
+    }
+
+    /**
+     * Call this when the transition is finished to start loading heavy data.
+     */
+    fun startLoading() {
+        _canLoadData.value = true
     }
     
     fun updateSearchQuery(query: String) {

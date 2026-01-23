@@ -151,6 +151,9 @@ fun TransactionsScreen(
             initialCurrency,
             initialType
         )
+        // Delay heavy data loading until transition finished for smoothness
+        kotlinx.coroutines.delay(500)
+        viewModel.startLoading()
     }
 
     // Apply navigation filters when navigation parameters change (for deep links)
@@ -242,8 +245,8 @@ fun TransactionsScreen(
                 if (uiState.transactions.isNotEmpty()) {
                     SmallFloatingActionButton(
                         onClick = { showExportDialog = true },
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
                     ) {
                         Icon(
                             imageVector = Icons.Default.FileDownload,
@@ -256,8 +259,8 @@ fun TransactionsScreen(
                 // Add Transaction FAB (consistent with Home screen)
                 FloatingActionButton(
                     onClick = onAddTransactionClick,
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.then(
                         if (sharedTransitionScope != null && animatedContentScope != null) {
                             with(sharedTransitionScope) {
@@ -308,7 +311,7 @@ fun TransactionsScreen(
                         if (sharedTransitionScope != null && animatedContentScope != null) {
                             with(sharedTransitionScope) {
                                 Modifier.sharedBounds(
-                                    rememberSharedContentState(key = "transactions_search"),
+                                    rememberSharedContentState(key = if (initialMerchant != null) "merchant_$initialMerchant" else "transactions_search"),
                                     animatedVisibilityScope = animatedContentScope,
                                     boundsTransform = { _, _ ->
                                         spring(
@@ -603,6 +606,23 @@ fun TransactionsScreen(
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
                             selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        ),
+                        modifier = Modifier.then(
+                            if (sharedTransitionScope != null && animatedContentScope != null) {
+                                with(sharedTransitionScope) {
+                                    Modifier.sharedBounds(
+                                        rememberSharedContentState(key = "category_$category"),
+                                        animatedVisibilityScope = animatedContentScope,
+                                        boundsTransform = { _, _ ->
+                                            spring(
+                                                stiffness = Spring.StiffnessLow,
+                                                dampingRatio = Spring.DampingRatioLowBouncy
+                                            )
+                                        },
+                                        resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
+                                    )
+                                }
+                            } else Modifier
                         )
                     )
                 }

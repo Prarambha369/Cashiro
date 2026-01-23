@@ -3,6 +3,7 @@ package com.ritesh.cashiro.ui.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import com.ritesh.cashiro.ui.theme.Spacing
@@ -18,7 +19,7 @@ fun <T> ExpandableList(
     modifier: Modifier = Modifier,
     itemContent: @Composable (T) -> Unit
 ) {
-    var isExpanded by remember { mutableStateOf(false) }
+    var isExpanded by rememberSaveable { mutableStateOf(false) }
     val displayItems = if (isExpanded) items else items.take(visibleItemCount)
     
     Column(

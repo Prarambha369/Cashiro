@@ -183,7 +183,7 @@ class AnalyticsViewModel @Inject constructor(
         }
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Lazily,
         initialValue = AnalyticsUiState(isLoading = true)
     )
 

@@ -391,7 +391,10 @@ fun HomeScreen(
                                                 dampingRatio = Spring.DampingRatioLowBouncy
                                             )
                                         },
-                                        resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
+                                        resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(
+                                            contentScale = ContentScale.None,
+                                            alignment = Alignment.Center
+                                        )
                                     )
                                 )
                             }
@@ -431,7 +434,10 @@ fun HomeScreen(
                                                             dampingRatio = Spring.DampingRatioLowBouncy
                                                         )
                                                     },
-                                                    resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
+                                                    resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(
+                                                        contentScale = ContentScale.None,
+                                                        alignment = Alignment.Center
+                                                    )
                                                 )
                                             }
                                         } else Modifier
@@ -459,7 +465,10 @@ fun HomeScreen(
                                                             dampingRatio = Spring.DampingRatioLowBouncy
                                                         )
                                                     },
-                                                    resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
+                                                    resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(
+                                                        contentScale = ContentScale.None,
+                                                        alignment = Alignment.Center
+                                                    )
                                                 )
                                             }
                                         } else Modifier
@@ -536,7 +545,6 @@ fun HomeScreen(
                             .fillMaxWidth()
                             .padding(bottom = 32.dp)
                             .padding(horizontal = 16.dp),
-//                        verticalArrangement = Arrangement.spacedBy(1.dp)
                     ) {
                         Text(
                             text = "More Options",
@@ -554,7 +562,6 @@ fun HomeScreen(
                                 Icon(
                                     imageVector = Icons.Outlined.Settings,
                                     contentDescription = null,
-                                    tint = blue_light
                                 )
                             },
                             onClick = {
@@ -571,7 +578,6 @@ fun HomeScreen(
                                 Icon(
                                     imageVector = Icons.Outlined.MarkChatUnread,
                                     contentDescription = null,
-                                    tint = red_light
                                 )
                             },
                             onClick = {
@@ -588,7 +594,6 @@ fun HomeScreen(
                                 Icon(
                                     imageVector = Icons.Outlined.Sync,
                                     contentDescription = null,
-                                    tint = orange_light
                                 )
                             },
                             supporting = { Text("Long press for full resync") },
@@ -618,7 +623,6 @@ fun HomeScreen(
                                 Icon(
                                     imageVector = Icons.Outlined.Image,
                                     contentDescription = null,
-                                    tint = green_light
                                 )
                             },
                             trailing = {
@@ -646,7 +650,16 @@ fun HomeScreen(
                                 Modifier.sharedBounds(
                                     rememberSharedContentState(key = "fab_to_add"),
                                     animatedVisibilityScope = animatedContentScope,
-                                    resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
+                                    boundsTransform = { _, _ ->
+                                        spring(
+                                            stiffness = Spring.StiffnessLow,
+                                            dampingRatio = Spring.DampingRatioLowBouncy
+                                        )
+                                    },
+                                    resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(
+                                        contentScale = ContentScale.FillBounds,
+                                        alignment = Alignment.Center
+                                    )
                                 )
                             }
                         } else Modifier

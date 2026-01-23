@@ -29,6 +29,7 @@ import com.ritesh.cashiro.ui.screens.settings.NotificationScreen
 import com.ritesh.cashiro.ui.screens.settings.SettingsScreen
 import com.ritesh.cashiro.ui.screens.unrecognized.UnrecognizedSmsScreen
 import com.ritesh.cashiro.presentation.subscriptions.SubscriptionsScreen
+import com.ritesh.cashiro.ui.screens.settings.SMSScreen
 import com.ritesh.cashiro.ui.viewmodel.ThemeViewModel
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -120,7 +121,7 @@ fun CashiroNavHost(
             }
 
             composable<SmsSettings> {
-                com.ritesh.cashiro.ui.screens.settings.SMSScreen(
+                SMSScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToUnrecognizedSms = {
                         navController.navigate(UnrecognizedSms)

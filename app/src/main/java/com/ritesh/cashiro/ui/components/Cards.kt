@@ -106,6 +106,7 @@ fun ListItemCard(
     subtitle: String,
     amount: String,
     modifier: Modifier = Modifier,
+    titleModifier: Modifier = Modifier,
     amountColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
     leadingContent: @Composable (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = null,
@@ -132,7 +133,8 @@ fun ListItemCard(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    modifier = titleModifier
                 )
                 Text(
                     text = subtitle,
