@@ -255,6 +255,7 @@ fun TransactionsScreen(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
             Column(
+                horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 // Export FAB (only show if transactions exist)
@@ -404,7 +405,8 @@ fun TransactionsScreen(
                         text = if (categoryFilter != null) "Search in $categoryFilter..."
                         else "Search transactions...",
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.5f)
                     )
                 }
             )

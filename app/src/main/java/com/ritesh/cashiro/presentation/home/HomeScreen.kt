@@ -208,7 +208,7 @@ fun HomeScreen(
                         profileImageUri = uiState.profileImageUri,
                         profileBackgroundColor = uiState.profileBackgroundColor,
                         unreadUpdatesCount = uiState.unreadUpdatesCount,
-                        onProfileClick = { navController.navigate(Profile) },
+                        onProfileClick = { onNavigateToSettings() },
                         onNotificationClick = { navController.navigate(NotificationSettings) },
                         onMoreClick = { showMoreBottomSheet = true },
                         onUpdatesClick = { navController.navigate(UnrecognizedSms) }
@@ -221,7 +221,7 @@ fun HomeScreen(
                             .size(40.dp)
                             .clip(CircleShape)
                             .background(uiState.profileBackgroundColor)
-                            .clickable { navController.navigate(Profile) },
+                            .clickable { onNavigateToSettings() },
                         contentAlignment = Alignment.Center
                     ) {
                         if (uiState.profileImageUri != null) {
