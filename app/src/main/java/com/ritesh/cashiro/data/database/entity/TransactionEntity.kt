@@ -29,7 +29,8 @@ data class TransactionEntity(
         @ColumnInfo(name = "updated_at") val updatedAt: LocalDateTime = LocalDateTime.now(),
         @ColumnInfo(name = "currency", defaultValue = "INR") val currency: String = "INR",
         @ColumnInfo(name = "from_account") val fromAccount: String? = null,
-        @ColumnInfo(name = "to_account") val toAccount: String? = null
+        @ColumnInfo(name = "to_account") val toAccount: String? = null,
+        @ColumnInfo(name = "billing_cycle") val billingCycle: String? = null
 )
 
 enum class TransactionType {

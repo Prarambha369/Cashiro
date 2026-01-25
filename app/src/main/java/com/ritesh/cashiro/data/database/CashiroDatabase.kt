@@ -59,7 +59,7 @@ import com.ritesh.cashiro.data.database.entity.UnrecognizedSmsEntity
                         RuleApplicationEntity::class,
                         ExchangeRateEntity::class,
                         SubcategoryEntity::class],
-        version = 32,
+        version = 34,
         exportSchema = true,
         autoMigrations =
                 [
@@ -67,7 +67,9 @@ import com.ritesh.cashiro.data.database.entity.UnrecognizedSmsEntity
                         AutoMigration(from = 28, to = 29),
                         AutoMigration(from = 29, to = 30, spec = Migration29To30::class),
                         AutoMigration(from = 30, to = 31),
-                        AutoMigration(from = 31, to = 32, spec = Migration31To32::class)]
+                        AutoMigration(from = 31, to = 32, spec = Migration31To32::class),
+                        AutoMigration(from = 32, to = 33),
+                        AutoMigration(from = 33, to = 34)]
 )
 @TypeConverters(Converters::class)
 abstract class CashiroDatabase : RoomDatabase() {

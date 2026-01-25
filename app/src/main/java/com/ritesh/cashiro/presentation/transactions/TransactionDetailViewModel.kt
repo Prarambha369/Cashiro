@@ -10,6 +10,10 @@ import com.ritesh.cashiro.data.repository.AccountBalanceRepository
 import com.ritesh.cashiro.data.repository.CategoryRepository
 import com.ritesh.cashiro.data.repository.MerchantMappingRepository
 import com.ritesh.cashiro.data.repository.TransactionRepository
+import com.ritesh.cashiro.data.repository.SubcategoryRepository
+import com.ritesh.cashiro.data.repository.SubscriptionRepository
+import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
+import com.ritesh.cashiro.data.database.entity.SubscriptionState
 import com.ritesh.cashiro.core.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -25,7 +29,9 @@ class TransactionDetailViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val merchantMappingRepository: MerchantMappingRepository,
     private val categoryRepository: CategoryRepository,
+    private val subcategoryRepository: SubcategoryRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
+    private val subscriptionRepository: SubscriptionRepository,
     private val currencyConversionService: CurrencyConversionService,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
@@ -104,10 +110,13 @@ class TransactionDetailViewModel @Inject constructor(
                 }
                 .map { balance ->
                     AccountInfo(
+                        id = balance.id,
                         bankName = balance.bankName,
                         accountLast4 = balance.accountLast4,
                         displayName = "${balance.bankName} ••••${balance.accountLast4}",
-                        isCreditCard = balance.isCreditCard
+                        isCreditCard = balance.isCreditCard,
+                        iconResId = balance.iconResId,
+                        currency = balance.currency
                     )
                 }
                 .distinctBy { "${it.bankName}_${it.accountLast4}" }
@@ -117,12 +126,36 @@ class TransactionDetailViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+
+    val selectedAccount: StateFlow<AccountInfo?> = combine(
+        _editableTransaction,
+        availableAccounts
+    ) { transaction, accounts ->
+        if (transaction == null) return@combine null
+        accounts.find { 
+            it.bankName == transaction.bankName && it.accountLast4 == transaction.accountNumber 
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    
+    val targetAccount: StateFlow<AccountInfo?> = combine(
+        _editableTransaction,
+        availableAccounts
+    ) { transaction, accounts ->
+        if (transaction == null) return@combine null
+        accounts.find { it.accountLast4 == transaction.toAccount }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    
+    val allSubcategories: StateFlow<Map<Long, List<com.ritesh.cashiro.data.database.entity.SubcategoryEntity>>> = subcategoryRepository.subcategoriesMap
     
     data class AccountInfo(
+        val id: Long,
         val bankName: String,
         val accountLast4: String,
         val displayName: String,
-        val isCreditCard: Boolean
+        val isCreditCard: Boolean,
+        val iconResId: Int,
+        val currency: String
     )
     
     fun loadTransaction(transactionId: Long) {
@@ -223,7 +256,16 @@ class TransactionDetailViewModel @Inject constructor(
     
     fun updateCategory(category: String) {
         _editableTransaction.update { current ->
-            current?.copy(category = category.ifEmpty { "Miscellaneous" })
+            current?.copy(
+                category = category.ifEmpty { "Miscellaneous" },
+                subcategory = if (current?.category != category) null else current.subcategory
+            )
+        }
+    }
+
+    fun updateSubcategory(subcategory: String?) {
+        _editableTransaction.update { current ->
+            current?.copy(subcategory = subcategory)
         }
     }
     
@@ -241,13 +283,40 @@ class TransactionDetailViewModel @Inject constructor(
     
     fun updateRecurringStatus(isRecurring: Boolean) {
         _editableTransaction.update { current ->
-            current?.copy(isRecurring = isRecurring)
+            current?.copy(
+                isRecurring = isRecurring,
+                billingCycle = if (isRecurring) current.billingCycle ?: "Monthly" else null
+            )
+        }
+    }
+
+    fun updateBillingCycle(cycle: String) {
+        _editableTransaction.update { current ->
+            current?.copy(billingCycle = cycle)
         }
     }
     
     fun updateAccountNumber(accountNumber: String?) {
         _editableTransaction.update { current ->
             current?.copy(accountNumber = if (accountNumber.isNullOrEmpty()) null else accountNumber)
+        }
+    }
+
+    fun updateTransactionAccount(account: AccountInfo?) {
+        _editableTransaction.update { current ->
+            current?.copy(
+                bankName = account?.bankName ?: "Manual Entry",
+                accountNumber = account?.accountLast4,
+                currency = account?.currency ?: current.currency
+            )
+        }
+    }
+
+    fun updateTransactionTargetAccount(account: AccountInfo?) {
+        _editableTransaction.update { current ->
+            current?.copy(
+                toAccount = account?.accountLast4
+            )
         }
     }
 
@@ -282,10 +351,14 @@ class TransactionDetailViewModel @Inject constructor(
             try {
                 // Normalize merchant name before saving
                 val normalizedTransaction = toSave.copy(
-                    merchantName = normalizeMerchantName(toSave.merchantName)
+                    merchantName = normalizeMerchantName(toSave.merchantName),
+                    updatedAt = LocalDateTime.now()
                 )
                 
                 transactionRepository.updateTransaction(normalizedTransaction)
+                
+                // Sync with subscriptions if recurring
+                syncSubscriptionForTransaction(normalizedTransaction)
                 
                 // Save merchant mapping if checkbox is checked
                 if (_applyToAllFromMerchant.value) {
@@ -406,6 +479,71 @@ class TransactionDetailViewModel @Inject constructor(
                     _isDeleting.value = false
                 }
             }
+        }
+    }
+
+    private suspend fun syncSubscriptionForTransaction(transaction: TransactionEntity) {
+        if (transaction.isRecurring) {
+            // Find if a subscription already exists for this merchant and amount
+            val existing = subscriptionRepository.matchTransactionToSubscription(
+                transaction.merchantName,
+                transaction.amount
+            )
+
+            val nextPaymentDate = calculateNextPaymentDate(
+                (transaction.dateTime ?: LocalDateTime.now()).toLocalDate(),
+                transaction.billingCycle
+            )
+
+            val subscription = if (existing != null) {
+                existing.copy(
+                    amount = transaction.amount,
+                    nextPaymentDate = nextPaymentDate,
+                    category = transaction.category,
+                    subcategory = transaction.subcategory,
+                    bankName = transaction.bankName,
+                    currency = transaction.currency,
+                    billingCycle = transaction.billingCycle,
+                    state = SubscriptionState.ACTIVE,
+                    updatedAt = LocalDateTime.now()
+                )
+            } else {
+                SubscriptionEntity(
+                    merchantName = transaction.merchantName,
+                    amount = transaction.amount,
+                    nextPaymentDate = nextPaymentDate,
+                    state = SubscriptionState.ACTIVE,
+                    bankName = transaction.bankName,
+                    category = transaction.category,
+                    subcategory = transaction.subcategory,
+                    currency = transaction.currency,
+                    billingCycle = transaction.billingCycle,
+                    createdAt = LocalDateTime.now(),
+                    updatedAt = LocalDateTime.now()
+                )
+            }
+            subscriptionRepository.insertSubscription(subscription)
+        } else {
+            // If it was marked as recurring but now is not, we might want to hide it
+            // Find existing matching subscription and hide it
+            val existing = subscriptionRepository.matchTransactionToSubscription(
+                transaction.merchantName,
+                transaction.amount
+            )
+            if (existing != null) {
+                subscriptionRepository.hideSubscription(existing.id)
+            }
+        }
+    }
+
+    private fun calculateNextPaymentDate(fromDate: java.time.LocalDate, billingCycle: String?): java.time.LocalDate {
+        return when (billingCycle) {
+            "Weekly" -> fromDate.plusWeeks(1)
+            "Monthly" -> fromDate.plusMonths(1)
+            "Quarterly" -> fromDate.plusMonths(3)
+            "Semi-Annual" -> fromDate.plusMonths(6)
+            "Annual" -> fromDate.plusYears(1)
+            else -> fromDate.plusMonths(1) // Default to monthly
         }
     }
 }

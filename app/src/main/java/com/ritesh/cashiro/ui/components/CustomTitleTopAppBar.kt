@@ -106,6 +106,7 @@ private fun Modifier.animatedOffsetModifier(
     hasOnlyActionButtons: Boolean = false,
     isProfileScreen: Boolean = false,
     isTransactionScreen : Boolean = false,
+    isTransactionDetailScreen : Boolean = false,
     isHomeScreen: Boolean = false,
     isCategoryScreen: Boolean = false,
     isRuleScreen: Boolean = false,
@@ -114,6 +115,7 @@ private fun Modifier.animatedOffsetModifier(
     // Define the target offset based on conditions
     val targetOffsetX = when {
         hasBackButton && isProfileScreen-> 0.dp
+        hasBackButton && isTransactionDetailScreen -> 0.dp
         isTransactionScreen -> (-28).dp
         isHomeScreen-> (0).dp
         hasBackButton && isCategoryScreen-> 0.dp
@@ -309,6 +311,7 @@ private fun RegularTopAppBar(
         val isHomeScreen = title == "Cashiro"
         val isProfileScreen = title == "Profile"
         val isTransactionScreen = title == "Transactions"
+        val isTransactionDetailScreen = title == "Transaction Details" || title == "Edit Transaction"
         val isSearchTransactionScreen = title == "Search Transactions"
 
         TopAppBar(
@@ -323,6 +326,7 @@ private fun RegularTopAppBar(
                         hasBackButton = hasBackButton,
                         isProfileScreen = isProfileScreen,
                         isTransactionScreen = isTransactionScreen,
+                        isTransactionDetailScreen = isTransactionDetailScreen,
                         isHomeScreen = title == "Cashiro",
                         hasOnlyActionButtons =  title == "Cashiro",
                         isCategoryScreen = title == "Categories",

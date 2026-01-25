@@ -63,7 +63,7 @@ fun TransactionTotalsCard(
         CashiroCard(
             modifier = modifier.fillMaxWidth().padding(vertical = Spacing.md).padding(bottom = 8.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
             ),
             shape = RoundedCornerShape(Spacing.xxl),
             contentPadding = Spacing.sm

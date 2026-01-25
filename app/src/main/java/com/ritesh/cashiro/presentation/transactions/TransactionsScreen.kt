@@ -831,7 +831,7 @@ private fun TransactionItem(
         },
         onClick = onClick,
         shape = shape,
-        listColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+        listColor = MaterialTheme.colorScheme.surfaceContainerLow,
         padding = PaddingValues(0.dp)
     )
 }
