@@ -248,7 +248,6 @@ fun TransactionsScreen(
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 hazeState = hazeState,
                 hasBackButton = true,
-                onBackClick = onNavigateBack,
                 navigationContent = {NavigationContent(onNavigateBack)}
             )
         },

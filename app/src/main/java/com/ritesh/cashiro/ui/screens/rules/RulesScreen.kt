@@ -71,7 +71,6 @@ fun RulesScreen(
                 scrollBehaviorLarge = scrollBehavior,
                 hazeState = hazeState,
                 hasBackButton = true,
-                onBackClick = onNavigateBack,
                 navigationContent = { NavigationContent(onNavigateBack) },
                 actionContent = {
                     // Optional: Add reset button for advanced users

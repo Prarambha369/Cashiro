@@ -105,7 +105,6 @@ fun SubscriptionsScreen(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = "Subscriptions",
-                onBackClick = onNavigateBack,
                 hasBackButton = true,
                 hazeState = hazeState,
                 navigationContent = { NavigationContent(onNavigateBack) }

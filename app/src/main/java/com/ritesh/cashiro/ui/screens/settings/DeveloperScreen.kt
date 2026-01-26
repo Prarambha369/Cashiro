@@ -65,7 +65,6 @@ fun DeveloperScreen(
                 scrollBehaviorLarge = scrollBehavior,
                 hazeState = hazeState,
                 hasBackButton = true,
-                onBackClick = onNavigateBack,
                 navigationContent = { NavigationContent(onNavigateBack) }
             )
         }

@@ -48,7 +48,6 @@ fun CustomTitleTopAppBar(
     scrollBehaviorLarge: TopAppBarScrollBehavior,
     title: String,
     previousScreenTitle: String = "",
-    onBackClick: () -> Unit = {},
     hasBackButton: Boolean = false,
     actionContent: @Composable () -> Unit = {},
     navigationContent: @Composable () -> Unit = {},

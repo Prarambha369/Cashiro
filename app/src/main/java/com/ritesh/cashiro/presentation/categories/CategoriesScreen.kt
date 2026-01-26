@@ -118,10 +118,6 @@ fun CategoriesScreen(onNavigateBack: () -> Unit, viewModel: CategoriesViewModel 
         }
     }
 
-    // Group categories by type
-    val expenseCategories = categories.filter { !it.isIncome }
-    val incomeCategories = categories.filter { it.isIncome }
-
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {

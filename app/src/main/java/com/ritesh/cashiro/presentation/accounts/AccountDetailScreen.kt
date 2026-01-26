@@ -95,7 +95,6 @@ fun AccountDetailScreen(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = uiState.bankName.ifEmpty { "Account Details" },
-                onBackClick = { navController.navigateUp() },
                 hasBackButton = true,
                 hazeState = hazeState,
                 navigationContent = { NavigationContent({navController.navigateUp()}) },

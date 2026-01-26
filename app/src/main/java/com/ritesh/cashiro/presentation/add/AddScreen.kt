@@ -76,7 +76,6 @@ fun AddScreen(
                     title = "Add New",
                     hazeState = hazeState,
                     hasBackButton = true,
-                    onBackClick = onNavigateBack,
                     navigationContent = { NavigationContent(onNavigateBack) }
                 )
             },

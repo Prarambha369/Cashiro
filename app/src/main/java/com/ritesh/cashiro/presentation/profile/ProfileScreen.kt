@@ -79,7 +79,6 @@ fun ProfileScreen(
                 title = "Profile",
                 hazeState = hazeState,
                 hasBackButton = true,
-                onBackClick = onNavigateBack,
                 navigationContent = { NavigationContent(onNavigateBack) },
                 actionContent = {
                     IconButton(
