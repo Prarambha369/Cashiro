@@ -3,6 +3,7 @@ package com.ritesh.cashiro.data.database
 import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.DeleteColumn
+import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
@@ -35,7 +36,7 @@ import com.ritesh.cashiro.data.database.entity.TransactionEntity
 import com.ritesh.cashiro.data.database.entity.UnrecognizedSmsEntity
 
 /**
- * The PennyWise Room database.
+ * The Cashiro Room database.
  *
  * This database stores all financial transaction data locally on the device.
  *
@@ -45,32 +46,35 @@ import com.ritesh.cashiro.data.database.entity.UnrecognizedSmsEntity
  * @property autoMigrations List of automatic migrations between versions.
  */
 @Database(
-        entities =
-                [
-                        TransactionEntity::class,
-                        SubscriptionEntity::class,
-                        ChatMessage::class,
-                        MerchantMappingEntity::class,
-                        CategoryEntity::class,
-                        AccountBalanceEntity::class,
-                        UnrecognizedSmsEntity::class,
-                        CardEntity::class,
-                        RuleEntity::class,
-                        RuleApplicationEntity::class,
-                        ExchangeRateEntity::class,
-                        SubcategoryEntity::class],
-        version = 35,
-        exportSchema = true,
-        autoMigrations =
-                [
-                        AutoMigration(from = 27, to = 28),
-                        AutoMigration(from = 28, to = 29),
-                        AutoMigration(from = 29, to = 30, spec = Migration29To30::class),
-                        AutoMigration(from = 30, to = 31),
-                        AutoMigration(from = 31, to = 32, spec = Migration31To32::class),
-                        AutoMigration(from = 32, to = 33),
-                        AutoMigration(from = 33, to = 34),
-                        AutoMigration(from = 34, to = 35, spec = Migration34To35::class)]
+    entities =
+        [
+            TransactionEntity::class,
+            SubscriptionEntity::class,
+            ChatMessage::class,
+            MerchantMappingEntity::class,
+            CategoryEntity::class,
+            AccountBalanceEntity::class,
+            UnrecognizedSmsEntity::class,
+            CardEntity::class,
+            RuleEntity::class,
+            RuleApplicationEntity::class,
+            ExchangeRateEntity::class,
+            SubcategoryEntity::class
+        ],
+    version = 36,
+    exportSchema = true,
+    autoMigrations =
+        [
+            AutoMigration(from = 27, to = 28),
+            AutoMigration(from = 28, to = 29),
+            AutoMigration(from = 29, to = 30, spec = Migration29To30::class),
+            AutoMigration(from = 30, to = 31),
+            AutoMigration(from = 31, to = 32, spec = Migration31To32::class),
+            AutoMigration(from = 32, to = 33),
+            AutoMigration(from = 33, to = 34),
+            AutoMigration(from = 34, to = 35, spec = Migration34To35::class),
+            AutoMigration(from = 35, to = 36)
+        ]
 )
 @TypeConverters(Converters::class)
 abstract class CashiroDatabase : RoomDatabase() {
@@ -98,26 +102,26 @@ abstract class CashiroDatabase : RoomDatabase() {
          */
         fun getInstance(context: android.content.Context): CashiroDatabase {
             return INSTANCE
-                    ?: synchronized(this) {
-                        val instance =
-                                androidx.room.Room.databaseBuilder(
-                                                context.applicationContext,
-                                                CashiroDatabase::class.java,
-                                                DATABASE_NAME
-                                        )
-                                        .addMigrations(
-                                                MIGRATION_12_14,
-                                                MIGRATION_13_14,
-                                                MIGRATION_14_15,
-                                                MIGRATION_20_21,
-                                                MIGRATION_21_22,
-                                                MIGRATION_22_23,
-                                                MIGRATION_29_30
-                                        )
-                                        .build()
-                        INSTANCE = instance
-                        instance
-                    }
+                ?: synchronized(this) {
+                    val instance =
+                        Room.databaseBuilder(
+                            context.applicationContext,
+                            CashiroDatabase::class.java,
+                            DATABASE_NAME
+                        )
+                            .addMigrations(
+                                MIGRATION_12_14,
+                                MIGRATION_13_14,
+                                MIGRATION_14_15,
+                                MIGRATION_20_21,
+                                MIGRATION_21_22,
+                                MIGRATION_22_23,
+                                MIGRATION_29_30
+                            )
+                            .build()
+                    INSTANCE = instance
+                    instance
+                }
         }
 
         /**
@@ -145,52 +149,52 @@ abstract class CashiroDatabase : RoomDatabase() {
          * handling existing duplicates.
          */
         val MIGRATION_13_14 =
-                object : Migration(13, 14) {
-                    override fun migrate(db: SupportSQLiteDatabase) {
-                        // Check if sms_sender column already exists in transactions table
-                        val cursor = db.query("PRAGMA table_info(transactions)")
-                        var hasSenderColumn = false
-                        while (cursor.moveToNext()) {
-                            val nameIndex = cursor.getColumnIndex("name")
-                            if (nameIndex == -1) continue
-                            val columnName = cursor.getString(nameIndex)
-                            if (columnName == "sms_sender") {
-                                hasSenderColumn = true
-                                break
-                            }
+            object : Migration(13, 14) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // Check if sms_sender column already exists in transactions table
+                    val cursor = db.query("PRAGMA table_info(transactions)")
+                    var hasSenderColumn = false
+                    while (cursor.moveToNext()) {
+                        val nameIndex = cursor.getColumnIndex("name")
+                        if (nameIndex == -1) continue
+                        val columnName = cursor.getString(nameIndex)
+                        if (columnName == "sms_sender") {
+                            hasSenderColumn = true
+                            break
                         }
-                        cursor.close()
+                    }
+                    cursor.close()
 
-                        // Add sms_sender column to transactions table only if it doesn't exist
-                        if (!hasSenderColumn) {
-                            db.execSQL("ALTER TABLE transactions ADD COLUMN sms_sender TEXT")
+                    // Add sms_sender column to transactions table only if it doesn't exist
+                    if (!hasSenderColumn) {
+                        db.execSQL("ALTER TABLE transactions ADD COLUMN sms_sender TEXT")
+                    }
+
+                    // Check if is_deleted column already exists in unrecognized_sms table
+                    val cursor2 = db.query("PRAGMA table_info(unrecognized_sms)")
+                    var hasIsDeletedColumn = false
+                    while (cursor2.moveToNext()) {
+                        val nameIndex2 = cursor2.getColumnIndex("name")
+                        if (nameIndex2 == -1) continue
+                        val columnName = cursor2.getString(nameIndex2)
+                        if (columnName == "is_deleted") {
+                            hasIsDeletedColumn = true
+                            break
                         }
+                    }
+                    cursor2.close()
 
-                        // Check if is_deleted column already exists in unrecognized_sms table
-                        val cursor2 = db.query("PRAGMA table_info(unrecognized_sms)")
-                        var hasIsDeletedColumn = false
-                        while (cursor2.moveToNext()) {
-                            val nameIndex2 = cursor2.getColumnIndex("name")
-                            if (nameIndex2 == -1) continue
-                            val columnName = cursor2.getString(nameIndex2)
-                            if (columnName == "is_deleted") {
-                                hasIsDeletedColumn = true
-                                break
-                            }
-                        }
-                        cursor2.close()
+                    // Only proceed with unrecognized_sms migration if needed
+                    if (!hasIsDeletedColumn) {
+                        // First, add the is_deleted column with default value
+                        db.execSQL(
+                            "ALTER TABLE unrecognized_sms ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0"
+                        )
 
-                        // Only proceed with unrecognized_sms migration if needed
-                        if (!hasIsDeletedColumn) {
-                            // First, add the is_deleted column with default value
-                            db.execSQL(
-                                    "ALTER TABLE unrecognized_sms ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0"
-                            )
-
-                            // Create a temporary table with the new schema (including unique
-                            // constraint)
-                            db.execSQL(
-                                    """
+                        // Create a temporary table with the new schema (including unique
+                        // constraint)
+                        db.execSQL(
+                            """
                         CREATE TABLE unrecognized_sms_new (
                             id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                             sender TEXT NOT NULL,
@@ -201,11 +205,11 @@ abstract class CashiroDatabase : RoomDatabase() {
                             created_at TEXT NOT NULL
                         )
                     """
-                            )
+                        )
 
-                            // Copy data from old table, keeping only the most recent of duplicates
-                            db.execSQL(
-                                    """
+                        // Copy data from old table, keeping only the most recent of duplicates
+                        db.execSQL(
+                            """
                         INSERT INTO unrecognized_sms_new (id, sender, sms_body, received_at, reported, is_deleted, created_at)
                         SELECT id, sender, sms_body, received_at, reported, is_deleted, created_at
                         FROM unrecognized_sms
@@ -215,44 +219,44 @@ abstract class CashiroDatabase : RoomDatabase() {
                             GROUP BY sender, sms_body
                         )
                     """
-                            )
+                        )
 
-                            // Drop the old table
-                            db.execSQL("DROP TABLE unrecognized_sms")
+                        // Drop the old table
+                        db.execSQL("DROP TABLE unrecognized_sms")
 
-                            // Rename the new table to the original name
-                            db.execSQL(
-                                    "ALTER TABLE unrecognized_sms_new RENAME TO unrecognized_sms"
-                            )
+                        // Rename the new table to the original name
+                        db.execSQL(
+                            "ALTER TABLE unrecognized_sms_new RENAME TO unrecognized_sms"
+                        )
 
-                            // Create the unique index
-                            db.execSQL(
-                                    "CREATE UNIQUE INDEX index_unrecognized_sms_sender_sms_body ON unrecognized_sms (sender, sms_body)"
-                            )
-                        }
+                        // Create the unique index
+                        db.execSQL(
+                            "CREATE UNIQUE INDEX index_unrecognized_sms_sender_sms_body ON unrecognized_sms (sender, sms_body)"
+                        )
                     }
                 }
+            }
 
         /**
          * Manual migration from version 12 to 14. Handles direct upgrade from 12 to 14, combining
          * migrations 12->13 and 13->14.
          */
         val MIGRATION_12_14 =
-                object : Migration(12, 14) {
-                    override fun migrate(db: SupportSQLiteDatabase) {
-                        // Same as MIGRATION_13_14 since we need to handle both cases
-                        MIGRATION_13_14.migrate(db)
-                    }
+            object : Migration(12, 14) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // Same as MIGRATION_13_14 since we need to handle both cases
+                    MIGRATION_13_14.migrate(db)
                 }
+            }
 
         /** Manual migration from version 14 to 15. Adds sms_body column to subscriptions table. */
         val MIGRATION_14_15 =
-                object : Migration(14, 15) {
-                    override fun migrate(db: SupportSQLiteDatabase) {
-                        // Add sms_body column to subscriptions table
-                        db.execSQL("ALTER TABLE subscriptions ADD COLUMN sms_body TEXT")
-                    }
+            object : Migration(14, 15) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // Add sms_body column to subscriptions table
+                    db.execSQL("ALTER TABLE subscriptions ADD COLUMN sms_body TEXT")
                 }
+            }
 
         /**
          * Manual migration from version 20 to 21. Makes next_payment_date nullable in subscriptions
@@ -260,12 +264,12 @@ abstract class CashiroDatabase : RoomDatabase() {
          * nullable.
          */
         val MIGRATION_20_21 =
-                object : Migration(20, 21) {
-                    override fun migrate(db: SupportSQLiteDatabase) {
-                        // SQLite doesn't support ALTER COLUMN, so we need to recreate the table
-                        // Step 1: Create new subscriptions table with nullable next_payment_date
-                        db.execSQL(
-                                """
+            object : Migration(20, 21) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // SQLite doesn't support ALTER COLUMN, so we need to recreate the table
+                    // Step 1: Create new subscriptions table with nullable next_payment_date
+                    db.execSQL(
+                        """
                     CREATE TABLE subscriptions_new (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         merchant_name TEXT NOT NULL,
@@ -280,35 +284,35 @@ abstract class CashiroDatabase : RoomDatabase() {
                         updated_at TEXT NOT NULL
                     )
                 """
-                        )
+                    )
 
-                        // Step 2: Copy data from old table to new table
-                        db.execSQL(
-                                """
+                    // Step 2: Copy data from old table to new table
+                    db.execSQL(
+                        """
                     INSERT INTO subscriptions_new (id, merchant_name, amount, next_payment_date, state, bank_name, umn, category, sms_body, created_at, updated_at)
                     SELECT id, merchant_name, amount, next_payment_date, state, bank_name, umn, category, sms_body, created_at, updated_at
                     FROM subscriptions
                 """
-                        )
+                    )
 
-                        // Step 3: Drop old table
-                        db.execSQL("DROP TABLE subscriptions")
+                    // Step 3: Drop old table
+                    db.execSQL("DROP TABLE subscriptions")
 
-                        // Step 4: Rename new table to original name
-                        db.execSQL("ALTER TABLE subscriptions_new RENAME TO subscriptions")
-                    }
+                    // Step 4: Rename new table to original name
+                    db.execSQL("ALTER TABLE subscriptions_new RENAME TO subscriptions")
                 }
+            }
 
         /**
          * Manual migration from version 21 to 22. Adds transaction_rules and rule_applications
          * tables for the rule engine. Note: This migration is kept for users who might be on v21.
          */
         val MIGRATION_21_22 =
-                object : Migration(21, 22) {
-                    override fun migrate(db: SupportSQLiteDatabase) {
-                        // Create transaction_rules table
-                        db.execSQL(
-                                """
+            object : Migration(21, 22) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // Create transaction_rules table
+                    db.execSQL(
+                        """
                     CREATE TABLE IF NOT EXISTS transaction_rules (
                         id TEXT PRIMARY KEY NOT NULL,
                         name TEXT NOT NULL,
@@ -322,19 +326,19 @@ abstract class CashiroDatabase : RoomDatabase() {
                         updated_at TEXT NOT NULL
                     )
                 """
-                        )
+                    )
 
-                        // Create indices for transaction_rules
-                        db.execSQL(
-                                "CREATE INDEX IF NOT EXISTS index_transaction_rules_priority_is_active ON transaction_rules (priority, is_active)"
-                        )
-                        db.execSQL(
-                                "CREATE INDEX IF NOT EXISTS index_transaction_rules_name ON transaction_rules (name)"
-                        )
+                    // Create indices for transaction_rules
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS index_transaction_rules_priority_is_active ON transaction_rules (priority, is_active)"
+                    )
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS index_transaction_rules_name ON transaction_rules (name)"
+                    )
 
-                        // Create rule_applications table
-                        db.execSQL(
-                                """
+                    // Create rule_applications table
+                    db.execSQL(
+                        """
                     CREATE TABLE rule_applications (
                         id TEXT PRIMARY KEY NOT NULL,
                         rule_id TEXT NOT NULL,
@@ -346,20 +350,20 @@ abstract class CashiroDatabase : RoomDatabase() {
                         FOREIGN KEY(transaction_id) REFERENCES transactions(id) ON DELETE CASCADE
                     )
                 """
-                        )
+                    )
 
-                        // Create indices for rule_applications
-                        db.execSQL(
-                                "CREATE INDEX IF NOT EXISTS index_rule_applications_rule_id ON rule_applications (rule_id)"
-                        )
-                        db.execSQL(
-                                "CREATE INDEX IF NOT EXISTS index_rule_applications_transaction_id ON rule_applications (transaction_id)"
-                        )
-                        db.execSQL(
-                                "CREATE INDEX IF NOT EXISTS index_rule_applications_applied_at ON rule_applications (applied_at)"
-                        )
-                    }
+                    // Create indices for rule_applications
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS index_rule_applications_rule_id ON rule_applications (rule_id)"
+                    )
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS index_rule_applications_transaction_id ON rule_applications (transaction_id)"
+                    )
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS index_rule_applications_applied_at ON rule_applications (applied_at)"
+                    )
                 }
+            }
 
         /**
          * Manual migration from version 22 to 23. Adds transaction_rules and rule_applications
@@ -367,15 +371,15 @@ abstract class CashiroDatabase : RoomDatabase() {
          * feature was added.
          */
         val MIGRATION_22_23 =
-                object : Migration(22, 23) {
-                    override fun migrate(db: SupportSQLiteDatabase) {
-                        // Drop table if exists to ensure clean state
-                        db.execSQL("DROP TABLE IF EXISTS transaction_rules")
-                        db.execSQL("DROP TABLE IF EXISTS rule_applications")
+            object : Migration(22, 23) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // Drop table if exists to ensure clean state
+                    db.execSQL("DROP TABLE IF EXISTS transaction_rules")
+                    db.execSQL("DROP TABLE IF EXISTS rule_applications")
 
-                        // Create transaction_rules table with all required columns
-                        db.execSQL(
-                                """
+                    // Create transaction_rules table with all required columns
+                    db.execSQL(
+                        """
                     CREATE TABLE transaction_rules (
                         id TEXT PRIMARY KEY NOT NULL,
                         name TEXT NOT NULL,
@@ -389,19 +393,19 @@ abstract class CashiroDatabase : RoomDatabase() {
                         updated_at TEXT NOT NULL
                     )
                 """
-                        )
+                    )
 
-                        // Create indices for transaction_rules
-                        db.execSQL(
-                                "CREATE INDEX IF NOT EXISTS index_transaction_rules_priority_is_active ON transaction_rules (priority, is_active)"
-                        )
-                        db.execSQL(
-                                "CREATE INDEX IF NOT EXISTS index_transaction_rules_name ON transaction_rules (name)"
-                        )
+                    // Create indices for transaction_rules
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS index_transaction_rules_priority_is_active ON transaction_rules (priority, is_active)"
+                    )
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS index_transaction_rules_name ON transaction_rules (name)"
+                    )
 
-                        // Create rule_applications table
-                        db.execSQL(
-                                """
+                    // Create rule_applications table
+                    db.execSQL(
+                        """
                     CREATE TABLE rule_applications (
                         id TEXT PRIMARY KEY NOT NULL,
                         rule_id TEXT NOT NULL,
@@ -413,20 +417,20 @@ abstract class CashiroDatabase : RoomDatabase() {
                         FOREIGN KEY(transaction_id) REFERENCES transactions(id) ON DELETE CASCADE
                     )
                 """
-                        )
+                    )
 
-                        // Create indices for rule_applications
-                        db.execSQL(
-                                "CREATE INDEX IF NOT EXISTS index_rule_applications_rule_id ON rule_applications (rule_id)"
-                        )
-                        db.execSQL(
-                                "CREATE INDEX IF NOT EXISTS index_rule_applications_transaction_id ON rule_applications (transaction_id)"
-                        )
-                        db.execSQL(
-                                "CREATE INDEX IF NOT EXISTS index_rule_applications_applied_at ON rule_applications (applied_at)"
-                        )
-                    }
+                    // Create indices for rule_applications
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS index_rule_applications_rule_id ON rule_applications (rule_id)"
+                    )
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS index_rule_applications_transaction_id ON rule_applications (transaction_id)"
+                    )
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS index_rule_applications_applied_at ON rule_applications (applied_at)"
+                    )
                 }
+            }
     }
 
     /**
@@ -464,26 +468,26 @@ class Migration7To8 : AutoMigrationSpec {
 
         // Insert default categories
         val categories =
-                listOf(
-                        Triple("Food & Dining", "#FC8019", false),
-                        Triple("Groceries", "#5AC85A", false),
-                        Triple("Transportation", "#000000", false),
-                        Triple("Shopping", "#FF9900", false),
-                        Triple("Bills & Utilities", "#4CAF50", false),
-                        Triple("Entertainment", "#E50914", false),
-                        Triple("Healthcare", "#10847E", false),
-                        Triple("Investments", "#00D09C", false),
-                        Triple("Banking", "#004C8F", false),
-                        Triple("Personal Care", "#6A4C93", false),
-                        Triple("Education", "#673AB7", false),
-                        Triple("Mobile", "#2A3890", false),
-                        Triple("Fitness", "#FF3278", false),
-                        Triple("Insurance", "#0066CC", false),
-                        Triple("Travel", "#00BCD4", false),
-                        Triple("Salary", "#4CAF50", true),
-                        Triple("Income", "#4CAF50", true),
-                        Triple("Others", "#757575", false)
-                )
+            listOf(
+                Triple("Food & Dining", "#FC8019", false),
+                Triple("Groceries", "#5AC85A", false),
+                Triple("Transportation", "#000000", false),
+                Triple("Shopping", "#FF9900", false),
+                Triple("Bills & Utilities", "#4CAF50", false),
+                Triple("Entertainment", "#E50914", false),
+                Triple("Healthcare", "#10847E", false),
+                Triple("Investments", "#00D09C", false),
+                Triple("Banking", "#004C8F", false),
+                Triple("Personal Care", "#6A4C93", false),
+                Triple("Education", "#673AB7", false),
+                Triple("Mobile", "#2A3890", false),
+                Triple("Fitness", "#FF3278", false),
+                Triple("Insurance", "#0066CC", false),
+                Triple("Travel", "#00BCD4", false),
+                Triple("Salary", "#4CAF50", true),
+                Triple("Income", "#4CAF50", true),
+                Triple("Others", "#757575", false)
+            )
 
         categories.forEachIndexed { index, (name, color, isIncome) ->
             db.execSQL(
@@ -531,30 +535,30 @@ class Migration10To11 : AutoMigrationSpec {
  * for enhanced functionality.
  */
 val MIGRATION_29_30 =
-        object : Migration(29, 30) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                // Add new columns to categories table
-                db.execSQL("ALTER TABLE categories ADD COLUMN description TEXT NOT NULL DEFAULT ''")
-                db.execSQL("ALTER TABLE categories ADD COLUMN default_name TEXT")
-                db.execSQL("ALTER TABLE categories ADD COLUMN default_color TEXT")
-                db.execSQL("ALTER TABLE categories ADD COLUMN default_icon_res_id INTEGER")
-                db.execSQL("ALTER TABLE categories ADD COLUMN default_description TEXT")
+    object : Migration(29, 30) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Add new columns to categories table
+            db.execSQL("ALTER TABLE categories ADD COLUMN description TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE categories ADD COLUMN default_name TEXT")
+            db.execSQL("ALTER TABLE categories ADD COLUMN default_color TEXT")
+            db.execSQL("ALTER TABLE categories ADD COLUMN default_icon_res_id INTEGER")
+            db.execSQL("ALTER TABLE categories ADD COLUMN default_description TEXT")
 
-                // Add new columns to subcategories table
-                db.execSQL(
-                        "ALTER TABLE subcategories ADD COLUMN icon_res_id INTEGER NOT NULL DEFAULT 0"
-                )
-                db.execSQL(
-                        "ALTER TABLE subcategories ADD COLUMN color TEXT NOT NULL DEFAULT '#757575'"
-                )
-                db.execSQL(
-                        "ALTER TABLE subcategories ADD COLUMN is_system INTEGER NOT NULL DEFAULT 0"
-                )
-                db.execSQL("ALTER TABLE subcategories ADD COLUMN default_name TEXT")
-                db.execSQL("ALTER TABLE subcategories ADD COLUMN default_icon_res_id INTEGER")
-                db.execSQL("ALTER TABLE subcategories ADD COLUMN default_color TEXT")
-            }
+            // Add new columns to subcategories table
+            db.execSQL(
+                "ALTER TABLE subcategories ADD COLUMN icon_res_id INTEGER NOT NULL DEFAULT 0"
+            )
+            db.execSQL(
+                "ALTER TABLE subcategories ADD COLUMN color TEXT NOT NULL DEFAULT '#757575'"
+            )
+            db.execSQL(
+                "ALTER TABLE subcategories ADD COLUMN is_system INTEGER NOT NULL DEFAULT 0"
+            )
+            db.execSQL("ALTER TABLE subcategories ADD COLUMN default_name TEXT")
+            db.execSQL("ALTER TABLE subcategories ADD COLUMN default_icon_res_id INTEGER")
+            db.execSQL("ALTER TABLE subcategories ADD COLUMN default_color TEXT")
         }
+    }
 
 /** Migration from version 29 to 30. AutoMigrationSpec to handle any post-migration data updates. */
 class Migration29To30 : AutoMigrationSpec {

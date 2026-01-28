@@ -19,7 +19,9 @@ import com.ritesh.cashiro.data.manager.InAppReviewManager
 import com.ritesh.cashiro.data.currency.CurrencyConversionService
 import com.ritesh.cashiro.data.repository.AccountBalanceRepository
 import com.ritesh.cashiro.data.repository.LlmRepository
+import com.ritesh.cashiro.data.repository.CategoryRepository
 import com.ritesh.cashiro.data.repository.SubscriptionRepository
+import com.ritesh.cashiro.data.repository.SubcategoryRepository
 import com.ritesh.cashiro.data.repository.TransactionRepository
 import com.ritesh.cashiro.data.repository.UnrecognizedSmsRepository
 import com.ritesh.cashiro.data.preferences.UserPreferencesRepository
@@ -28,12 +30,16 @@ import androidx.compose.ui.graphics.Color
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import javax.inject.Inject
+import androidx.core.net.toUri
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -46,6 +52,8 @@ class HomeViewModel @Inject constructor(
     private val inAppReviewManager: InAppReviewManager,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
+    private val categoryRepository: CategoryRepository,
+    private val subcategoryRepository: SubcategoryRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     
@@ -59,6 +67,14 @@ class HomeViewModel @Inject constructor(
     // SMS scanning work progress tracking
     private val _smsScanWorkInfo = MutableStateFlow<WorkInfo?>(null)
     val smsScanWorkInfo: StateFlow<WorkInfo?> = _smsScanWorkInfo.asStateFlow()
+
+    val categoriesMap = categoryRepository.getAllCategories()
+        .map { cats -> cats.associateBy { it.name } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    val subcategoriesMap = subcategoryRepository.getAllSubcategories()
+        .map { subcats -> subcats.associateBy { it.name } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     // Store currency breakdown maps for quick access when switching currencies
     private var currentMonthBreakdownMap: Map<String, TransactionRepository.MonthlyBreakdown> = emptyMap()
@@ -74,9 +90,9 @@ class HomeViewModel @Inject constructor(
             userPreferencesRepository.userPreferences.collect { preferences ->
                 _uiState.value = _uiState.value.copy(
                     userName = preferences.userName,
-                    profileImageUri = preferences.profileImageUri?.let { Uri.parse(it) },
+                    profileImageUri = preferences.profileImageUri?.toUri(),
                     profileBackgroundColor = Color(preferences.profileBackgroundColor),
-                    bannerImageUri = preferences.bannerImageUri?.let { Uri.parse(it) },
+                    bannerImageUri = preferences.bannerImageUri?.toUri(),
                     showBannerImage = preferences.showBannerImage
                 )
             }
@@ -153,8 +169,8 @@ class HomeViewModel @Inject constructor(
                 }
 
                 _uiState.value = _uiState.value.copy(
-                    accountBalances = regularAccounts,  // Only regular bank accounts
-                    creditCards = creditCards,           // Only credit cards
+                    accountBalances = regularAccounts,
+                    creditCards = creditCards,
                     totalBalance = totalBalanceInSelectedCurrency,
                     totalAvailableCredit = totalAvailableCreditInSelectedCurrency
                 )
@@ -241,7 +257,7 @@ class HomeViewModel @Inject constructor(
         val lastExpenses = _uiState.value.lastMonthExpenses
         val currentTotal = _uiState.value.currentMonthTotal
         val lastTotal = _uiState.value.lastMonthTotal
-        
+
         // Calculate expense change for simple comparison
         val expenseChange = currentExpenses - lastExpenses
         val totalChange = currentTotal - lastTotal
@@ -413,8 +429,8 @@ class HomeViewModel @Inject constructor(
                 }
 
                 _uiState.value = _uiState.value.copy(
-                    accountBalances = regularAccounts,  // Only regular bank accounts
-                    creditCards = creditCards,           // Only credit cards
+                    accountBalances = regularAccounts,
+                    creditCards = creditCards,
                     totalBalance = totalBalanceInSelectedCurrency,
                     totalAvailableCredit = totalAvailableCreditInSelectedCurrency,
                     availableCurrencies = updatedAvailableCurrencies

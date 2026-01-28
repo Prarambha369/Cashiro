@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.ritesh.cashiro.data.database.entity.CategoryEntity
+import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
 import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
 
 @Composable
@@ -26,7 +28,9 @@ fun SubscriptionIconsStack(
     modifier: Modifier = Modifier,
     iconSize: Dp = 32.dp,
     maxIcons: Int = 4,
-    borderColor: Color = MaterialTheme.colorScheme.secondaryContainer
+    borderColor: Color = MaterialTheme.colorScheme.secondaryContainer,
+    categoriesMap: Map<String, CategoryEntity> = emptyMap(),
+    subcategoriesMap: Map<String, SubcategoryEntity> = emptyMap()
 ) {
     val displaySubscriptions = subscriptions.take(maxIcons)
     val outerIconSize = iconSize + 4.dp
@@ -49,14 +53,20 @@ fun SubscriptionIconsStack(
                     .zIndex(index.toFloat())
                     .size(outerIconSize)
                     .background(borderColor, CircleShape)
-//                    .padding(1.dp) // Border thickness
                     .clip(CircleShape),
                 contentAlignment = Alignment.Center
             ) {
+                val categoryEntity = categoriesMap[subscription.category]
+                val subcategoryEntity = if (categoryEntity != null && subscription.subcategory != null) {
+                    subcategoriesMap[subscription.subcategory]
+                } else null
+
                 BrandIcon(
                     merchantName = subscription.merchantName,
                     size = iconSize,
-                    showBackground = true
+                    showBackground = true,
+                    categoryEntity = categoryEntity,
+                    subcategoryEntity = subcategoryEntity
                 )
             }
         }

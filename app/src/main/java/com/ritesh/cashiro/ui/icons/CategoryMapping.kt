@@ -5,6 +5,8 @@ import androidx.compose.material.icons.filled.Category
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.ritesh.cashiro.R
+import com.ritesh.cashiro.data.database.entity.CategoryEntity
+import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
 import java.util.Locale
 
 /**
@@ -1133,6 +1135,94 @@ object IconProvider {
             resId = categoryInfo.iconResId,
             tint = categoryInfo.color
         )
+    }
+
+    /**
+     * Get icon with full fallback chain for transactions
+     * Priority: Brand Icon > Subcategory Icon > Category Icon > CategoryMapping > Miscellaneous
+     */
+    fun getIconForTransaction(
+        merchantName: String,
+        categoryEntity: CategoryEntity? = null,
+        subcategoryEntity: SubcategoryEntity? = null,
+        accountIconResId: Int = 0
+    ): IconResource {
+        // brand icon first
+        BrandIcons.getIconResource(merchantName)?.let { iconRes ->
+            return IconResource.DrawableResource(iconRes)
+        }
+
+        // subcategory icon
+        subcategoryEntity?.let { subcat ->
+            if (subcat.iconResId != 0) {
+                return IconResource.TintedResIcon(
+                    resId = subcat.iconResId,
+                    tint = Color(android.graphics.Color.parseColor(subcat.color))
+                )
+            }
+        }
+
+        // category icon from entity
+        categoryEntity?.let { cat ->
+            if (cat.iconResId != 0) {
+                return IconResource.TintedResIcon(
+                    resId = cat.iconResId,
+                    tint = Color(android.graphics.Color.parseColor(cat.color))
+                )
+            }
+        }
+
+        // CategoryMapping using the transaction's category name (if available)
+        // This handles built-in categories that don't have iconResId set in the entity
+        categoryEntity?.let { cat ->
+            CategoryMapping.categories[cat.name]?.let { categoryInfo ->
+                return IconResource.TintedResIcon(
+                    resId = categoryInfo.iconResId,
+                    tint = categoryInfo.color
+                )
+            }
+        }
+
+        // Account Icon fallback
+        if (accountIconResId != 0) {
+            return IconResource.TintedResIcon(
+                resId = accountIconResId,
+                tint = Color.Unspecified // Use original colors of the resource
+            )
+        }
+
+        // Final fallback: Use Miscellaneous icon
+        val categoryInfo = CategoryMapping.categories["Miscellaneous"]!!
+        return IconResource.TintedResIcon(
+            resId = categoryInfo.iconResId,
+            tint = categoryInfo.color
+        )
+    }
+
+    /**
+     * Get color with full fallback chain for transactions
+     * Priority: Brand Color → Subcategory Color → Category Color → null
+     */
+    fun getColorForTransaction(
+        merchantName: String,
+        categoryEntity: CategoryEntity? = null,
+        subcategoryEntity: SubcategoryEntity? = null,
+        accountColorHex: String? = null
+    ): String? {
+        // brand color first
+        BrandIcons.getBrandColor(merchantName)?.let { return it }
+
+        // subcategory color
+        subcategoryEntity?.color?.let { return it }
+
+        // category color
+        categoryEntity?.color?.let { return it }
+
+        // account color fallback
+        accountColorHex?.let { return it }
+
+        // Return null to use default
+        return null
     }
 
     /**

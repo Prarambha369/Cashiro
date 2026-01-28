@@ -44,8 +44,10 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
 import kotlinx.coroutines.launch
 import com.ritesh.cashiro.data.database.entity.CategoryEntity
+import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
 import com.ritesh.cashiro.data.database.entity.TransactionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionType
 import com.ritesh.cashiro.presentation.categories.NavigationContent
@@ -90,6 +92,8 @@ fun TransactionsScreen(
     val transactionTypeFilter by viewModel.transactionTypeFilter.collectAsState()
     val deletedTransaction by viewModel.deletedTransaction.collectAsState()
     val categoriesMap by viewModel.categories.collectAsState()
+    val subcategoriesMap by viewModel.subcategories.collectAsState()
+    val accountsMap by viewModel.accountsMap.collectAsState()
     val filteredTotals by viewModel.filteredTotals.collectAsState()
     val currencyGroupedTotals by viewModel.currencyGroupedTotals.collectAsState()
     val availableCurrencies by viewModel.availableCurrencies.collectAsState()
@@ -305,384 +309,382 @@ fun TransactionsScreen(
                 }
             }
         }
-    )
- { paddingValues ->
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(state = hazeState)
                 .padding(top = paddingValues.calculateTopPadding())
         ) {
-        // Search Bar with Sort Button
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Dimensions.Padding.content)
-                .padding(top = Spacing.md),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SearchBarBox(
+            // Search Bar with Sort Button
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .focusRequester(searchFocusRequester)
-                    .then(Modifier),
-                searchQuery = searchTextFieldValue,
-                onSearchQueryChange = {
-                    searchTextFieldValue = it
-                    viewModel.updateSearchQuery(it.text)
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                trailingIcon = {
-                    Row() {
-                        BlurredAnimatedVisibility(searchTextFieldValue.text.isNotEmpty()) {
-                            IconButton(onClick = {
-                                searchTextFieldValue = TextFieldValue("")
-                                viewModel.updateSearchQuery("")
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Default.Clear,
-                                    contentDescription = "Clear search",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        // Sort button
-                        Box {
-                            IconButton(
-                                onClick = { showSortMenu = true },
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(MaterialTheme.shapes.medium)
-                                    .background(Color.Transparent)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.FilterAlt,
-                                    contentDescription = "Sort",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-
-                            DropdownMenu(
-                                expanded = showSortMenu,
-                                onDismissRequest = { showSortMenu = false }
-                            ) {
-                                SortOption.values().forEach { option ->
-                                    DropdownMenuItem(
-                                        text = {
-                                            Row(
-                                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                RadioButton(
-                                                    selected = sortOption == option,
-                                                    onClick = null,
-                                                    modifier = Modifier.size(20.dp)
-                                                )
-                                                Text(option.label)
-                                            }
-                                        },
-                                        onClick = {
-                                            viewModel.setSortOption(option)
-                                            showSortMenu = false
-                                        }
+                    .fillMaxWidth()
+                    .padding(horizontal = Dimensions.Padding.content)
+                    .padding(top = Spacing.md),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SearchBarBox(
+                    modifier = Modifier
+                        .weight(1f)
+                        .focusRequester(searchFocusRequester)
+                        .then(Modifier),
+                    searchQuery = searchTextFieldValue,
+                    onSearchQueryChange = {
+                        searchTextFieldValue = it
+                        viewModel.updateSearchQuery(it.text)
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    trailingIcon = {
+                        Row{
+                            BlurredAnimatedVisibility(searchTextFieldValue.text.isNotEmpty()) {
+                                IconButton(onClick = {
+                                    searchTextFieldValue = TextFieldValue("")
+                                    viewModel.updateSearchQuery("")
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Clear,
+                                        contentDescription = "Clear search",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
-                        }
-                    }
+                            // Sort button
+                            Box {
+                                IconButton(
+                                    onClick = { showSortMenu = true },
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(MaterialTheme.shapes.medium)
+                                        .background(Color.Transparent)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.FilterAlt,
+                                        contentDescription = "Sort",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
 
-                },
-                label = {
-                    Text(
-                        text = if (categoryFilter != null) "Search in $categoryFilter..."
-                        else "Search transactions...",
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.5f)
-                    )
-                }
-            )
-        }
-
-        // Period Filter Chips - Always visible
-        LazyRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = Spacing.sm),
-            contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-        ) {
-            // Period filter chips
-            items(timePeriods) { period ->
-                FilterChip(
-                    // Only show CUSTOM as selected if both period is CUSTOM AND dates are set
-                    selected = if (period == TimePeriod.CUSTOM) {
-                        selectedPeriod == period && customDateRange != null
-                    } else {
-                        selectedPeriod == period
-                    },
-                    onClick = {
-                        if (period == TimePeriod.CUSTOM) {
-                            showDateRangePicker = true
-                            // Don't change selectedPeriod until user confirms dates
-                        } else {
-                            viewModel.selectPeriod(period)
+                                DropdownMenu(
+                                    expanded = showSortMenu,
+                                    onDismissRequest = { showSortMenu = false }
+                                ) {
+                                    SortOption.values().forEach { option ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Row(
+                                                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    RadioButton(
+                                                        selected = sortOption == option,
+                                                        onClick = null,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                    Text(option.label)
+                                                }
+                                            },
+                                            onClick = {
+                                                viewModel.setSortOption(option)
+                                                showSortMenu = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
                         }
+
                     },
                     label = {
                         Text(
-                            if (period == TimePeriod.CUSTOM && customRangeLabel != null) {
-                                customRangeLabel
-                            } else {
-                                period.label
-                            }
+                            text = if (categoryFilter != null) "Search in $categoryFilter..."
+                            else "Search transactions...",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.5f)
                         )
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
+                    }
                 )
             }
-        }
 
-        // Data scope info banner
-        if (viewModel.isShowingLimitedData()) {
-            Card(
+            // Period Filter Chips - Always visible
+            LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.xs),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .padding(Spacing.md)
-                        .fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.Info,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.size(Dimensions.Icon.small)
-                    )
-                    Spacer(modifier = Modifier.width(Spacing.sm))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Showing last $smsScanMonths months of SMS data",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                        Text(
-                            text = "Adjust in Settings to scan more history",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
-                        )
-                    }
-                    TextButton(
-                        onClick = onNavigateToSettings,
-                        contentPadding = PaddingValues(horizontal = Spacing.sm)
-                    ) {
-                        Text("Settings", style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-            }
-        }
-
-        // Collapsible Advanced Filters
-        CollapsibleFilterRow(
-            isExpanded = showAdvancedFilters,
-            activeFilterCount = activeFilterCount,
-            onToggle = { showAdvancedFilters = !showAdvancedFilters },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            // Transaction Type Filter Chips
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
+                    .padding(top = Spacing.sm),
                 contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                items(TransactionTypeFilter.values().toList()) { typeFilter ->
+                // Period filter chips
+                items(timePeriods) { period ->
                     FilterChip(
-                        selected = transactionTypeFilter == typeFilter,
-                        onClick = { viewModel.setTransactionTypeFilter(typeFilter) },
-                        label = { Text(typeFilter.label) },
-                        leadingIcon = if (transactionTypeFilter == typeFilter) {
-                            {
-                                when (typeFilter) {
-                                    TransactionTypeFilter.INCOME -> Icon(
-                                        Icons.AutoMirrored.Filled.TrendingUp,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(Dimensions.Icon.small)
-                                    )
-                                    TransactionTypeFilter.EXPENSE -> Icon(
-                                        Icons.AutoMirrored.Filled.TrendingDown,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(Dimensions.Icon.small)
-                                    )
-                                    TransactionTypeFilter.CREDIT -> Icon(
-                                        Icons.Default.CreditCard,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(Dimensions.Icon.small)
-                                    )
-                                    TransactionTypeFilter.TRANSFER -> Icon(
-                                        Icons.Default.SwapHoriz,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(Dimensions.Icon.small)
-                                    )
-                                    TransactionTypeFilter.INVESTMENT -> Icon(
-                                        Icons.AutoMirrored.Filled.ShowChart,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(Dimensions.Icon.small)
-                                    )
-                                    else -> null
-                                }
+                        // Only show CUSTOM as selected if both period is CUSTOM AND dates are set
+                        selected = if (period == TimePeriod.CUSTOM) {
+                            selectedPeriod == period && customDateRange != null
+                        } else {
+                            selectedPeriod == period
+                        },
+                        onClick = {
+                            if (period == TimePeriod.CUSTOM) {
+                                showDateRangePicker = true
+                                // Don't change selectedPeriod until user confirms dates
+                            } else {
+                                viewModel.selectPeriod(period)
                             }
-                        } else null,
+                        },
+                        label = {
+                            Text(
+                                if (period == TimePeriod.CUSTOM && customRangeLabel != null) {
+                                    customRangeLabel
+                                } else {
+                                    period.label
+                                }
+                            )
+                        },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                            selectedLabelColor = MaterialTheme.colorScheme.onTertiaryContainer
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     )
                 }
             }
-        }
 
-
-
-        // Transaction List
-        when {
-            uiState.isLoading -> {
-                Box(
+            // Data scope info banner
+            if (viewModel.isShowingLimitedData()) {
+                Card(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(Dimensions.Padding.content),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.xs),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
-                    CircularProgressIndicator()
+                    Row(
+                        modifier = Modifier
+                            .padding(Spacing.md)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(Dimensions.Icon.small)
+                        )
+                        Spacer(modifier = Modifier.width(Spacing.sm))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Showing last $smsScanMonths months of SMS data",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                            Text(
+                                text = "Adjust in Settings to scan more history",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                            )
+                        }
+                        TextButton(
+                            onClick = onNavigateToSettings,
+                            contentPadding = PaddingValues(horizontal = Spacing.sm)
+                        ) {
+                            Text("Settings", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
                 }
             }
-            uiState.transactions.isEmpty() -> {
-                EmptyTransactionsState(
-                    searchQuery = searchQuery,
-                    selectedPeriod = selectedPeriod
-                )
-            }
-            else -> {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .overScrollVertical(),
-                    flingBehavior = rememberOverscrollFlingBehavior { listState },
-                    contentPadding = PaddingValues(
-                        horizontal = Dimensions.Padding.content,
-                        vertical = Spacing.md
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-                ) {
-                    item {
-                        // Totals Card - Moved after filters
-                        TransactionTotalsCard(
-                            income = filteredTotals.income,
-                            expenses = filteredTotals.expenses,
-                            netBalance = filteredTotals.netBalance,
-                            currency = selectedCurrency,
-                            availableCurrenciesCount = availableCurrencies.size,
-                            onCurrencyClick = { showCurrencySheet = true },
-                            isLoading = uiState.isLoading,
-                        )
 
-                        // Category Filter Chip (if active) - Moved to its own row
-                        categoryFilter?.let { category ->
-                            LazyRow(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = Spacing.xs),
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                            ) {
-                                item {
-                                    FilterChip(
-                                        selected = true,
-                                        onClick = { /* No action on click, use trailing icon to clear */ },
-                                        label = { Text(category) },
-                                        leadingIcon = {
-                                            categoriesMap[category]?.let { categoryEntity ->
-                                                CategoryChip(
-                                                    category = categoryEntity,
-                                                    showText = false,
-                                                    modifier = Modifier.padding(start = 4.dp)
-                                                )
-                                            }
-                                        },
-                                        trailingIcon = {
-                                            IconButton(
-                                                onClick = { viewModel.clearCategoryFilter() },
-                                                modifier = Modifier.size(18.dp)
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Close,
-                                                    contentDescription = "Clear category filter",
+            // Collapsible Advanced Filters
+            CollapsibleFilterRow(
+                isExpanded = showAdvancedFilters,
+                activeFilterCount = activeFilterCount,
+                onToggle = { showAdvancedFilters = !showAdvancedFilters },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // Transaction Type Filter Chips
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    items(TransactionTypeFilter.values().toList()) { typeFilter ->
+                        FilterChip(
+                            selected = transactionTypeFilter == typeFilter,
+                            onClick = { viewModel.setTransactionTypeFilter(typeFilter) },
+                            label = { Text(typeFilter.label) },
+                            leadingIcon = if (transactionTypeFilter == typeFilter) {
+                                {
+                                    when (typeFilter) {
+                                        TransactionTypeFilter.INCOME -> Icon(
+                                            Icons.AutoMirrored.Filled.TrendingUp,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(Dimensions.Icon.small)
+                                        )
+                                        TransactionTypeFilter.EXPENSE -> Icon(
+                                            Icons.AutoMirrored.Filled.TrendingDown,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(Dimensions.Icon.small)
+                                        )
+                                        TransactionTypeFilter.CREDIT -> Icon(
+                                            Icons.Default.CreditCard,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(Dimensions.Icon.small)
+                                        )
+                                        TransactionTypeFilter.TRANSFER -> Icon(
+                                            Icons.Default.SwapHoriz,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(Dimensions.Icon.small)
+                                        )
+                                        TransactionTypeFilter.INVESTMENT -> Icon(
+                                            Icons.AutoMirrored.Filled.ShowChart,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(Dimensions.Icon.small)
+                                        )
+                                        else -> null
+                                    }
+                                }
+                            } else null,
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        )
+                    }
+                }
+            }
+
+            // Transaction List
+            when {
+                uiState.isLoading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(Dimensions.Padding.content),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+                uiState.transactions.isEmpty() -> {
+                    EmptyTransactionsState(
+                        searchQuery = searchQuery,
+                        selectedPeriod = selectedPeriod
+                    )
+                }
+                else -> {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .overScrollVertical(),
+                        flingBehavior = rememberOverscrollFlingBehavior { listState },
+                        contentPadding = PaddingValues(
+                            horizontal = Dimensions.Padding.content,
+                            vertical = Spacing.md
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                    ) {
+                        item {
+                            // Totals Card - Moved after filters
+                            TransactionTotalsCard(
+                                income = filteredTotals.income,
+                                expenses = filteredTotals.expenses,
+                                netBalance = filteredTotals.netBalance,
+                                currency = selectedCurrency,
+                                availableCurrenciesCount = availableCurrencies.size,
+                                onCurrencyClick = { showCurrencySheet = true },
+                                isLoading = uiState.isLoading,
+                            )
+
+                            // Category Filter Chip
+                            categoryFilter?.let { category ->
+                                LazyRow(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = Spacing.xs),
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                                ) {
+                                    item {
+                                        FilterChip(
+                                            selected = true,
+                                            onClick = { /* No action on click, use trailing icon to clear */ },
+                                            label = { Text(category) },
+                                            leadingIcon = {
+                                                categoriesMap[category]?.let { categoryEntity ->
+                                                    CategoryChip(
+                                                        category = categoryEntity,
+                                                        showText = false,
+                                                        modifier = Modifier.padding(start = 4.dp)
+                                                    )
+                                                }
+                                            },
+                                            trailingIcon = {
+                                                IconButton(
+                                                    onClick = { viewModel.clearCategoryFilter() },
                                                     modifier = Modifier.size(18.dp)
-                                                )
-                                            }
-                                        },
-                                        colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                        ),
-                                        modifier = Modifier
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Close,
+                                                        contentDescription = "Clear category filter",
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                            },
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                                selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                            ),
+                                            modifier = Modifier
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        // Iterate through date groups in order
+                        listOf(
+                            DateGroup.TODAY,
+                            DateGroup.YESTERDAY,
+                            DateGroup.THIS_WEEK,
+                            DateGroup.EARLIER
+                        ).forEach { dateGroup ->
+                            uiState.groupedTransactions[dateGroup]?.let { transactions ->
+                                // Date group header
+                                item {
+                                    SectionHeader(
+                                        title = dateGroup.label,
+                                        modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.sm)
+                                    )
+                                }
+
+                                // Transactions in this group
+                                itemsIndexed(
+                                    items = transactions,
+                                    key = { _, it -> it.id }
+                                ) { index, transaction ->
+                                    val position = ListItemPosition.from(index, transactions.size)
+                                    TransactionItem(
+                                        transaction = transaction,
+                                        categoriesMap = categoriesMap,
+                                        subcategoriesMap = subcategoriesMap,
+                                        accountsMap = accountsMap,
+                                        showDate = dateGroup == DateGroup.EARLIER,
+                                        shape = position.toShape(),
+                                        onClick = { onTransactionClick(transaction.id) }
                                     )
                                 }
                             }
                         }
                     }
-                    // Iterate through date groups in order
-                    listOf(
-                        DateGroup.TODAY,
-                        DateGroup.YESTERDAY,
-                        DateGroup.THIS_WEEK,
-                        DateGroup.EARLIER
-                    ).forEach { dateGroup ->
-                        uiState.groupedTransactions[dateGroup]?.let { transactions ->
-                            // Date group header
-                            item {
-                                SectionHeader(
-                                    title = dateGroup.label,
-                                    modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.sm)
-                                )
-                            }
-
-                            // Transactions in this group
-                            itemsIndexed(
-                                items = transactions,
-                                key = { _, it -> it.id }
-                            ) { index, transaction ->
-                                val position = ListItemPosition.from(index, transactions.size)
-                                TransactionItem(
-                                    transaction = transaction,
-                                    categoriesMap = categoriesMap,
-                                    showDate = dateGroup == DateGroup.EARLIER,
-                                    shape = position.toShape(),
-                                    onClick = { onTransactionClick(transaction.id) }
-                                )
-                            }
-                        }
-                    }
                 }
             }
-        }
-
         }
     }
     
@@ -725,6 +727,8 @@ fun TransactionsScreen(
 private fun TransactionItem(
     transaction: TransactionEntity,
     categoriesMap: Map<String, CategoryEntity>,
+    subcategoriesMap: Map<String, SubcategoryEntity>,
+    accountsMap: Map<String, AccountBalanceEntity>,
     showDate: Boolean,
     shape: CornerBasedShape,
     onClick: () -> Unit = {}
@@ -774,10 +778,18 @@ private fun TransactionItem(
             )
         },
         leading = {
+            val categoryEntity = categoriesMap[transaction.category]
+            val subcategoryEntity = transaction.subcategory?.let { subcategoriesMap[it] }
+            val accountEntity = accountsMap["${transaction.bankName}_${transaction.accountNumber}"]
+            
             BrandIcon(
                 merchantName = transaction.merchantName,
                 size = 40.dp,
-                showBackground = true
+                showBackground = true,
+                categoryEntity = categoryEntity,
+                subcategoryEntity = subcategoryEntity,
+                accountIconResId = accountEntity?.iconResId ?: 0,
+                accountColorHex = accountEntity?.color
             )
         },
         trailing = {

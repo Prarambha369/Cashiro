@@ -3,6 +3,9 @@ package com.ritesh.cashiro.ui.screens.analytics
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ritesh.cashiro.data.database.entity.TransactionType
+import com.ritesh.cashiro.data.repository.CategoryRepository
+import com.ritesh.cashiro.data.repository.SubcategoryRepository
 import com.ritesh.cashiro.data.repository.TransactionRepository
 import com.ritesh.cashiro.presentation.common.TimePeriod
 import com.ritesh.cashiro.presentation.common.TransactionTypeFilter
@@ -21,6 +24,8 @@ import javax.inject.Inject
 @HiltViewModel
 class AnalyticsViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
+    private val categoryRepository: CategoryRepository,
+    private val subcategoryRepository: SubcategoryRepository,
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle
 ) : ViewModel() {
     
@@ -30,7 +35,7 @@ class AnalyticsViewModel @Inject constructor(
     private val _transactionTypeFilter = MutableStateFlow(TransactionTypeFilter.EXPENSE)
     val transactionTypeFilter: StateFlow<TransactionTypeFilter> = _transactionTypeFilter.asStateFlow()
 
-    private val _selectedCurrency = MutableStateFlow("INR") // Default to INR
+    private val _selectedCurrency = MutableStateFlow("INR")
     val selectedCurrency: StateFlow<String> = _selectedCurrency.asStateFlow()
 
     // Store custom date range as epoch days to survive process death
@@ -53,8 +58,15 @@ class AnalyticsViewModel @Inject constructor(
     private val _availableCurrencies = MutableStateFlow<List<String>>(emptyList())
     val availableCurrencies: StateFlow<List<String>> = _availableCurrencies.asStateFlow()
 
-    // Reactive UI state that automatically updates when any filter changes
-    // Uses flatMapLatest to cancel previous data loads when filters change (prevents race conditions)
+    val categoriesMap = categoryRepository.getAllCategories()
+        .map { cats -> cats.associateBy { it.name } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    val subcategoriesMap = subcategoryRepository.getAllSubcategories()
+        .map { subcats -> subcats.associateBy { it.name } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<AnalyticsUiState> = combine(
         _selectedPeriod,
@@ -62,13 +74,10 @@ class AnalyticsViewModel @Inject constructor(
         _transactionTypeFilter,
         _selectedCurrency
     ) { period, customRange, typeFilter, currency ->
-        // Combine all filter states
         FilterState(period, customRange, typeFilter, currency)
     }.flatMapLatest { filterState ->
-        // Determine date range based on selected period
         val dateRange = if (filterState.period == TimePeriod.CUSTOM) {
             val customRange = filterState.customRange
-            // Guard against invalid state: CUSTOM period must have a date range
             if (customRange == null) {
                 android.util.Log.e("AnalyticsViewModel",
                     "CUSTOM period selected but no date range set - falling back to THIS_MONTH")
@@ -107,14 +116,14 @@ class AnalyticsViewModel @Inject constructor(
                 // Convert TransactionTypeFilter to TransactionType for database query
                 val dbTransactionType = when (filterState.typeFilter) {
                     TransactionTypeFilter.ALL -> null // null means no type filter at DB level
-                    TransactionTypeFilter.INCOME -> com.ritesh.cashiro.data.database.entity.TransactionType.INCOME
-                    TransactionTypeFilter.EXPENSE -> com.ritesh.cashiro.data.database.entity.TransactionType.EXPENSE
-                    TransactionTypeFilter.CREDIT -> com.ritesh.cashiro.data.database.entity.TransactionType.CREDIT
-                    TransactionTypeFilter.TRANSFER -> com.ritesh.cashiro.data.database.entity.TransactionType.TRANSFER
-                    TransactionTypeFilter.INVESTMENT -> com.ritesh.cashiro.data.database.entity.TransactionType.INVESTMENT
+                    TransactionTypeFilter.INCOME -> TransactionType.INCOME
+                    TransactionTypeFilter.EXPENSE -> TransactionType.EXPENSE
+                    TransactionTypeFilter.CREDIT -> TransactionType.CREDIT
+                    TransactionTypeFilter.TRANSFER -> TransactionType.TRANSFER
+                    TransactionTypeFilter.INVESTMENT -> TransactionType.INVESTMENT
                 }
 
-                // Load filtered transactions from database (filtered at DB level for performance)
+                // Load filtered transactions from database
                 transactionRepository.getTransactionsFiltered(
                     startDate = dateRange.first,
                     endDate = dateRange.second,
@@ -146,11 +155,15 @@ class AnalyticsViewModel @Inject constructor(
                 val merchantBreakdown = filteredTransactions
                     .groupBy { it.merchantName }
                     .mapValues { (merchant, txns) ->
+                        val primaryCategory = txns.groupBy { it.category }.maxByOrNull { it.value.size }?.key
+                        val primarySubcategory = txns.groupBy { it.subcategory }.maxByOrNull { it.value.size }?.key
                         MerchantData(
                             name = merchant,
                             amount = txns.sumOf { it.amount.toDouble() }.toBigDecimal(),
                             transactionCount = txns.size,
-                            isSubscription = txns.any { it.isRecurring }
+                            isSubscription = txns.any { it.isRecurring },
+                            categoryName = primaryCategory,
+                            subcategoryName = primarySubcategory
                         )
                     }
                     .values
@@ -240,7 +253,7 @@ class AnalyticsViewModel @Inject constructor(
 
         when {
             selectedPeriod == TimePeriod.ALL || selectedPeriod == TimePeriod.CURRENT_FY -> {
-                // Determine the actual start date for "All Time" to avoid showing years of empty data
+
                 val actualStartDate = if (selectedPeriod == TimePeriod.ALL && transactions.isNotEmpty()) {
                     val firstTxDate = transactions.minByOrNull { it.dateTime }?.dateTime?.toLocalDate() ?: startDate
                     if (firstTxDate.isAfter(startDate)) firstTxDate.withDayOfMonth(1) else startDate
@@ -354,6 +367,8 @@ data class MerchantData(
     val name: String,
     val amount: BigDecimal,
     val transactionCount: Int,
-    val isSubscription: Boolean
+    val isSubscription: Boolean,
+    val categoryName: String? = null,
+    val subcategoryName: String? = null
 )
 

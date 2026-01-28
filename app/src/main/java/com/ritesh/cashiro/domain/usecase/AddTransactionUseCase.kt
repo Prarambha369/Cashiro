@@ -5,6 +5,7 @@ import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
 import com.ritesh.cashiro.data.database.entity.SubscriptionState
 import com.ritesh.cashiro.data.database.entity.TransactionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionType
+import com.ritesh.cashiro.data.repository.AccountBalanceRepository
 import com.ritesh.cashiro.data.repository.SubscriptionRepository
 import com.ritesh.cashiro.data.repository.TransactionRepository
 import java.math.BigDecimal
@@ -17,7 +18,7 @@ class AddTransactionUseCase
 constructor(
         private val transactionRepository: TransactionRepository,
         private val subscriptionRepository: SubscriptionRepository,
-        private val accountBalanceRepository: com.ritesh.cashiro.data.repository.AccountBalanceRepository
+        private val accountBalanceRepository: AccountBalanceRepository
 ) {
     suspend fun execute(
             amount: BigDecimal,
@@ -71,7 +72,6 @@ constructor(
         if (bankName != null && accountLast4 != null) {
             when (type) {
                 TransactionType.INCOME -> {
-                    // Add amount to the selected account
                     val currentBalance = accountBalanceRepository.getLatestBalance(bankName, accountLast4)
                     val newBalance = (currentBalance?.balance ?: BigDecimal.ZERO) + amount
                     accountBalanceRepository.insertBalance(
@@ -158,7 +158,7 @@ constructor(
                     val currentBalance = accountBalanceRepository.getLatestBalance(bankName, accountLast4)
                     val newBalance = (currentBalance?.balance ?: BigDecimal.ZERO) - amount
                     accountBalanceRepository.insertBalance(
-                        com.ritesh.cashiro.data.database.entity.AccountBalanceEntity(
+                        AccountBalanceEntity(
                             bankName = bankName,
                             accountLast4 = accountLast4,
                             balance = newBalance,

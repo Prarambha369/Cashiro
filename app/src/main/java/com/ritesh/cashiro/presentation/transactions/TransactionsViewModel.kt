@@ -1,8 +1,10 @@
 package com.ritesh.cashiro.presentation.transactions
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ritesh.cashiro.data.database.entity.CategoryEntity
+import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
 import com.ritesh.cashiro.data.database.entity.TransactionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionType
 import com.ritesh.cashiro.data.repository.CategoryRepository
@@ -13,8 +15,13 @@ import com.ritesh.cashiro.presentation.common.getDateRangeForPeriod
 import com.ritesh.cashiro.presentation.common.CurrencyGroupedTotals
 import com.ritesh.cashiro.presentation.common.CurrencyTotals
 import com.ritesh.cashiro.core.Constants
+import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
+import com.ritesh.cashiro.data.preferences.UserPreferencesRepository
+import com.ritesh.cashiro.data.repository.AccountBalanceRepository
+import com.ritesh.cashiro.data.repository.SubcategoryRepository
 import com.ritesh.cashiro.utils.CurrencyUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
@@ -28,9 +35,11 @@ import javax.inject.Inject
 class TransactionsViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val categoryRepository: CategoryRepository,
-    private val userPreferencesRepository: com.ritesh.cashiro.data.preferences.UserPreferencesRepository,
+    private val subcategoryRepository: SubcategoryRepository,
+    private val accountBalanceRepository: AccountBalanceRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle,
-    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
     
     private val _searchQuery = MutableStateFlow("")
@@ -145,6 +154,27 @@ class TransactionsViewModel @Inject constructor(
     val categories: StateFlow<Map<String, CategoryEntity>> = categoryRepository.getAllCategories()
         .map { categoryList ->
             categoryList.associateBy { it.name }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyMap()
+        )
+    
+    // Subcategories flow - will be used to map subcategory names to entities
+    val subcategories: StateFlow<Map<String, SubcategoryEntity>> = subcategoryRepository.getAllSubcategories()
+        .map { subcategoryList ->
+            subcategoryList.associateBy { it.name }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyMap()
+        )
+
+    val accountsMap: StateFlow<Map<String, AccountBalanceEntity>> = accountBalanceRepository.getAllLatestBalances()
+        .map { accountList ->
+            accountList.associateBy { "${it.bankName}_${it.accountLast4}" }
         }
         .stateIn(
             scope = viewModelScope,
@@ -637,9 +667,6 @@ class TransactionsViewModel @Inject constructor(
             )
         }
 
-        // Note: availableCurrencies are now provided by the separate availableCurrencies StateFlow
-        // We'll keep the old behavior for compatibility but the UI should use availableCurrencies property
-        // Use standard currency sorting (INR first, then alphabetical)
         val filteredAvailableCurrencies = CurrencyUtils.sortCurrencies(
             totalsByCurrency.keys.toList()
         )

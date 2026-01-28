@@ -1,7 +1,6 @@
 package com.ritesh.cashiro.presentation.transactions
 
 import android.content.Intent
-import android.net.Uri
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -58,6 +57,8 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ritesh.cashiro.data.database.entity.CategoryEntity
+import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
 import com.ritesh.cashiro.data.database.entity.TransactionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionType
 import com.ritesh.cashiro.presentation.accounts.NumberPad
@@ -79,6 +80,8 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import androidx.core.net.toUri
+import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -104,6 +107,7 @@ fun TransactionDetailScreen(
     val availableAccounts by viewModel.availableAccounts.collectAsStateWithLifecycle()
     val allSubcategories by viewModel.allSubcategories.collectAsStateWithLifecycle()
     val categories by viewModel.categories.collectAsStateWithLifecycle()
+    val linkedSubscription by viewModel.subscription.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -165,7 +169,7 @@ fun TransactionDetailScreen(
                         onClick = {
                             val reportUrl = viewModel.getReportUrl()
                             Log.d("TransactionDetail", "Report FAB clicked, opening URL: ${reportUrl.take(200)}...")
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(reportUrl))
+                            val intent = Intent(Intent.ACTION_VIEW, reportUrl.toUri())
                             try {
                                 context.startActivity(intent)
                                 Log.d("TransactionDetail", "Successfully launched browser intent")
@@ -256,7 +260,8 @@ fun TransactionDetailScreen(
                     onBillingCycleMenuChange = { showBillingCycleMenu = it },
                     paddingValues = paddingValues,
                     categories = categories,
-                    subcategoriesMap = allSubcategories
+                    subcategoriesMap = allSubcategories,
+                    linkedSubscription = linkedSubscription
                 )
             }
 
@@ -507,6 +512,7 @@ private fun TransactionSaveContent(
 
 @Composable
 private fun TransactionDetailContent(
+    modifier: Modifier = Modifier,
     transaction: TransactionEntity,
     isEditMode: Boolean,
     applyToAllFromMerchant: Boolean,
@@ -524,9 +530,9 @@ private fun TransactionDetailContent(
     onBillingCycleMenuChange: (Boolean) -> Unit,
     paddingValues: PaddingValues,
     availableAccounts: List<TransactionDetailViewModel.AccountInfo>,
-    categories: List<com.ritesh.cashiro.data.database.entity.CategoryEntity>,
-    subcategoriesMap: Map<Long, List<com.ritesh.cashiro.data.database.entity.SubcategoryEntity>>,
-    modifier: Modifier = Modifier
+    categories: List<CategoryEntity>,
+    subcategoriesMap: Map<Long, List<SubcategoryEntity>>,
+    linkedSubscription: SubscriptionEntity? = null,
 ) {
 
     Column(
@@ -549,11 +555,18 @@ private fun TransactionDetailContent(
             enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
             exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
         ) {
-            Column() {
+            val categoryEntity = categories.find { it.name == transaction.category }
+            val subcategoryEntity = if (categoryEntity != null && transaction.subcategory != null) {
+                subcategoriesMap[categoryEntity.id]?.find { it.name == transaction.subcategory }
+            } else null
+
+            Column {
                 EditableTransactionHeader(
                     transaction = transaction,
                     viewModel = viewModel,
-                    onAmountClick = onAmountClick
+                    onAmountClick = onAmountClick,
+                    categoryEntity = categoryEntity,
+                    subcategoryEntity = subcategoryEntity
                 )
                 Spacer(modifier = Modifier.height(Spacing.lg))
                 // SMS Body - Always read-only
@@ -582,95 +595,25 @@ private fun TransactionDetailContent(
             enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
             exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
         ) {
+            val categoryEntity = categories.find { it.name == transaction.category }
+            val subcategoryEntity = if (categoryEntity != null && transaction.subcategory != null) {
+                subcategoriesMap[categoryEntity.id]?.find { it.name == transaction.subcategory }
+            } else null
+
             TransactionReceipt(
                 transaction,
                 accountPrimaryCurrency,
                 convertedAmount,
                 availableAccounts,
                 categories,
-                subcategoriesMap
+                subcategoriesMap,
+                linkedSubscription
             )
             Spacer(modifier = Modifier.height(100.dp))
         }
     }
 }
 
-@Composable
-private fun TransactionHeader(
-    transaction: TransactionEntity,
-    primaryCurrency: String,
-    convertedAmount: BigDecimal?
-) {
-    CashiroCard(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.content),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Brand Icon
-            BrandIcon(
-                merchantName = transaction.merchantName,
-                size = 64.dp,
-                showBackground = true
-            )
-
-            Spacer(modifier = Modifier.height(Spacing.md))
-
-            // Merchant Name
-            Text(
-                text = transaction.merchantName,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-
-            // Amount with sign
-            val amountColor = when (transaction.transactionType) {
-                TransactionType.INCOME -> Color(0xFF4CAF50)
-                TransactionType.EXPENSE -> MaterialTheme.colorScheme.error
-                TransactionType.CREDIT -> Color(0xFFFF6B35)  // Orange for credit
-                TransactionType.TRANSFER -> Color(0xFF9C27B0)  // Purple for transfer
-                TransactionType.INVESTMENT -> Color(0xFF00796B)  // Teal for investment
-            }
-            val sign = when (transaction.transactionType) {
-                TransactionType.INCOME -> "+"
-                TransactionType.EXPENSE -> "-"
-                TransactionType.CREDIT -> "💳"
-                TransactionType.TRANSFER -> "↔"
-                TransactionType.INVESTMENT -> "📈"
-            }
-
-            Text(
-                text = "$sign${transaction.formatAmount()}",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = amountColor
-            )
-
-            // Show converted amount if different from transaction currency
-            if (transaction.currency.isNotEmpty() && !transaction.currency.equals(primaryCurrency, ignoreCase = true) && convertedAmount != null) {
-                Spacer(modifier = Modifier.height(Spacing.xs))
-                Text(
-                    text = "≈ ${CurrencyFormatter.formatCurrency(convertedAmount, primaryCurrency)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Normal
-                )
-            }
-
-            // Date and Time
-            Text(
-                text = transaction.dateTime.format(
-                    DateTimeFormatter.ofPattern("MMMM d, yyyy • h:mm a")
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
 
 @Composable
 private fun SmsBodyCard(smsBody: String) {
@@ -720,208 +663,12 @@ private fun SmsBodyCard(smsBody: String) {
 }
 
 @Composable
-private fun ExtractedInfoCard(transaction: TransactionEntity) {
-    CashiroCard(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.content)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.Analytics,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(Spacing.sm))
-                Text(
-                    text = "Extracted Information",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(Spacing.md))
-
-            // Category
-            InfoRow(
-                label = "Category",
-                value = transaction.category,
-                icon = Icons.Default.Category
-            )
-
-            // Bank
-            transaction.bankName?.let {
-                InfoRow(
-                    label = "Bank",
-                    value = it,
-                    icon = Icons.Default.AccountBalance
-                )
-            }
-
-            // Transaction Type
-            InfoRow(
-                label = "Type",
-                value = transaction.transactionType.name.lowercase().replaceFirstChar { it.uppercase() },
-                icon = when (transaction.transactionType) {
-                    TransactionType.INCOME -> Icons.AutoMirrored.Filled.TrendingUp
-                    TransactionType.EXPENSE -> Icons.AutoMirrored.Filled.TrendingDown
-                    TransactionType.CREDIT -> Icons.Default.CreditCard
-                    TransactionType.TRANSFER -> Icons.Default.SwapHoriz
-                    TransactionType.INVESTMENT -> Icons.AutoMirrored.Filled.ShowChart
-                }
-            )
-
-            // Description
-            transaction.description?.let {
-                InfoRow(
-                    label = "Description",
-                    value = it,
-                    icon = Icons.Default.Description
-                )
-            }
-
-            // Recurring status
-            if (transaction.isRecurring) {
-                InfoRow(
-                    label = "Status",
-                    value = "Recurring Transaction${transaction.billingCycle?.let { " ($it)" } ?: ""}",
-                    icon = Icons.Default.Repeat
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AdditionalDetailsCard(viewModel: TransactionDetailViewModel, transaction: TransactionEntity) {
-    CashiroCard(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.content)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.Info,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(Spacing.sm))
-                Text(
-                    text = "Additional Details",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(Spacing.md))
-
-            // Account Number (masked) - only show for non-transfer transactions
-            transaction.accountNumber?.let {
-                // Don't show generic account field when we have specific transfer accounts
-                if (transaction.fromAccount == null && transaction.toAccount == null) {
-                    val masked = if (it == "wallet") {
-                        "Cash"
-                    } else if (it.length > 4) {
-                        "*".repeat(it.length - 4) + it.takeLast(4)
-                    } else it
-                    InfoRow(
-                        label = "Account",
-                        value = masked,
-                        icon = Icons.Default.CreditCard
-                    )
-                }
-            }
-
-            // From Account (for transfers)
-            transaction.fromAccount?.let { from ->
-                val masked = if (from == "wallet") {
-                    "Cash"
-                } else if (from.length > 4) {
-                    "*".repeat(from.length - 4) + from.takeLast(4)
-                } else from
-                InfoRow(
-                    label = "From Account",
-                    value = masked,
-                    icon = Icons.Default.ArrowUpward
-                )
-            }
-
-            // To Account (for transfers)
-            transaction.toAccount?.let { to ->
-                val masked = if (to == "wallet") {
-                    "Cash"
-                } else if (to.length > 4) {
-                    "*".repeat(to.length - 4) + to.takeLast(4)
-                } else to
-                InfoRow(
-                    label = "To Account",
-                    value = masked,
-                    icon = Icons.Default.ArrowDownward
-                )
-            }
-
-            // Balance After
-            transaction.balanceAfter?.let {
-                InfoRow(
-                    label = "Balance After",
-                    value = CurrencyFormatter.formatCurrency(it,viewModel.primaryCurrency.value),
-                    icon = Icons.Default.AccountBalanceWallet
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun InfoRow(
-    label: String,
-    value: String,
-    icon: ImageVector
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = Spacing.xs),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(Dimensions.Icon.small)
-        )
-        Spacer(modifier = Modifier.width(Spacing.sm))
-        Text(
-            text = "$label:",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(100.dp)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
-        )
-    }
-}
-
-@Composable
 private fun EditableTransactionHeader(
     transaction: TransactionEntity,
     viewModel: TransactionDetailViewModel,
-    onAmountClick: () -> Unit
+    onAmountClick: () -> Unit,
+    categoryEntity: CategoryEntity? = null,
+    subcategoryEntity: SubcategoryEntity? = null
 ) {
     CashiroCard(
         modifier = Modifier.fillMaxWidth(),
@@ -942,14 +689,14 @@ private fun EditableTransactionHeader(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Transaction Type - Using FlowRow for responsive layout
+            // Transaction Type
             Column(modifier = Modifier.fillMaxWidth()) {
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    TransactionType.values().forEach { type ->
+                    TransactionType.entries.forEach { type ->
                         FilterChip(
                             selected = transaction.transactionType == type,
                             onClick = { viewModel.updateTransactionType(type) },
@@ -1007,7 +754,9 @@ private fun EditableTransactionHeader(
                         BrandIcon(
                             merchantName = transaction.merchantName,
                             size = 24.dp,
-                            showBackground = false
+                            showBackground = false,
+                            categoryEntity = categoryEntity,
+                            subcategoryEntity = subcategoryEntity
                         )
                     },
                     isError = transaction.merchantName.isBlank(),
@@ -1104,7 +853,7 @@ private fun EditableExtractedInfoCard(
             val transactionType = transaction.transactionType
             
             BlurredAnimatedVisibility(transactionType == TransactionType.TRANSFER) {
-                // Transfer Type UI:
+                // Transfer Type UI
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -1450,7 +1199,7 @@ private fun EditableExtractedInfoCard(
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                                 unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -1586,7 +1335,7 @@ private fun CategoryDropdown(
                 colors = if (selectedSubcategoryObj != null) {
                     val color = try {
                         Color(selectedSubcategoryObj.color.toColorInt())
-                    } catch (e: Exception) {
+                    } catch (_: Exception) {
                         MaterialTheme.colorScheme.surfaceContainerLow
                     }
                     TextFieldDefaults.colors(
@@ -1940,11 +1689,12 @@ private fun TransactionReceipt(
     primaryCurrency: String,
     convertedAmount: BigDecimal?,
     availableAccounts: List<TransactionDetailViewModel.AccountInfo>,
-    categories: List<com.ritesh.cashiro.data.database.entity.CategoryEntity>,
-    subcategoriesMap: Map<Long, List<com.ritesh.cashiro.data.database.entity.SubcategoryEntity>>
+    categories: List<CategoryEntity>,
+    subcategoriesMap: Map<Long, List<SubcategoryEntity>>,
+    linkedSubscription: SubscriptionEntity? = null
 ) {
     val density = androidx.compose.ui.platform.LocalDensity.current
-    var cutoutOffsetPx by remember { mutableStateOf(with(density) { 420.dp.toPx() }) }
+    var cutoutOffsetPx by remember { mutableFloatStateOf(with(density) { 420.dp.toPx() }) }
     val cutoutRadius = 10.dp
     val cutoutRadiusPx = with(density) { cutoutRadius.toPx() }
     val scallopRadiusPx = with(density) { 4.dp.toPx() }
@@ -1970,6 +1720,7 @@ private fun TransactionReceipt(
                     .padding(vertical = 24.dp), // Extra top padding for badge clearance
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                //pill shape merchant
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -1979,7 +1730,16 @@ private fun TransactionReceipt(
                         modifier = Modifier.weight(1f),
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
                     )
-                    ReceiptBadge(merchantName = transaction.merchantName)
+                    val categoryEntity = categories.find { it.name == transaction.category }
+                    val subcategoryEntity = if (categoryEntity != null && transaction.subcategory != null) {
+                        subcategoriesMap[categoryEntity.id]?.find { it.name == transaction.subcategory }
+                    } else null
+
+                    ReceiptBadge(
+                        merchantName = transaction.merchantName,
+                        categoryEntity = categoryEntity,
+                        subcategoryEntity = subcategoryEntity
+                    )
                     DashedLine(
                         modifier = Modifier.weight(1f),
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
@@ -2115,15 +1875,15 @@ private fun TransactionReceipt(
                                 
                                 if (subcategoryEntity != null && subcategoryEntity.iconResId != 0) {
                                      val iconColor = try {
-                                         Color(android.graphics.Color.parseColor(subcategoryEntity.color))
-                                     } catch (e: Exception) {
+                                         Color(subcategoryEntity.color.toColorInt())
+                                     } catch (_: Exception) {
                                          Color.Unspecified
                                      }
                                      
                                      Icon(
                                          painter = painterResource(id = subcategoryEntity.iconResId),
                                          contentDescription = transaction.subcategory,
-                                         tint = Color.Unspecified, // Use original colors or tint if needed? Usually category icons are tinted.
+                                         tint = Color.Unspecified,
                                          modifier = Modifier.size(20.dp)
                                      )
                                 } else {
@@ -2143,8 +1903,8 @@ private fun TransactionReceipt(
                              
                              if (subcategoryEntity != null) {
                                   try {
-                                      Color(android.graphics.Color.parseColor(subcategoryEntity.color)).copy(alpha = 0.2f)
-                                  } catch (e: Exception) {
+                                      Color(subcategoryEntity.color.toColorInt()).copy(alpha = 0.2f)
+                                  } catch (_: Exception) {
                                       null
                                   }
                              } else null
@@ -2204,6 +1964,23 @@ private fun TransactionReceipt(
                             }
                         )
                     }
+
+                    if (transaction.isRecurring && linkedSubscription?.nextPaymentDate != null) {
+                        ReceiptInfoRow(
+                            label = "Next Billing",
+                            value = linkedSubscription.nextPaymentDate.format(
+                                DateTimeFormatter.ofPattern("d MMM yyyy")
+                            ),
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Default.EventRepeat,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        )
+                    }
                 }
 
                 // Expandable Description
@@ -2252,7 +2029,7 @@ private fun TransactionReceipt(
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text(
-                                    text = transaction.description ?: "",
+                                    text = transaction.description,
                                     style = MaterialTheme.typography.bodySmall.copy(
                                         fontFamily = FontFamily.Monospace,
                                         lineHeight = 16.sp
@@ -2308,7 +2085,7 @@ private fun TransactionReceipt(
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text(
-                                    text = transaction.smsBody ?: "",
+                                    text = transaction.smsBody,
                                     style = MaterialTheme.typography.bodySmall.copy(
                                         fontFamily = FontFamily.Monospace,
                                         lineHeight = 16.sp
@@ -2379,7 +2156,11 @@ private fun TransactionReceipt(
 }
 
 @Composable
-private fun ReceiptBadge(merchantName: String) {
+private fun ReceiptBadge(
+    merchantName: String,
+    categoryEntity: CategoryEntity? = null,
+    subcategoryEntity: SubcategoryEntity? = null
+) {
     Surface(
         shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -2395,7 +2176,9 @@ private fun ReceiptBadge(merchantName: String) {
             BrandIcon(
                 merchantName = merchantName,
                 size = 32.dp,
-                showBackground = true
+                showBackground = true,
+                categoryEntity = categoryEntity,
+                subcategoryEntity = subcategoryEntity
             )
             Text(
                 text = merchantName,
@@ -2423,7 +2206,7 @@ private fun ReceiptInfoRow(
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         when (label) {
-            "Type", "Balance" -> {
+            "Type", "Balance", "Next Billing" -> {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),

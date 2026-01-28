@@ -6,12 +6,17 @@ import androidx.lifecycle.viewModelScope
 import com.ritesh.cashiro.data.currency.CurrencyConversionService
 import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
 import com.ritesh.cashiro.data.repository.AccountBalanceRepository
+import com.ritesh.cashiro.data.repository.CategoryRepository
+import com.ritesh.cashiro.data.repository.SubcategoryRepository
 import com.ritesh.cashiro.data.repository.SubscriptionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import javax.inject.Inject
@@ -20,6 +25,8 @@ import javax.inject.Inject
 class SubscriptionsViewModel @Inject constructor(
     private val subscriptionRepository: SubscriptionRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
+    private val categoryRepository: CategoryRepository,
+    private val subcategoryRepository: SubcategoryRepository,
     private val currencyConversionService: CurrencyConversionService,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -28,6 +35,14 @@ class SubscriptionsViewModel @Inject constructor(
     
     private val _uiState = MutableStateFlow(SubscriptionsUiState())
     val uiState: StateFlow<SubscriptionsUiState> = _uiState.asStateFlow()
+
+    val categoriesMap = categoryRepository.getAllCategories()
+        .map { cats -> cats.associateBy { it.name } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    val subcategoriesMap = subcategoryRepository.getAllSubcategories()
+        .map { subcats -> subcats.associateBy { it.name } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
     
     init {
         loadSubscriptions()
@@ -36,7 +51,6 @@ class SubscriptionsViewModel @Inject constructor(
     private fun loadSubscriptions() {
         viewModelScope.launch {
             subscriptionRepository.getActiveSubscriptions().collect { subscriptions ->
-                // Get main account currency for conversion
                 val mainAccountKey = sharedPrefs.getString("main_account", null)
                 val targetCurrency = if (mainAccountKey != null) {
                     val parts = mainAccountKey.split("_")
@@ -50,7 +64,6 @@ class SubscriptionsViewModel @Inject constructor(
                     "INR"
                 }
 
-                // Check if we need to refresh rates for subscription currencies
                 val subscriptionCurrencies = subscriptions.map { it.currency }.distinct()
                 if (subscriptionCurrencies.any { it != targetCurrency }) {
                     currencyConversionService.refreshExchangeRatesForAccount(subscriptionCurrencies + targetCurrency)

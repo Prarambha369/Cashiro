@@ -19,6 +19,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ritesh.cashiro.data.database.entity.CategoryEntity
+import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
 import com.ritesh.cashiro.ui.icons.BrandIcons
 import com.ritesh.cashiro.ui.icons.CategoryMapping
 import com.ritesh.cashiro.ui.icons.IconProvider
@@ -26,16 +28,31 @@ import com.ritesh.cashiro.ui.icons.IconResource
 
 /**
  * Displays a brand icon with intelligent fallback
+ * Fallback priority: Brand Icon > Subcategory Icon > Category Icon
  */
 @Composable
 fun BrandIcon(
     merchantName: String,
     modifier: Modifier = Modifier,
     size: Dp = 40.dp,
-    showBackground: Boolean = true
+    showBackground: Boolean = true,
+    categoryEntity: CategoryEntity? = null,
+    subcategoryEntity: SubcategoryEntity? = null,
+    accountIconResId: Int = 0,
+    accountColorHex: String? = null
 ) {
-    val iconResource = IconProvider.getIconForMerchant(merchantName)
-    val brandColor = BrandIcons.getBrandColor(merchantName)
+    val iconResource = IconProvider.getIconForTransaction(
+        merchantName = merchantName,
+        categoryEntity = categoryEntity,
+        subcategoryEntity = subcategoryEntity,
+        accountIconResId = accountIconResId
+    )
+    val brandColor = IconProvider.getColorForTransaction(
+        merchantName = merchantName,
+        categoryEntity = categoryEntity,
+        subcategoryEntity = subcategoryEntity,
+        accountColorHex = accountColorHex
+    )
     
     Box(
         modifier = modifier
@@ -45,8 +62,8 @@ fun BrandIcon(
                     Modifier
                         .clip(CircleShape)
                         .background(
-                            brandColor?.let { Color(it.toColorInt()) }
-                                ?: MaterialTheme.colorScheme.surfaceVariant
+                            brandColor?.let { Color(it.toColorInt()).copy(0.4f) }
+                                ?: generateColorFromString(merchantName).copy(0.4f)
                         )
                         .padding(8.dp)
                 } else {
@@ -57,7 +74,7 @@ fun BrandIcon(
     ) {
         when (iconResource) {
             is IconResource.DrawableResource -> {
-                // Brand logo from drawable
+                // Brand logo
                 Image(
                     painter = painterResource(id = iconResource.resId),
                     contentDescription = merchantName,
@@ -74,7 +91,6 @@ fun BrandIcon(
                 )
             }
             is IconResource.TintedResIcon -> {
-                // Tinted resource icon (e.g. category icons)
                 Icon(
                     painter = painterResource(id = iconResource.resId),
                     contentDescription = merchantName,
@@ -86,39 +102,6 @@ fun BrandIcon(
     }
 }
 
-/**
- * Letter avatar for merchants without icons
- */
-@Composable
-fun LetterAvatar(
-    merchantName: String,
-    modifier: Modifier = Modifier,
-    size: Dp = 40.dp
-) {
-    val letter = merchantName.firstOrNull()?.uppercase() ?: "?"
-    val backgroundColor = BrandIcons.getBrandColor(merchantName)?.let { 
-        Color(it.toColorInt()) 
-    } ?: generateColorFromString(merchantName)
-    
-    Box(
-        modifier = modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(backgroundColor),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = letter,
-            color = Color.White,
-            fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.bodyLarge
-        )
-    }
-}
-
-/**
- * Category icon with consistent styling
- */
 @Composable
 fun CategoryIcon(
     category: String,

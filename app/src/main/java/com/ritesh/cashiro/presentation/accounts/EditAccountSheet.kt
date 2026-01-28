@@ -77,7 +77,7 @@ fun EditAccountSheet(
             else R.drawable.type_finance_bank
         )
     }
-    var colorHex by remember { mutableStateOf("#33B5E5") } // Default color
+    var colorHex by remember { mutableStateOf(account?.color ?: "#33B5E5") }
 
     var showNumberPad by remember { mutableStateOf(false) }
     var editingCreditLimit by remember { mutableStateOf(false) }
@@ -229,7 +229,7 @@ fun EditAccountSheet(
                 fontWeight = FontWeight.Bold
             )
 
-            // Account Type Selection (Only for new accounts)
+            // Account Type Selection
             if (account == null) {
                 SingleChoiceSegmentedButtonRow(
                     modifier = Modifier.fillMaxWidth()
@@ -336,7 +336,7 @@ fun EditAccountSheet(
                             painter = painterResource(id = iconResId),
                             contentDescription = null,
                             modifier = Modifier.size(34.dp),
-                            tint = Color.Unspecified // Keep original icon colors as per
+                            tint = Color.Unspecified
                         )
                         // Edit badge
                         Box(
@@ -362,7 +362,7 @@ fun EditAccountSheet(
                             )
                         }
                     }
-                    // Balance/Outstanding Input (opens NumberPad)
+                    // Balance/Outstanding Input
                     Surface(
                         onClick = { 
                             editingCreditLimit = false
@@ -667,7 +667,6 @@ fun EditAccountSheet(
                 },
                 trailingButton = {
                     val description = "Toggle Button"
-                    // Icon-only trailing button should have a tooltip for a11y.
                     TooltipBox(
                         positionProvider =
                             TooltipDefaults.rememberTooltipPositionProvider(
@@ -897,7 +896,7 @@ private fun PreviewAccountCard(
                                 painter = painterResource(id = iconResId),
                                 contentDescription = null,
                                 modifier = Modifier.size(24.dp),
-                                tint = Color.Unspecified // Keep original icon colors as per
+                                tint = Color.Unspecified
                             )
                         }
                     }

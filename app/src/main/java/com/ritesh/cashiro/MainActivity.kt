@@ -28,7 +28,7 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = false
-            window.isStatusBarContrastEnforced = false
+//            window.isStatusBarContrastEnforced = false
         }
 
         // Handle intent if activity is launched from notification

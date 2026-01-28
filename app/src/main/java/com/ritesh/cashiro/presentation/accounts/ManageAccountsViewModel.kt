@@ -1,6 +1,7 @@
 package com.ritesh.cashiro.presentation.accounts
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
@@ -19,13 +20,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import com.ritesh.cashiro.R
+import androidx.core.content.edit
 
 data class ManageAccountsUiState(
     val accounts: List<AccountBalanceEntity> = emptyList(),
     val hiddenAccounts: Set<String> = emptySet(),
     val balanceHistory: List<AccountBalanceEntity> = emptyList(),
-    val linkedCards: Map<String, List<CardEntity>> =
-        emptyMap(), // accountLast4 -> List of cards
+    val linkedCards: Map<String, List<CardEntity>> = emptyMap(),
     val orphanedCards: List<CardEntity> = emptyList(),
     val isLoading: Boolean = false,
     val mainAccountKey: String? = null,
@@ -89,7 +90,8 @@ constructor(
                         timestamp = LocalDateTime.now(),
                         sourceType = "MANUAL",
                         isWallet = true,
-                        iconResId = R.drawable.type_finance_dollar_banknote
+                        iconResId = R.drawable.type_finance_dollar_banknote,
+                        color = "#4CAF50"
                     )
                 )
             }
@@ -140,7 +142,7 @@ constructor(
 
     fun setAsMainAccount(bankName: String, accountLast4: String) {
         val key = "${bankName}_${accountLast4}"
-        sharedPrefs.edit().putString("main_account", key).apply()
+        sharedPrefs.edit { putString("main_account", key) }
         _uiState.update { it.copy(mainAccountKey = key, successMessage = "Main account set successfully") }
         viewModelScope.launch {
             delay(3000)
@@ -234,7 +236,8 @@ constructor(
                     isCreditCard = isCreditCard,
                     isWallet = isWallet,
                     iconResId = iconResId,
-                    currency = currency
+                    currency = currency,
+                    color = colorHex
                 )
             )
 
@@ -261,7 +264,7 @@ constructor(
             colorHex = "#33B5E5", // Default or handle color
             isCreditCard = (state.accountType == AccountType.CREDIT),
             isWallet = (state.accountType == AccountType.WALLET),
-            creditLimit = creditLimit
+            creditLimit = creditLimit,
         )
 
         // Clear form
@@ -280,7 +283,8 @@ constructor(
                 creditLimit = latestBalance?.creditLimit,
                 timestamp = LocalDateTime.now(),
                 iconResId = latestBalance?.iconResId ?: 0,
-                isWallet = latestBalance?.isWallet ?: false
+                isWallet = latestBalance?.isWallet ?: false,
+                color = latestBalance?.color ?: "#33B5E5"
             )
             )
         }
@@ -300,7 +304,8 @@ constructor(
                     balance = newBalance,
                     creditLimit = newLimit,
                     timestamp = LocalDateTime.now(),
-                    isCreditCard = true
+                    isCreditCard = true,
+                    color = "#E91E63"
                 )
             )
         }
@@ -375,7 +380,7 @@ constructor(
     fun linkCardToAccount(cardId: Long, accountLast4: String) {
         viewModelScope.launch {
             try {
-                android.util.Log.d(
+                Log.d(
                         "ManageAccountsViewModel",
                         "Starting to link card $cardId to account $accountLast4"
                 )
@@ -399,7 +404,7 @@ constructor(
                                         smsSource = card.lastBalanceSource,
                                         sourceType = "CARD_LINK"
                                 )
-                        android.util.Log.d(
+                        Log.d(
                                 "ManageAccountsViewModel",
                                 "Balance copied to account. Insert ID: $insertedId"
                         )
@@ -409,7 +414,7 @@ constructor(
                                 "Card linked successfully. Balance updated to ${CurrencyFormatter.formatCurrency(card.lastBalance)}"
                         _uiState.update { it.copy(successMessage = message) }
                     } catch (e: Exception) {
-                        android.util.Log.e(
+                        Log.e(
                                 "ManageAccountsViewModel",
                                 "Failed to copy balance: ${e.message}",
                                 e
@@ -431,10 +436,10 @@ constructor(
                 delay(3000)
                 _uiState.update { it.copy(successMessage = null) }
 
-                loadCards() // Reload cards to update UI
-                loadAccounts() // Reload accounts to show new balance
+                loadCards()
+                loadAccounts()
             } catch (e: Exception) {
-                android.util.Log.e("ManageAccountsViewModel", "Failed to link card", e)
+                Log.e("ManageAccountsViewModel", "Failed to link card", e)
                 _uiState.update { it.copy(errorMessage = "Failed to link card: ${e.message}") }
             }
         }
@@ -443,14 +448,14 @@ constructor(
     fun unlinkCard(cardId: Long) {
         viewModelScope.launch {
             cardRepository.unlinkCard(cardId)
-            loadCards() // Reload cards to update UI
+            loadCards()
         }
     }
 
     fun deleteCard(cardId: Long) {
         viewModelScope.launch {
             try {
-                android.util.Log.d("ManageAccountsViewModel", "Deleting card with ID: $cardId")
+                Log.d("ManageAccountsViewModel", "Deleting card with ID: $cardId")
                 cardRepository.deleteCard(cardId)
                 _uiState.update { it.copy(successMessage = "Card deleted successfully") }
 
@@ -458,9 +463,9 @@ constructor(
                 delay(2000)
                 _uiState.update { it.copy(successMessage = null) }
 
-                loadCards() // Reload cards to update UI
+                loadCards()
             } catch (e: Exception) {
-                android.util.Log.e("ManageAccountsViewModel", "Failed to delete card", e)
+               Log.e("ManageAccountsViewModel", "Failed to delete card", e)
                 _uiState.update { it.copy(errorMessage = "Failed to delete card: ${e.message}") }
             }
         }
@@ -469,7 +474,7 @@ constructor(
     fun setCardActive(cardId: Long, isActive: Boolean) {
         viewModelScope.launch {
             cardRepository.setCardActive(cardId, isActive)
-            loadCards() // Reload cards to update UI
+            loadCards()
         }
     }
 
@@ -523,6 +528,7 @@ constructor(
             isCreditCard: Boolean,
             isWallet: Boolean,
             newIconResId: Int,
+            newColorHex: String,
             newCurrency: String = "INR"
     ) {
         viewModelScope.launch {
@@ -542,13 +548,13 @@ constructor(
                     if (hidden.contains(oldKey)) {
                         hidden.remove(oldKey)
                         hidden.add(newKey)
-                        sharedPrefs.edit().putStringSet("hidden_accounts", hidden).apply()
+                        sharedPrefs.edit { putStringSet("hidden_accounts", hidden) }
                         _uiState.update { it.copy(hiddenAccounts = hidden) }
                     }
 
                     // Update main account preference if bank name changed
                     if (_uiState.value.mainAccountKey == oldKey) {
-                        sharedPrefs.edit().putString("main_account", newKey).apply()
+                        sharedPrefs.edit { putString("main_account", newKey) }
                         _uiState.update { it.copy(mainAccountKey = newKey) }
                     }
                 }
@@ -565,13 +571,14 @@ constructor(
                         isWallet = isWallet,
                         sourceType = "MANUAL",
                         iconResId = newIconResId,
-                        currency = newCurrency
+                        currency = newCurrency,
+                        color = newColorHex
                     )
                 )
 
                 _uiState.update { it.copy(successMessage = "Account updated successfully") }
 
-                // Clear message after delay
+
                 delay(3000)
                 _uiState.update { it.copy(successMessage = null) }
             } catch (e: Exception) {
@@ -586,7 +593,7 @@ constructor(
             try {
                 _uiState.update { it.copy(isLoading = true) }
 
-                // 1. Reassign transactions
+                //Reassign transactions
                 sourceAccounts.forEach { source ->
                     transactionRepository.updateAccountForTransactions(
                         oldBankName = source.bankName,
@@ -595,7 +602,7 @@ constructor(
                     )
                 }
 
-                // 2. Update target balance if requested
+                // Update target balance if requested
                 if (newBalance != null) {
                     accountBalanceRepository.insertBalance(AccountBalanceEntity(
                         bankName = targetAccount.bankName,
@@ -605,12 +612,13 @@ constructor(
                         timestamp = LocalDateTime.now(),
                         isCreditCard = targetAccount.isCreditCard,
                         sourceType = "MERGE",
-                        iconResId = targetAccount.iconResId
+                        iconResId = targetAccount.iconResId,
+                        color = targetAccount.color
                     )
                     )
                 }
 
-                // 3. Delete source accounts
+                // Delete source accounts
                 sourceAccounts.forEach { source ->
                     // Unlink cards
                     val linkedCards = _uiState.value.linkedCards[source.accountLast4] ?: emptyList()
@@ -620,7 +628,7 @@ constructor(
                     accountBalanceRepository.deleteAccount(source.bankName, source.accountLast4)
                 }
 
-                // 4. Reload data
+                // Reload data
                 loadAccounts()
                 loadCards()
 
@@ -647,7 +655,7 @@ constructor(
 
                 val now = LocalDateTime.now()
 
-                // 1. HDFC Bank (Savings) with History
+                // HDFC Bank (Savings) with History
                 val hdfcLast4 = "1234"
                 for (i in 4 downTo 0) {
                     accountBalanceRepository.insertBalance(
@@ -657,12 +665,13 @@ constructor(
                             balance = BigDecimal(50000 - (i * 1000)),
                             timestamp = now.minusDays(i.toLong()),
                             sourceType = "MANUAL",
-                            iconResId = com.ritesh.cashiro.R.drawable.type_finance_bank
+                            iconResId = com.ritesh.cashiro.R.drawable.type_finance_bank,
+                            color = "#33B5E5"
                         )
                     )
                 }
 
-                // 2. ICICI Bank (Credit Card)
+                // ICICI Bank (Credit Card)
                 accountBalanceRepository.insertBalance(
                     AccountBalanceEntity(
                         bankName = "ICICI Bank",
@@ -672,22 +681,24 @@ constructor(
                         timestamp = now,
                         isCreditCard = true,
                         sourceType = "MANUAL",
-                        iconResId = R.drawable.type_stationary_card_file_box
+                        iconResId = R.drawable.type_stationary_card_file_box,
+                        color = "#E91E63"
                     )
                 )
 
-                // 3. SBI Bank (Current)
+                // SBI Bank (Current)
                 accountBalanceRepository.insertBalance(
                     AccountBalanceEntity(
                         bankName = "SBI Bank",
                         accountLast4 = "9012",
                         balance = BigDecimal(75000),
                         timestamp = now,
-                        iconResId = com.ritesh.cashiro.R.drawable.type_finance_bank
+                        iconResId = com.ritesh.cashiro.R.drawable.type_finance_bank,
+                        color = "#1976D2"
                     )
                 )
 
-                // 3.5 Cash (Wallet)
+                // Cash (Wallet)
                 accountBalanceRepository.insertBalance(
                     AccountBalanceEntity(
                         bankName = "Cash",
@@ -700,7 +711,7 @@ constructor(
                     )
                 )
 
-                // 4. Linked Card for HDFC
+                // Linked Card for HDFC
                 cardRepository.insertCard(
                     CardEntity(
                         cardLast4 = "4321",
@@ -714,7 +725,7 @@ constructor(
                     )
                 )
 
-                // 5. Unlinked Card
+                // Unlinked Card
                 cardRepository.insertCard(
                     CardEntity(
                         cardLast4 = "8765",

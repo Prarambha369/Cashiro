@@ -85,234 +85,408 @@ fun ManageAccountsScreen(
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val hazeState = remember { HazeState() }
 
-        // Show snackbar messages
-        LaunchedEffect(uiState.successMessage) {
-            uiState.successMessage?.let {
-                scope.launch {
-                    snackbarHostState.showSnackbar(it)
-                // We might need a way to clear the message in VM if it's not
-                // auto-cleared,
-                // but VM seems to clear it after delay
-                }
+    // Show snackbar messages
+    LaunchedEffect(uiState.successMessage) {
+        uiState.successMessage?.let {
+            scope.launch {
+                snackbarHostState.showSnackbar(it)
             }
         }
+    }
 
-        LaunchedEffect(uiState.errorMessage) {
-            uiState.errorMessage?.let {
-                scope.launch {
-                    snackbarHostState.showSnackbar(it)
-                    viewModel.clearError()
-                }
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let {
+            scope.launch {
+                snackbarHostState.showSnackbar(it)
+                viewModel.clearError()
             }
         }
+    }
 
-        Scaffold(
-            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-            topBar = {
-                CustomTitleTopAppBar(
-                    title = "Manage Accounts",
-                    scrollBehaviorSmall = scrollBehaviorSmall,
-                    scrollBehaviorLarge = scrollBehavior,
-                    hazeState = hazeState,
-                    hasBackButton = true,
-                    navigationContent = { NavigationContent(onNavigateBack) },
-                    actionContent = {
-                        IconButton(onClick = { viewModel.seedSampleData() }) {
-                            Icon(
-                                imageVector = Icons.Default.Science,
-                                contentDescription = "Seed Sample Data"
-                            )
-                        }
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            CustomTitleTopAppBar(
+                title = "Manage Accounts",
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehavior,
+                hazeState = hazeState,
+                hasBackButton = true,
+                navigationContent = { NavigationContent(onNavigateBack) },
+                actionContent = {
+                    IconButton(onClick = { viewModel.seedSampleData() }) {
+                        Icon(
+                            imageVector = Icons.Default.Science,
+                            contentDescription = "Seed Sample Data"
+                        )
                     }
-                ) },
-            floatingActionButton = {
-                ExtendedFloatingActionButton(
-                    onClick = { showAddSheet = true },
-                    expanded = showFloatingLabel,
-                    icon = { Icon(Icons.Default.Add, contentDescription = "Add Account") },
-                    text = { Text(text = "Add Account") },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    shape =
-                        if (showFloatingLabel)
-                            MaterialTheme.shapes.extraLargeIncreased
-                        else MaterialTheme.shapes.large
-                ) },
-                snackbarHost = {
-                    SnackbarHost(
-                        hostState = snackbarHostState,
-                        snackbar = {
-                            Snackbar(
-                                snackbarData = it,
-                                contentColor =
-                                    MaterialTheme.colorScheme
-                                        .onSecondaryContainer,
-                                containerColor =
-                                    MaterialTheme.colorScheme
-                                        .secondaryContainer,
-                                shape = MaterialTheme.shapes.large
-                            )
-                        }
+                }
+            ) },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = { showAddSheet = true },
+                expanded = showFloatingLabel,
+                icon = { Icon(Icons.Default.Add, contentDescription = "Add Account") },
+                text = { Text(text = "Add Account") },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape =
+                    if (showFloatingLabel)
+                        MaterialTheme.shapes.extraLargeIncreased
+                    else MaterialTheme.shapes.large
+            ) },
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                snackbar = {
+                    Snackbar(
+                        snackbarData = it,
+                        contentColor =
+                            MaterialTheme.colorScheme
+                                .onSecondaryContainer,
+                        containerColor =
+                            MaterialTheme.colorScheme
+                                .secondaryContainer,
+                        shape = MaterialTheme.shapes.large
                     )
                 }
-        ) { paddingValues ->
-            Box(modifier = Modifier.fillMaxSize()) {
-                if (uiState.accounts.isEmpty()) {
-                    // Empty State
-                    Box(
-                        modifier = Modifier.fillMaxSize().padding(paddingValues),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(Spacing.md)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AccountBalance,
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "No accounts yet",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "Add an account to get started",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(Spacing.sm))
-                            Button(
-                                onClick = { viewModel.seedSampleData() },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                            ) {
-                                Icon(Icons.Default.Science, contentDescription = null)
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text("Seed Sample Data")
-                            }
-                        }
-                    }
-                } else {
-                    val lazyListState = rememberLazyListState()
-                    LazyColumn(
-                        state = lazyListState,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .hazeSource(state = hazeState)
-                            .overScrollVertical(),
-                        flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
-                        contentPadding = PaddingValues(
-                            start = Dimensions.Padding.content,
-                            end = Dimensions.Padding.content,
-                            top = Dimensions.Padding.content +
-                                    paddingValues.calculateTopPadding(),
-                            bottom = Dimensions.Padding.content +
-                                    paddingValues.calculateBottomPadding()
-                        ),
+            )
+        }
+    ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (uiState.accounts.isEmpty()) {
+                // Empty State
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
-                        // Separate visible and hidden accounts
-                        val visibleRegularAccounts = uiState.accounts.filter {
-                            !it.isCreditCard && !it.isWallet && !viewModel.isAccountHidden(
-                                it.bankName,
-                                it.accountLast4
+                        Icon(
+                            imageVector = Icons.Default.AccountBalance,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "No accounts yet",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Add an account to get started",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(Spacing.sm))
+                        Button(
+                            onClick = { viewModel.seedSampleData() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                             )
+                        ) {
+                            Icon(Icons.Default.Science, contentDescription = null)
+                            Spacer(modifier = Modifier.width(Spacing.xs))
+                            Text("Seed Sample Data")
                         }
-                        val visibleCreditCards = uiState.accounts.filter {
-                            it.isCreditCard && !viewModel.isAccountHidden(
-                                it.bankName,
-                                it.accountLast4
-                            )
-                        }
-                        val hiddenRegularAccounts = uiState.accounts.filter {
-                            !it.isCreditCard && !it.isWallet && viewModel.isAccountHidden(
-                                it.bankName,
-                                it.accountLast4
-                            )
-                        }
-                        val hiddenCreditCards = uiState.accounts.filter {
-                            it.isCreditCard && viewModel.isAccountHidden(
-                                it.bankName,
-                                it.accountLast4
-                            )
-                        }
-                        val allRegularAccounts = uiState.accounts.filter { !it.isCreditCard && !it.isWallet }
-                        val wallets = uiState.accounts.filter { it.isWallet }
+                    }
+                }
+            } else {
+                val lazyListState = rememberLazyListState()
+                LazyColumn(
+                    state = lazyListState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .hazeSource(state = hazeState)
+                        .overScrollVertical(),
+                    flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
+                    contentPadding = PaddingValues(
+                        start = Dimensions.Padding.content,
+                        end = Dimensions.Padding.content,
+                        top = Dimensions.Padding.content +
+                                paddingValues.calculateTopPadding(),
+                        bottom = Dimensions.Padding.content +
+                                paddingValues.calculateBottomPadding()
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                ) {
+                    // Separate visible and hidden accounts
+                    val visibleRegularAccounts = uiState.accounts.filter {
+                        !it.isCreditCard && !it.isWallet && !viewModel.isAccountHidden(
+                            it.bankName,
+                            it.accountLast4
+                        )
+                    }
+                    val visibleCreditCards = uiState.accounts.filter {
+                        it.isCreditCard && !viewModel.isAccountHidden(
+                            it.bankName,
+                            it.accountLast4
+                        )
+                    }
+                    val hiddenRegularAccounts = uiState.accounts.filter {
+                        !it.isCreditCard && !it.isWallet && viewModel.isAccountHidden(
+                            it.bankName,
+                            it.accountLast4
+                        )
+                    }
+                    val hiddenCreditCards = uiState.accounts.filter {
+                        it.isCreditCard && viewModel.isAccountHidden(
+                            it.bankName,
+                            it.accountLast4
+                        )
+                    }
+                    val allRegularAccounts = uiState.accounts.filter { !it.isCreditCard && !it.isWallet }
+                    val wallets = uiState.accounts.filter { it.isWallet }
 
-                        // Wallets Section
-                        if (wallets.isNotEmpty()) {
-                            item {
-                                SectionHeader(
-                                    title = "Wallets",
-                                    modifier = Modifier.padding(start = 8.dp)
+                    // Wallets Section
+                    if (wallets.isNotEmpty()) {
+                        item {
+                            SectionHeader(
+                                title = "Wallets",
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+                        items(wallets) { account ->
+                            AccountItem(
+                                account = account,
+                                linkedCards = emptyList(),
+                                isHidden = false,
+                                isMain = uiState.mainAccountKey == "${account.bankName}_${account.accountLast4}",
+                                onSetAsMain = {
+                                    viewModel.setAsMainAccount(
+                                        account.bankName,
+                                        account.accountLast4
+                                    )
+                                },
+                                onToggleVisibility = {
+                                    viewModel.toggleAccountVisibility(
+                                        account.bankName,
+                                        account.accountLast4
+                                    )
+                                },
+                                onUpdateBalance = {
+                                    selectedAccount = account.bankName to account.accountLast4
+                                    selectedAccountEntity = account
+                                    showUpdateDialog = true
+                                },
+                                onViewHistory = {
+                                    historyAccount = account.bankName to account.accountLast4
+                                    viewModel.loadBalanceHistory(
+                                        account.bankName,
+                                        account.accountLast4
+                                    )
+                                    showHistoryDialog = true
+                                },
+                                onUnlinkCard = {},
+                                onDeleteAccount = {
+                                    accountToDelete = account.bankName to account.accountLast4
+                                    showDeleteConfirmDialog = true
+                                },
+                                onEditAccount = {
+                                    accountToEdit = account
+                                    showEditSheet = true
+                                }
+                            )
+                        }
+                        item {
+                            Spacer(modifier = Modifier.height(Spacing.md))
+                        }
+                    }
+
+                    // Regular Bank Accounts Section (Visible Only)
+                    if (visibleRegularAccounts.isNotEmpty()) {
+                        item {
+                            SectionHeader(
+                                title = "Bank Accounts",
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+                        items(visibleRegularAccounts) { account ->
+                            AccountItem(
+                                account = account,
+                                linkedCards = uiState.linkedCards[account.accountLast4]
+                                    ?: emptyList(),
+                                isHidden = false,
+                                isMain = uiState.mainAccountKey == "${account.bankName}_${account.accountLast4}",
+                                onSetAsMain = {
+                                    viewModel.setAsMainAccount(
+                                        account.bankName,
+                                        account.accountLast4
+                                    )
+                                },
+                                onToggleVisibility = {
+                                    viewModel.toggleAccountVisibility(
+                                        account.bankName,
+                                        account.accountLast4
+                                    )
+                                },
+                                onUpdateBalance = {
+                                    selectedAccount = account.bankName to account.accountLast4
+                                    selectedAccountEntity = account
+                                    showUpdateDialog = true
+                                },
+                                onViewHistory = {
+                                    historyAccount = account.bankName to account.accountLast4
+                                    viewModel.loadBalanceHistory(
+                                        account.bankName,
+                                        account.accountLast4
+                                    )
+                                    showHistoryDialog = true
+                                },
+                                onUnlinkCard = { cardId ->
+                                    viewModel.unlinkCard(cardId)
+                                },
+                                onDeleteAccount = {
+                                    accountToDelete = account.bankName to account.accountLast4
+                                    showDeleteConfirmDialog = true
+                                },
+                                onEditAccount = {
+                                    accountToEdit = account
+                                    showEditSheet = true
+                                }
+                            )
+                        }
+                    }
+                    // Orphaned Cards Section
+                    if (uiState.orphanedCards.isNotEmpty()) {
+                        item {
+                            Spacer(modifier = Modifier.height(Spacing.md))
+
+                            SectionHeader(
+                                title = "Unlinked Cards",
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+                        items(uiState.orphanedCards) { card ->
+                            OrphanedCardItem(
+                                card = card,
+                                accounts = allRegularAccounts,
+                                onLinkToAccount = { accountLast4 ->
+                                    viewModel.linkCardToAccount(
+                                        card.id,
+                                        accountLast4
+                                    )
+                                },
+                                onDeleteCard = { cardId ->
+                                    viewModel.deleteCard(cardId)
+                                }
+                            )
+                        }
+                    }
+                    // Credit Cards Section (Visible Only)
+                    if (visibleCreditCards.isNotEmpty()) {
+                        item {
+                            Spacer(modifier = Modifier.height(Spacing.md))
+                            SectionHeader(
+                                title = "Credit Cards",
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+
+                        items(visibleCreditCards) { card ->
+                            CreditCardItem(
+                                card = card,
+                                isHidden = false,
+                                isMain = uiState.mainAccountKey == "${card.bankName}_${card.accountLast4}",
+                                onSetAsMain = {
+                                    viewModel.setAsMainAccount(
+                                        card.bankName,
+                                        card.accountLast4
+                                    )
+                                },
+                                onToggleVisibility = {
+                                    viewModel.toggleAccountVisibility(
+                                        card.bankName,
+                                        card.accountLast4
+                                    )
+                                },
+                                onUpdateBalance = {
+                                    selectedAccount = card.bankName to card.accountLast4
+                                    selectedAccountEntity = card
+                                    showUpdateDialog = true
+                                },
+                                onViewHistory = {
+                                    historyAccount = card.bankName to card.accountLast4
+                                    viewModel.loadBalanceHistory(
+                                        card.bankName,
+                                        card.accountLast4
+                                    )
+                                    showHistoryDialog = true
+                                },
+                                onDeleteAccount = {
+                                    accountToDelete = card.bankName to card.accountLast4
+                                    showDeleteConfirmDialog = true
+                                },
+                                onEditAccount = {
+                                    accountToEdit = card
+                                    showEditSheet = true
+                                }
+                            )
+                        }
+                    }
+
+                    // Hidden Accounts Section
+                    if (hiddenRegularAccounts.isNotEmpty() || hiddenCreditCards.isNotEmpty()
+                    ) {
+                        item {
+                            Spacer(modifier = Modifier.height(Spacing.md))
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(
+                                        onClick = { showHiddenAccounts = !showHiddenAccounts },
+                                        indication = null,
+                                        interactionSource = remember { MutableInteractionSource() }
+                                    ),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
                                 )
-                            }
-                            items(wallets) { account ->
-                                AccountItem(
-                                    account = account,
-                                    linkedCards = emptyList(),
-                                    isHidden = false,
-                                    isMain = uiState.mainAccountKey == "${account.bankName}_${account.accountLast4}",
-                                    onSetAsMain = {
-                                        viewModel.setAsMainAccount(
-                                            account.bankName,
-                                            account.accountLast4
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(Dimensions.Padding.content),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.VisibilityOff,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
-                                    },
-                                    onToggleVisibility = {
-                                        viewModel.toggleAccountVisibility(
-                                            account.bankName,
-                                            account.accountLast4
+                                        Text(
+                                            text = "Hidden Accounts (${hiddenRegularAccounts.size + hiddenCreditCards.size})",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
-                                    },
-                                    onUpdateBalance = {
-                                        selectedAccount = account.bankName to account.accountLast4
-                                        selectedAccountEntity = account
-                                        showUpdateDialog = true
-                                    },
-                                    onViewHistory = {
-                                        historyAccount = account.bankName to account.accountLast4
-                                        viewModel.loadBalanceHistory(
-                                            account.bankName,
-                                            account.accountLast4
-                                        )
-                                        showHistoryDialog = true
-                                    },
-                                    onUnlinkCard = {},
-                                    onDeleteAccount = {
-                                        accountToDelete = account.bankName to account.accountLast4
-                                        showDeleteConfirmDialog = true
-                                    },
-                                    onEditAccount = {
-                                        accountToEdit = account
-                                        showEditSheet = true
                                     }
-                                )
-                            }
-                            item {
-                                Spacer(modifier = Modifier.height(Spacing.md))
+                                    Icon(
+                                        if (showHiddenAccounts)
+                                            Icons.Default.ExpandLess
+                                        else
+                                            Icons.Default.ExpandMore,
+                                        contentDescription = if (showHiddenAccounts) "Collapse" else "Expand",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
-
-                        // Regular Bank Accounts Section (Visible Only)
-                        if (visibleRegularAccounts.isNotEmpty()) {
-                            item {
-                                SectionHeader(
-                                    title = "Bank Accounts",
-                                    modifier = Modifier.padding(start = 8.dp)
-                                )
-                            }
-                            items(visibleRegularAccounts) { account ->
+                        if (showHiddenAccounts) {
+                            // Hidden Bank Accounts
+                            items(hiddenRegularAccounts) { account ->
                                 AccountItem(
                                     account = account,
-                                    linkedCards = uiState.linkedCards[account.accountLast4]
-                                        ?: emptyList(),
-                                    isHidden = false,
+                                    linkedCards = uiState.linkedCards[
+                                        account.accountLast4] ?: emptyList(),
+                                    isHidden = true,
                                     isMain = uiState.mainAccountKey == "${account.bankName}_${account.accountLast4}",
                                     onSetAsMain = {
                                         viewModel.setAsMainAccount(
@@ -327,12 +501,14 @@ fun ManageAccountsScreen(
                                         )
                                     },
                                     onUpdateBalance = {
-                                        selectedAccount = account.bankName to account.accountLast4
+                                        selectedAccount =
+                                            account.bankName to account.accountLast4
                                         selectedAccountEntity = account
                                         showUpdateDialog = true
                                     },
                                     onViewHistory = {
-                                        historyAccount = account.bankName to account.accountLast4
+                                        historyAccount =
+                                            account.bankName to account.accountLast4
                                         viewModel.loadBalanceHistory(
                                             account.bankName,
                                             account.accountLast4
@@ -343,7 +519,8 @@ fun ManageAccountsScreen(
                                         viewModel.unlinkCard(cardId)
                                     },
                                     onDeleteAccount = {
-                                        accountToDelete = account.bankName to account.accountLast4
+                                        accountToDelete =
+                                            account.bankName to account.accountLast4
                                         showDeleteConfirmDialog = true
                                     },
                                     onEditAccount = {
@@ -352,47 +529,11 @@ fun ManageAccountsScreen(
                                     }
                                 )
                             }
-                        }
-                        // Orphaned Cards Section
-                        if (uiState.orphanedCards.isNotEmpty()) {
-                            item {
-                                Spacer(modifier = Modifier.height(Spacing.md))
-
-                                SectionHeader(
-                                    title = "Unlinked Cards",
-                                    modifier = Modifier.padding(start = 8.dp)
-                                )
-                            }
-                            items(uiState.orphanedCards) { card ->
-                                OrphanedCardItem(
-                                    card = card,
-                                    accounts = allRegularAccounts,
-                                    onLinkToAccount = { accountLast4 ->
-                                        viewModel.linkCardToAccount(
-                                            card.id,
-                                            accountLast4
-                                        )
-                                    },
-                                    onDeleteCard = { cardId ->
-                                        viewModel.deleteCard(cardId)
-                                    }
-                                )
-                            }
-                        }
-                        // Credit Cards Section (Visible Only)
-                        if (visibleCreditCards.isNotEmpty()) {
-                            item {
-                                Spacer(modifier = Modifier.height(Spacing.md))
-                                SectionHeader(
-                                    title = "Credit Cards",
-                                    modifier = Modifier.padding(start = 8.dp)
-                                )
-                            }
-
-                            items(visibleCreditCards) { card ->
+                            // Hidden Credit Cards
+                            items(hiddenCreditCards) { card ->
                                 CreditCardItem(
                                     card = card,
-                                    isHidden = false,
+                                    isHidden = true,
                                     isMain = uiState.mainAccountKey == "${card.bankName}_${card.accountLast4}",
                                     onSetAsMain = {
                                         viewModel.setAsMainAccount(
@@ -430,349 +571,203 @@ fun ManageAccountsScreen(
                                 )
                             }
                         }
-
-                        // Hidden Accounts Section (Collapsible)
-                        if (hiddenRegularAccounts.isNotEmpty() || hiddenCreditCards.isNotEmpty()
-                        ) {
-                            item {
-                                Spacer(modifier = Modifier.height(Spacing.md))
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable(
-                                            onClick = { showHiddenAccounts = !showHiddenAccounts },
-                                            indication = null,
-                                            interactionSource = remember { MutableInteractionSource() }
-                                        ),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                                    )
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(Dimensions.Padding.content),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                                        ) {
-                                            Icon(
-                                                Icons.Default.VisibilityOff,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            Text(
-                                                text = "Hidden Accounts (${hiddenRegularAccounts.size + hiddenCreditCards.size})",
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                        Icon(
-                                            if (showHiddenAccounts)
-                                                Icons.Default.ExpandLess
-                                            else
-                                                Icons.Default.ExpandMore,
-                                            contentDescription = if (showHiddenAccounts) "Collapse" else "Expand",
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                            if (showHiddenAccounts) {
-                                // Hidden Bank Accounts
-                                items(hiddenRegularAccounts) { account ->
-                                    AccountItem(
-                                        account = account,
-                                        linkedCards = uiState.linkedCards[
-                                            account.accountLast4] ?: emptyList(),
-                                        isHidden = true,
-                                        isMain = uiState.mainAccountKey == "${account.bankName}_${account.accountLast4}",
-                                        onSetAsMain = {
-                                            viewModel.setAsMainAccount(
-                                                account.bankName,
-                                                account.accountLast4
-                                            )
-                                        },
-                                        onToggleVisibility = {
-                                            viewModel.toggleAccountVisibility(
-                                                account.bankName,
-                                                account.accountLast4
-                                            )
-                                        },
-                                        onUpdateBalance = {
-                                            selectedAccount =
-                                                account.bankName to account.accountLast4
-                                            selectedAccountEntity = account
-                                            showUpdateDialog = true
-                                        },
-                                        onViewHistory = {
-                                            historyAccount =
-                                                account.bankName to account.accountLast4
-                                            viewModel.loadBalanceHistory(
-                                                account.bankName,
-                                                account.accountLast4
-                                            )
-                                            showHistoryDialog = true
-                                        },
-                                        onUnlinkCard = { cardId ->
-                                            viewModel.unlinkCard(cardId)
-                                        },
-                                        onDeleteAccount = {
-                                            accountToDelete =
-                                                account.bankName to account.accountLast4
-                                            showDeleteConfirmDialog = true
-                                        },
-                                        onEditAccount = {
-                                            accountToEdit = account
-                                            showEditSheet = true
-                                        }
-                                    )
-                                }
-                                // Hidden Credit Cards
-                                items(hiddenCreditCards) { card ->
-                                    CreditCardItem(
-                                        card = card,
-                                        isHidden = true,
-                                        isMain = uiState.mainAccountKey == "${card.bankName}_${card.accountLast4}",
-                                        onSetAsMain = {
-                                            viewModel.setAsMainAccount(
-                                                card.bankName,
-                                                card.accountLast4
-                                            )
-                                        },
-                                        onToggleVisibility = {
-                                            viewModel.toggleAccountVisibility(
-                                                card.bankName,
-                                                card.accountLast4
-                                            )
-                                        },
-                                        onUpdateBalance = {
-                                            selectedAccount = card.bankName to card.accountLast4
-                                            selectedAccountEntity = card
-                                            showUpdateDialog = true
-                                        },
-                                        onViewHistory = {
-                                            historyAccount = card.bankName to card.accountLast4
-                                            viewModel.loadBalanceHistory(
-                                                card.bankName,
-                                                card.accountLast4
-                                            )
-                                            showHistoryDialog = true
-                                        },
-                                        onDeleteAccount = {
-                                            accountToDelete = card.bankName to card.accountLast4
-                                            showDeleteConfirmDialog = true
-                                        },
-                                        onEditAccount = {
-                                            accountToEdit = card
-                                            showEditSheet = true
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                        item { Spacer(modifier = Modifier.height(100.dp)) }
                     }
+                    item { Spacer(modifier = Modifier.height(100.dp)) }
                 }
             }
         }
+    }
 
-        // Update Balance Sheet
-        if (showUpdateDialog && selectedAccount != null && selectedAccountEntity != null) {
-            ModalBottomSheet(
-                onDismissRequest = {
-                    showUpdateDialog = false
-                    selectedAccount = null
-                    selectedAccountEntity = null
-                },
-                containerColor = MaterialTheme.colorScheme.surface,
-                dragHandle = { BottomSheetDefaults.DragHandle() }
-            ) {
-                if (selectedAccountEntity!!.isCreditCard) {
-                    // For Credit Card, we still use a dedicated layout but in a sheet?
-                    // Or just use NumberPad for outstanding balance.
-                    // Given the goal is "enhanced NumberPad", let's use it for balance.
-                    NumberPad(
-                        initialValue =
-                            selectedAccountEntity!!.balance.toPlainString(),
-                        title = "Update Outstanding",
-                        bankName = selectedAccount!!.first,
-                        accountLast4 = selectedAccount!!.second,
-                        doneButtonLabel = "Update Outstanding",
-                        onDone = { newValue ->
-                            newValue.toBigDecimalOrNull()?.let { newBalance ->
-                                viewModel.updateCreditCard(
-                                    selectedAccount!!.first,
-                                    selectedAccount!!.second,
-                                    newBalance,
-                                    selectedAccountEntity!!.creditLimit
-                                        ?: BigDecimal.ZERO
-                                )
-                            }
-                            showUpdateDialog = false
-                            selectedAccount = null
-                            selectedAccountEntity = null
+    // Update Balance Sheet
+    if (showUpdateDialog && selectedAccount != null && selectedAccountEntity != null) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                showUpdateDialog = false
+                selectedAccount = null
+                selectedAccountEntity = null
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            if (selectedAccountEntity!!.isCreditCard) {
+                NumberPad(
+                    initialValue =
+                        selectedAccountEntity!!.balance.toPlainString(),
+                    title = "Update Outstanding",
+                    bankName = selectedAccount!!.first,
+                    accountLast4 = selectedAccount!!.second,
+                    doneButtonLabel = "Update Outstanding",
+                    onDone = { newValue ->
+                        newValue.toBigDecimalOrNull()?.let { newBalance ->
+                            viewModel.updateCreditCard(
+                                selectedAccount!!.first,
+                                selectedAccount!!.second,
+                                newBalance,
+                                selectedAccountEntity!!.creditLimit
+                                    ?: BigDecimal.ZERO
+                            )
                         }
-                    )
-                } else {
-                    NumberPad(
-                        initialValue =
-                            selectedAccountEntity!!.balance.toPlainString(),
-                        title = "Update Balance",
-                        bankName = selectedAccount!!.first,
-                        accountLast4 = selectedAccount!!.second,
-                        doneButtonLabel = "Update Balance",
-                        onDone = { newValue ->
-                            newValue.toBigDecimalOrNull()?.let { newBalance ->
-                                viewModel.updateAccountBalance(
-                                    selectedAccount!!.first,
-                                    selectedAccount!!.second,
-                                    newBalance
-                                )
-                            }
-                            showUpdateDialog = false
-                            selectedAccount = null
-                            selectedAccountEntity = null
+                        showUpdateDialog = false
+                        selectedAccount = null
+                        selectedAccountEntity = null
+                    }
+                )
+            } else {
+                NumberPad(
+                    initialValue =
+                        selectedAccountEntity!!.balance.toPlainString(),
+                    title = "Update Balance",
+                    bankName = selectedAccount!!.first,
+                    accountLast4 = selectedAccount!!.second,
+                    doneButtonLabel = "Update Balance",
+                    onDone = { newValue ->
+                        newValue.toBigDecimalOrNull()?.let { newBalance ->
+                            viewModel.updateAccountBalance(
+                                selectedAccount!!.first,
+                                selectedAccount!!.second,
+                                newBalance
+                            )
                         }
-                    )
-                }
-            }
-        }
-
-        // Balance History Sheet
-        if (showHistoryDialog && historyAccount != null) {
-            ModalBottomSheet(
-                onDismissRequest = {
-                    showHistoryDialog = false
-                    historyAccount = null
-                    viewModel.clearBalanceHistory()
-                },
-                containerColor = MaterialTheme.colorScheme.surface,
-                dragHandle = { BottomSheetDefaults.DragHandle() }
-            ) {
-                HistorySheet(
-                    bankName = historyAccount!!.first,
-                    accountLast4 = historyAccount!!.second,
-                    balanceHistory = uiState.balanceHistory,
-                    onDeleteBalance = { id ->
-                        viewModel.deleteBalanceRecord(
-                            id,
-                            historyAccount!!.first,
-                            historyAccount!!.second
-                        )
-                    },
-                    onUpdateBalance = { id, newBalance ->
-                        viewModel.updateBalanceRecord(
-                            id,
-                            newBalance,
-                            historyAccount!!.first,
-                            historyAccount!!.second
-                        )
+                        showUpdateDialog = false
+                        selectedAccount = null
+                        selectedAccountEntity = null
                     }
                 )
             }
         }
+    }
 
-        // Delete Account Confirmation Dialog
-        if (showDeleteConfirmDialog && accountToDelete != null) {
-            DeleteAccountConfirmDialog(
-                bankName = accountToDelete!!.first,
-                accountLast4 = accountToDelete!!.second,
-                onDismiss = {
-                    showDeleteConfirmDialog = false
-                    accountToDelete = null
-                },
-                onConfirm = {
-                    viewModel.deleteAccount(
-                        accountToDelete!!.first,
-                        accountToDelete!!.second
+    // Balance History Sheet
+    if (showHistoryDialog && historyAccount != null) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                showHistoryDialog = false
+                historyAccount = null
+                viewModel.clearBalanceHistory()
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            HistorySheet(
+                bankName = historyAccount!!.first,
+                accountLast4 = historyAccount!!.second,
+                balanceHistory = uiState.balanceHistory,
+                onDeleteBalance = { id ->
+                    viewModel.deleteBalanceRecord(
+                        id,
+                        historyAccount!!.first,
+                        historyAccount!!.second
                     )
-                    showDeleteConfirmDialog = false
-                    accountToDelete = null
+                },
+                onUpdateBalance = { id, newBalance ->
+                    viewModel.updateBalanceRecord(
+                        id,
+                        newBalance,
+                        historyAccount!!.first,
+                        historyAccount!!.second
+                    )
                 }
             )
         }
+    }
 
-        // Edit Account Sheet
-        if (showEditSheet && accountToEdit != null) {
-            ModalBottomSheet(
-                onDismissRequest = {
+    // Delete Account Confirmation Dialog
+    if (showDeleteConfirmDialog && accountToDelete != null) {
+        DeleteAccountConfirmDialog(
+            bankName = accountToDelete!!.first,
+            accountLast4 = accountToDelete!!.second,
+            onDismiss = {
+                showDeleteConfirmDialog = false
+                accountToDelete = null
+            },
+            onConfirm = {
+                viewModel.deleteAccount(
+                    accountToDelete!!.first,
+                    accountToDelete!!.second
+                )
+                showDeleteConfirmDialog = false
+                accountToDelete = null
+            }
+        )
+    }
+
+    // Edit Account Sheet
+    if (showEditSheet && accountToEdit != null) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                showEditSheet = false
+                accountToEdit = null
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            EditAccountSheet(
+                account = accountToEdit!!,
+                allAccounts = uiState.accounts,
+                onDismiss = {
                     showEditSheet = false
                     accountToEdit = null
                 },
-                containerColor = MaterialTheme.colorScheme.surface,
-                dragHandle = { BottomSheetDefaults.DragHandle() }
-            ) {
-                EditAccountSheet(
-                    account = accountToEdit!!,
-                    allAccounts = uiState.accounts,
-                    onDismiss = {
-                        showEditSheet = false
-                        accountToEdit = null
-                    },
-                    onMerge = { targetAccount, sourceAccounts, newBalance ->
-                        viewModel.mergeAccounts(
-                            targetAccount,
-                            sourceAccounts,
-                            newBalance
-                        )
-                    },
-                    onDelete = {
-                        accountToDelete = accountToEdit!!.bankName to accountToEdit!!.accountLast4
-                        showEditSheet = false
-                        accountToEdit = null
-                        showDeleteConfirmDialog = true
-                    },
-                    onSave = { bankName, balance, last4, icon, color, isCC, isWallet, limit, currency ->
-                        viewModel.editAccount(
-                            oldBankName = accountToEdit!!.bankName,
-                            accountLast4 = accountToEdit!!.accountLast4,
-                            newBankName = bankName,
-                            newBalance = balance,
-                            newCreditLimit = limit,
-                            isCreditCard = isCC,
-                            isWallet = isWallet,
-                            newIconResId = icon,
-                            newCurrency = currency
-                        )
-                        showEditSheet = false
-                        accountToEdit = null
-                    }
-                )
-            }
+                onMerge = { targetAccount, sourceAccounts, newBalance ->
+                    viewModel.mergeAccounts(
+                        targetAccount,
+                        sourceAccounts,
+                        newBalance
+                    )
+                },
+                onDelete = {
+                    accountToDelete = accountToEdit!!.bankName to accountToEdit!!.accountLast4
+                    showEditSheet = false
+                    accountToEdit = null
+                    showDeleteConfirmDialog = true
+                },
+                onSave = { bankName, balance, last4, icon, color, isCC, isWallet, limit, currency ->
+                    viewModel.editAccount(
+                        oldBankName = accountToEdit!!.bankName,
+                        accountLast4 = accountToEdit!!.accountLast4,
+                        newBankName = bankName,
+                        newBalance = balance,
+                        newCreditLimit = limit,
+                        isCreditCard = isCC,
+                        isWallet = isWallet,
+                        newIconResId = icon,
+                        newColorHex = color,
+                        newCurrency = currency
+                    )
+                    showEditSheet = false
+                    accountToEdit = null
+                }
+            )
         }
+    }
 
-        // Add Account Sheet
-        if (showAddSheet) {
-            ModalBottomSheet(
-                onDismissRequest = { showAddSheet = false },
-                containerColor = MaterialTheme.colorScheme.surface,
-                dragHandle = { BottomSheetDefaults.DragHandle() }
-            ) {
-                EditAccountSheet(
-                    allAccounts = uiState.accounts,
-                    onDismiss = { showAddSheet = false },
-                    onSave = { bankName, balance, last4, icon, color, isCC, isWallet, limit, currency ->
-                        viewModel.addAccount(
-                            bankName = bankName,
-                            balance = balance,
-                            accountLast4 = last4,
-                            iconResId = icon,
-                            colorHex = color,
-                            isCreditCard = isCC,
-                            isWallet = isWallet,
-                            creditLimit = limit,
-                            currency = currency
-                        )
-                        showAddSheet = false
-                    }
-                )
-            }
+    // Add Account Sheet
+    if (showAddSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showAddSheet = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            EditAccountSheet(
+                allAccounts = uiState.accounts,
+                onDismiss = { showAddSheet = false },
+                onSave = { bankName, balance, last4, icon, color, isCC, isWallet, limit, currency ->
+                    viewModel.addAccount(
+                        bankName = bankName,
+                        balance = balance,
+                        accountLast4 = last4,
+                        iconResId = icon,
+                        colorHex = color,
+                        isCreditCard = isCC,
+                        isWallet = isWallet,
+                        creditLimit = limit,
+                        currency = currency
+                    )
+                    showAddSheet = false
+                }
+            )
         }
+    }
 }
 
 
@@ -815,7 +810,7 @@ private fun CreditCardItem(
         isMain = isMain,
         onSetAsMain = onSetAsMain
     ) {
-        // Credit Card specific details appended to the card
+        // Credit Card
         Column(
             modifier = Modifier.padding(horizontal = 16.dp,vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs)

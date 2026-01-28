@@ -65,6 +65,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
@@ -95,6 +96,8 @@ import com.ritesh.cashiro.ui.theme.*
 import com.ritesh.cashiro.utils.CurrencyFormatter
 import com.ritesh.cashiro.utils.formatAmount
 import com.ritesh.cashiro.R
+import com.ritesh.cashiro.data.database.entity.CategoryEntity
+import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
@@ -121,6 +124,8 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val deletedTransaction by viewModel.deletedTransaction.collectAsState()
     val smsScanWorkInfo by viewModel.smsScanWorkInfo.collectAsState()
+    val categoriesMap by viewModel.categoriesMap.collectAsStateWithLifecycle()
+    val subcategoriesMap by viewModel.subcategoriesMap.collectAsStateWithLifecycle()
     val activity = LocalActivity.current
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -133,7 +138,6 @@ fun HomeScreen(
     // Haptic feedback
     val view = LocalView.current
 
-    // Currency dropdown state
 
     // Check for app updates and reviews when the screen is first displayed
     LaunchedEffect(Unit) {
@@ -335,7 +339,7 @@ fun HomeScreen(
                     ),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
-                // Transaction Summary Cards with HorizontalPager
+                // Transaction Summary Cards
                 item {
                     TransactionSummaryCards(
                         uiState = uiState,
@@ -381,6 +385,8 @@ fun HomeScreen(
                                     subscriptions = uiState.upcomingSubscriptions,
                                     totalAmount = uiState.upcomingSubscriptionsTotal,
                                     currency = uiState.upcomingSubscriptionsCurrency,
+                                    categoriesMap = categoriesMap,
+                                    subcategoriesMap = subcategoriesMap,
                                     onClick = onNavigateToSubscriptions,
                                     modifier = cardModifier.sharedBounds(
                                         rememberSharedContentState(key = "upcoming_subscriptions_card"),
@@ -403,6 +409,8 @@ fun HomeScreen(
                                 subscriptions = uiState.upcomingSubscriptions,
                                 totalAmount = uiState.upcomingSubscriptionsTotal,
                                 currency = uiState.upcomingSubscriptionsCurrency,
+                                categoriesMap = categoriesMap,
+                                subcategoriesMap = subcategoriesMap,
                                 onClick = onNavigateToSubscriptions,
                                 modifier = cardModifier
                             )
@@ -518,8 +526,15 @@ fun HomeScreen(
                         items = uiState.recentTransactions,
                         key = { it.id }
                     ) { transaction ->
+                        val categoryEntity = categoriesMap[transaction.category]
+                        val subcategoryEntity = if (categoryEntity != null && transaction.subcategory != null) {
+                            subcategoriesMap[transaction.subcategory]
+                        } else null
+
                         SimpleTransactionItem(
                             transaction = transaction,
+                            categoryEntity = categoryEntity,
+                            subcategoryEntity = subcategoryEntity,
                             onClick = {
                                 onTransactionClick(transaction.id)
                             },
@@ -637,7 +652,7 @@ fun HomeScreen(
                 }
             }
 
-            // Add FAB (bottom end)
+            // Add FAB
             FloatingActionButton(
                 onClick = onNavigateToAddScreen,
                 modifier = Modifier
@@ -741,6 +756,8 @@ fun HomeScreen(
 private fun SimpleTransactionItem(
     modifier: Modifier = Modifier,
     transaction: TransactionEntity,
+    categoryEntity: CategoryEntity? = null,
+    subcategoryEntity: SubcategoryEntity? = null,
     onClick: () -> Unit = {},
 ) {
     val amountColor =
@@ -770,7 +787,9 @@ private fun SimpleTransactionItem(
             BrandIcon(
                 merchantName = transaction.merchantName,
                 size = 40.dp,
-                showBackground = true
+                showBackground = true,
+                categoryEntity = categoryEntity,
+                subcategoryEntity = subcategoryEntity
             )
         },
         modifier = modifier
@@ -938,6 +957,8 @@ private fun UpcomingSubscriptionsCard(
     subscriptions: List<SubscriptionEntity>,
     totalAmount: BigDecimal,
     currency: String,
+    categoriesMap: Map<String, CategoryEntity> = emptyMap(),
+    subcategoriesMap: Map<String, SubcategoryEntity> = emptyMap(),
     onClick: () -> Unit = {},
 ) {
     Card(
@@ -985,7 +1006,9 @@ private fun UpcomingSubscriptionsCard(
             SubscriptionIconsStack(
                 subscriptions = subscriptions,
                 iconSize = 38.dp,
-                modifier = Modifier.padding(end = Spacing.sm)
+                modifier = Modifier.padding(end = Spacing.sm),
+                categoriesMap = categoriesMap,
+                subcategoriesMap = subcategoriesMap
             )
         }
     }

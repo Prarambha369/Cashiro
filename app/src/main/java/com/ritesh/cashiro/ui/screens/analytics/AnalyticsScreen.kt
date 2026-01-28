@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -39,6 +40,8 @@ import com.ritesh.cashiro.ui.components.*
 import com.ritesh.cashiro.ui.effects.BlurredAnimatedVisibility
 import com.ritesh.cashiro.ui.effects.overScrollVertical
 import com.ritesh.cashiro.ui.effects.rememberOverscrollFlingBehavior
+import com.ritesh.cashiro.data.database.entity.CategoryEntity
+import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
 import com.ritesh.cashiro.ui.icons.CategoryMapping
 import com.ritesh.cashiro.ui.theme.Dimensions
 import com.ritesh.cashiro.ui.theme.Spacing
@@ -75,6 +78,8 @@ fun AnalyticsScreen(
     val selectedCurrency by viewModel.selectedCurrency.collectAsStateWithLifecycle()
     val availableCurrencies by viewModel.availableCurrencies.collectAsStateWithLifecycle()
     val customDateRange by viewModel.customDateRange.collectAsStateWithLifecycle()
+    val categoriesMap by viewModel.categoriesMap.collectAsStateWithLifecycle()
+    val subcategoriesMap by viewModel.subcategoriesMap.collectAsStateWithLifecycle()
     var showAdvancedFilters by remember { mutableStateOf(false) }
     var showDateRangePicker by remember { mutableStateOf(false) }
     
@@ -96,7 +101,7 @@ fun AnalyticsScreen(
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val hazeState = remember { HazeState() }
     val context = LocalContext.current
-    val lazyListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val lazyListState = rememberLazyListState()
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -125,7 +130,7 @@ fun AnalyticsScreen(
                     start = 0.dp,
                     end = 0.dp,
                     top = paddingValues.calculateTopPadding() + Dimensions.Padding.content,
-                    bottom = Dimensions.Padding.content + 80.dp // Extra padding for bottom nav
+                    bottom = Dimensions.Padding.content + 80.dp
                 ),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
@@ -505,20 +510,6 @@ fun AnalyticsScreen(
                             }
                         }
                     }
-                    if (uiState.categoryBreakdown.size > 5) {
-                        item {
-                            TextButton(
-                                onClick = { /* TODO: Navigate to full Breakdown */ },
-                                modifier = Modifier.fillMaxWidth().padding(
-                                    start = Dimensions.Padding.content,
-                                    end = Dimensions.Padding.content,
-                                )
-                            ) {
-                                Text("View All Categories")
-                            }
-                        }
-                    }
-
                 }
 
                 // Top Merchants
@@ -543,12 +534,16 @@ fun AnalyticsScreen(
                             MerchantListItem(
                                 merchant = merchant,
                                 currency = uiState.currency,
+                                categoryEntity = categoriesMap[merchant.categoryName],
+                                subcategoryEntity = if (merchant.categoryName != null && merchant.subcategoryName != null) {
+                                    subcategoriesMap[merchant.subcategoryName]
+                                } else null,
                                 onClick = {
                                     onNavigateToTransactions(
-                                        null, // category
-                                        merchant.name, // merchant
-                                        selectedPeriod.name, // period
-                                        uiState.currency // currency
+                                        null,
+                                        merchant.name,
+                                        selectedPeriod.name,
+                                        uiState.currency
                                     )
                                 },
                                 modifier = Modifier.padding(
@@ -722,6 +717,8 @@ fun MerchantListItem(
     merchant: MerchantData,
     currency: String,
     onClick: () -> Unit,
+    categoryEntity: CategoryEntity? = null,
+    subcategoryEntity: SubcategoryEntity? = null,
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedContentScope: AnimatedContentScope? = null
 ) {
@@ -738,7 +735,9 @@ fun MerchantListItem(
             BrandIcon(
                 merchantName = merchant.name,
                 size = 40.dp,
-                showBackground = true
+                showBackground = true,
+                categoryEntity = categoryEntity,
+                subcategoryEntity = subcategoryEntity
             )
         },
         title = merchant.name,
@@ -785,7 +784,7 @@ private fun EmptyAnalyticsState(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Icon(
-                    imageVector = Icons.Default.BarChart, // Changed icon for variety
+                    imageVector = Icons.Default.BarChart,
                     contentDescription = null,
                     modifier = Modifier.size(48.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant

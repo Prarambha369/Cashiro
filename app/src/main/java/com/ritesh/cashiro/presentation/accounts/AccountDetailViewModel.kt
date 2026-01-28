@@ -6,7 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.ritesh.cashiro.data.currency.CurrencyConversionService
 import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
 import com.ritesh.cashiro.data.database.entity.TransactionEntity
+import com.ritesh.cashiro.data.database.entity.TransactionType
 import com.ritesh.cashiro.data.repository.AccountBalanceRepository
+import com.ritesh.cashiro.data.repository.CategoryRepository
+import com.ritesh.cashiro.data.repository.SubcategoryRepository
 import com.ritesh.cashiro.data.repository.TransactionRepository
 import com.ritesh.cashiro.ui.components.BalancePoint
 import com.ritesh.cashiro.utils.CurrencyFormatter
@@ -24,6 +27,8 @@ class AccountDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val transactionRepository: TransactionRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
+    private val categoryRepository: CategoryRepository,
+    private val subcategoryRepository: SubcategoryRepository,
     private val currencyConversionService: CurrencyConversionService
 ) : ViewModel() {
     
@@ -32,6 +37,14 @@ class AccountDetailViewModel @Inject constructor(
     
     private val _uiState = MutableStateFlow(AccountDetailUiState())
     val uiState: StateFlow<AccountDetailUiState> = _uiState.asStateFlow()
+
+    val categoriesMap = categoryRepository.getAllCategories()
+        .map { cats -> cats.associateBy { it.name } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    val subcategoriesMap = subcategoryRepository.getAllSubcategories()
+        .map { subcats -> subcats.associateBy { it.name } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
     
     private val _selectedDateRange = MutableStateFlow(DateRange.LAST_30_DAYS)
     val selectedDateRange: StateFlow<DateRange> = _selectedDateRange.asStateFlow()
@@ -95,7 +108,7 @@ class AccountDetailViewModel @Inject constructor(
                         transaction.amount
                     }
 
-                    if (transaction.transactionType == com.ritesh.cashiro.data.database.entity.TransactionType.INCOME) {
+                    if (transaction.transactionType == TransactionType.INCOME) {
                         totalIncome += convertedAmount
                     } else {
                         totalExpenses += convertedAmount
@@ -145,19 +158,18 @@ class AccountDetailViewModel @Inject constructor(
     }
     
     private fun observeBalanceChartData() {
-        // Fetch balance chart data based on selected date range
         viewModelScope.launch {
             selectedDateRange.flatMapLatest { dateRange ->
                 val (startDate, endDate) = getDateRangeValues(dateRange)
 
-                // For chart purposes, extend the range to show more context
+
                 val chartStartDate = when (dateRange) {
-                    DateRange.LAST_7_DAYS -> endDate.minusDays(14)  // Show 2 weeks for 7-day view
-                    DateRange.LAST_30_DAYS -> endDate.minusMonths(2)  // Show 2 months for 30-day view
-                    DateRange.LAST_3_MONTHS -> endDate.minusMonths(4)  // Show 4 months for 3-month view
-                    DateRange.LAST_6_MONTHS -> endDate.minusMonths(8)  // Show 8 months for 6-month view
-                    DateRange.LAST_YEAR -> endDate.minusMonths(15)  // Show 15 months for 1-year view
-                    DateRange.ALL_TIME -> LocalDateTime.of(2000, 1, 1, 0, 0)  // Show all available data
+                    DateRange.LAST_7_DAYS -> endDate.minusDays(14)
+                    DateRange.LAST_30_DAYS -> endDate.minusMonths(2)
+                    DateRange.LAST_3_MONTHS -> endDate.minusMonths(4)
+                    DateRange.LAST_6_MONTHS -> endDate.minusMonths(8)
+                    DateRange.LAST_YEAR -> endDate.minusMonths(15)
+                    DateRange.ALL_TIME -> LocalDateTime.of(2000, 1, 1, 0, 0)
                 }
 
                 accountBalanceRepository.getBalanceHistory(
@@ -167,7 +179,7 @@ class AccountDetailViewModel @Inject constructor(
                     endDate
                 )
             }.collect { balanceHistory ->
-                // Convert to BalancePoint for chart
+
                 val chartData = balanceHistory.map { entity ->
                     BalancePoint(
                         timestamp = entity.timestamp,

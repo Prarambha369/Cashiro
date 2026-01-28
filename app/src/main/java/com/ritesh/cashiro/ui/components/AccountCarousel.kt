@@ -61,7 +61,9 @@ fun AccountCarousel(
                 onClick = { onAccountClick(account.bankName, account.accountLast4) },
                 sharedTransitionScope = sharedTransitionScope,
                 animatedContentScope = animatedContentScope,
-                isWallet = account.isWallet
+                isWallet = account.isWallet,
+                iconResId = account.iconResId,
+                color = account.color
             )
         }
         items(creditCards) { card ->
@@ -72,7 +74,9 @@ fun AccountCarousel(
                 subtitle = "Credit Card",
                 onClick = { onAccountClick(card.bankName, card.accountLast4) },
                 sharedTransitionScope = sharedTransitionScope,
-                animatedContentScope = animatedContentScope
+                animatedContentScope = animatedContentScope,
+                iconResId = card.iconResId,
+                color = card.color
             )
         }
     }
@@ -89,7 +93,9 @@ fun AccountCarouselCard(
     modifier: Modifier = Modifier,
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedContentScope: AnimatedVisibilityScope? = null,
-    isWallet: Boolean = false
+    isWallet: Boolean = false,
+    iconResId: Int = 0,
+    color: String? = null
 ) {
     Surface(
         modifier = modifier
@@ -128,20 +134,14 @@ fun AccountCarouselCard(
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             // Icon / Logo
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-                contentAlignment = Alignment.Center
-            ) {
                 BrandIcon(
                     merchantName = bankName,
-                    size = 28.dp,
-                    showBackground = false
+                    size = 48.dp,
+                    showBackground = true,
+                    accountIconResId = iconResId,
+                    accountColorHex = color
                 )
-            }
-
+            
             Column {
                 Text(
                     text = if (isWallet) bankName.uppercase() else "${bankName.uppercase()} ••$accountLast4",

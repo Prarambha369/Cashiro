@@ -32,10 +32,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
+import com.ritesh.cashiro.data.database.entity.CategoryEntity
+import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
 import com.ritesh.cashiro.data.database.entity.TransactionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionType
+import com.ritesh.cashiro.navigation.TransactionDetail
 import com.ritesh.cashiro.presentation.categories.NavigationContent
 import com.ritesh.cashiro.ui.components.*
 import com.ritesh.cashiro.ui.effects.overScrollVertical
@@ -61,6 +65,8 @@ fun AccountDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val selectedDateRange by viewModel.selectedDateRange.collectAsState()
+    val categoriesMap by viewModel.categoriesMap.collectAsStateWithLifecycle()
+    val subcategoriesMap by viewModel.subcategoriesMap.collectAsStateWithLifecycle()
     
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
@@ -118,7 +124,7 @@ fun AccountDetailScreen(
                 uiState.currentBalance?.let { balance ->
                     AccountCard(
                         account = balance,
-                        showMoreOptions = false, // Keep it simple in detail view
+                        showMoreOptions = false,
                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                     )
                 }
@@ -132,7 +138,7 @@ fun AccountDetailScreen(
                 )
             }
 
-            // Balance Chart (Expandable) - Updates based on selected timeframe
+            // Balance Chart
             if (uiState.balanceChartData.isNotEmpty()) {
                 item {
                     ExpandableBalanceChart(
@@ -156,8 +162,7 @@ fun AccountDetailScreen(
                     modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                 )
             }
-            
-            // Transactions Header
+
             item {
                 SectionHeader(
                     title = "Transactions (${uiState.transactions.size})",
@@ -177,12 +182,21 @@ fun AccountDetailScreen(
                     items = uiState.transactions,
                     key = { it.id }
                 ) { transaction ->
+                    val categoryEntity = categoriesMap[transaction.category]
+                    val subcategoryEntity = if (categoryEntity != null && transaction.subcategory != null) {
+                        subcategoriesMap[transaction.subcategory]
+                    } else null
+
                     TransactionItem(
                         transaction = transaction,
+                        categoryEntity = categoryEntity,
+                        subcategoryEntity = subcategoryEntity,
                         primaryCurrency = uiState.primaryCurrency,
+                        accountIconResId = uiState.currentBalance?.iconResId ?: 0,
+                        accountColorHex = uiState.currentBalance?.color,
                         onClick = {
                             navController.navigate(
-                                com.ritesh.cashiro.navigation.TransactionDetail(transaction.id)
+                                TransactionDetail(transaction.id)
                             )
                         },
                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
@@ -425,6 +439,10 @@ private fun DateRangeFilter(
 private fun TransactionItem(
     modifier: Modifier = Modifier,
     transaction: TransactionEntity,
+    categoryEntity: CategoryEntity? = null,
+    subcategoryEntity: SubcategoryEntity? = null,
+    accountIconResId: Int = 0,
+    accountColorHex: String? = null,
     primaryCurrency: String,
     onClick: () -> Unit
 ) {
@@ -459,7 +477,11 @@ private fun TransactionItem(
                 BrandIcon(
                     merchantName = transaction.merchantName,
                     size = 40.dp,
-                    showBackground = true
+                    showBackground = true,
+                    categoryEntity = categoryEntity,
+                    subcategoryEntity = subcategoryEntity,
+                    accountIconResId = accountIconResId,
+                    accountColorHex = accountColorHex
                 )
                 
                 Column(

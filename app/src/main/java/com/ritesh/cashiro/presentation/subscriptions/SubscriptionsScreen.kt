@@ -31,6 +31,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.ritesh.cashiro.data.database.entity.CategoryEntity
+import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
 import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
 import com.ritesh.cashiro.presentation.categories.NavigationContent
 import com.ritesh.cashiro.ui.components.*
@@ -56,9 +58,10 @@ fun SubscriptionsScreen(
     animatedContentScope: AnimatedVisibilityScope? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val categoriesMap by viewModel.categoriesMap.collectAsState()
+    val subcategoriesMap by viewModel.subcategoriesMap.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    
-    // Show snackbar when subscription is hidden
+
     LaunchedEffect(uiState.lastHiddenSubscription) {
         uiState.lastHiddenSubscription?.let { subscription ->
             val result = snackbarHostState.showSnackbar(
@@ -175,8 +178,15 @@ fun SubscriptionsScreen(
                     items = uiState.activeSubscriptions,
                     key = { it.id }
                 ) { subscription ->
+                    val categoryEntity = categoriesMap[subscription.category]
+                    val subcategoryEntity = if (categoryEntity != null && subscription.subcategory != null) {
+                        subcategoriesMap[subscription.subcategory]
+                    } else null
+
                     SwipeableSubscriptionItem(
                         subscription = subscription,
+                        categoryEntity = categoryEntity,
+                        subcategoryEntity = subcategoryEntity,
                         onHide = { viewModel.hideSubscription(subscription.id) }
                     )
                 }
@@ -298,6 +308,8 @@ private fun TotalSubscriptionsSummary(
 @Composable
 private fun SwipeableSubscriptionItem(
     subscription: SubscriptionEntity,
+    categoryEntity: CategoryEntity? = null,
+    subcategoryEntity: SubcategoryEntity? = null,
     onHide: () -> Unit
 ) {
     var showSmsBody by remember { mutableStateOf(false) }
@@ -364,7 +376,9 @@ private fun SwipeableSubscriptionItem(
                         BrandIcon(
                             merchantName = subscription.merchantName,
                             size = 48.dp,
-                            showBackground = true
+                            showBackground = true,
+                            categoryEntity = categoryEntity,
+                            subcategoryEntity = subcategoryEntity
                         )
                         
                         // Content
@@ -378,7 +392,7 @@ private fun SwipeableSubscriptionItem(
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium,
                                 maxLines = 1,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis
                             )
                             
                             Row(
@@ -407,7 +421,7 @@ private fun SwipeableSubscriptionItem(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 } else {
-                                    // If the stored date is in the past, calculate the next occurrence
+
                                     var nextPaymentDate: LocalDate = subscriptionDate
                                     while (nextPaymentDate.isBefore(today) || nextPaymentDate.isEqual(today)) {
                                         nextPaymentDate = nextPaymentDate.plusMonths(1)
@@ -458,7 +472,7 @@ private fun SwipeableSubscriptionItem(
                     }
                 }
                 
-                // SMS Body Display (expandable)
+                // SMS Body Display
                 if (showSmsBody && !subscription.smsBody.isNullOrBlank()) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -490,7 +504,7 @@ private fun SwipeableSubscriptionItem(
                             
                             Spacer(modifier = Modifier.height(Spacing.sm))
                             
-                            // SMS text in monospace font
+
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
                                 color = MaterialTheme.colorScheme.surface,

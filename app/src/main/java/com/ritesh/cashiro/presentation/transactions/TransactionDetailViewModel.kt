@@ -84,6 +84,9 @@ class TransactionDetailViewModel @Inject constructor(
     val deleteSuccess: StateFlow<Boolean> = _deleteSuccess.asStateFlow()
     val existingTransactionCount: StateFlow<Int> = _existingTransactionCount.asStateFlow()
 
+    private val _subscription = MutableStateFlow<SubscriptionEntity?>(null)
+    val subscription: StateFlow<SubscriptionEntity?> = _subscription.asStateFlow()
+
     // Categories should be based on transaction type
     val categories: StateFlow<List<CategoryEntity>> = combine(
         _editableTransaction,
@@ -174,7 +177,20 @@ class TransactionDetailViewModel @Inject constructor(
             transaction?.let {
                 determinePrimaryCurrency(it)
                 calculateConvertedAmount(it)
+                findLinkedSubscription(it)
             }
+        }
+    }
+
+    private suspend fun findLinkedSubscription(transaction: TransactionEntity) {
+        if (transaction.isRecurring) {
+            val linked = subscriptionRepository.matchTransactionToSubscription(
+                transaction.merchantName,
+                transaction.amount
+            )
+            _subscription.value = linked
+        } else {
+            _subscription.value = null
         }
     }
 
@@ -423,6 +439,7 @@ class TransactionDetailViewModel @Inject constructor(
                 }
 
                 _transaction.value = normalizedTransaction
+                findLinkedSubscription(normalizedTransaction) // Refresh linked subscription
                 _saveSuccess.value = true
                 _isEditMode.value = false
                 _editableTransaction.value = null
@@ -542,20 +559,18 @@ class TransactionDetailViewModel @Inject constructor(
                 transaction.billingCycle
             )
 
-            val subscription = if (existing != null) {
-                existing.copy(
-                    amount = transaction.amount,
-                    nextPaymentDate = nextPaymentDate,
-                    category = transaction.category,
-                    subcategory = transaction.subcategory,
-                    bankName = transaction.bankName,
-                    currency = transaction.currency,
-                    billingCycle = transaction.billingCycle,
-                    state = SubscriptionState.ACTIVE,
-                    updatedAt = LocalDateTime.now()
-                )
-            } else {
-                SubscriptionEntity(
+            val subscription = existing?.copy(
+                amount = transaction.amount,
+                nextPaymentDate = nextPaymentDate,
+                category = transaction.category,
+                subcategory = transaction.subcategory,
+                bankName = transaction.bankName,
+                currency = transaction.currency,
+                billingCycle = transaction.billingCycle,
+                state = SubscriptionState.ACTIVE,
+                updatedAt = LocalDateTime.now()
+            )
+                ?: SubscriptionEntity(
                     merchantName = transaction.merchantName,
                     amount = transaction.amount,
                     nextPaymentDate = nextPaymentDate,
@@ -568,10 +583,8 @@ class TransactionDetailViewModel @Inject constructor(
                     createdAt = LocalDateTime.now(),
                     updatedAt = LocalDateTime.now()
                 )
-            }
             subscriptionRepository.insertSubscription(subscription)
         } else {
-            // If it was marked as recurring but now is not, we might want to hide it
             // Find existing matching subscription and hide it
             val existing = subscriptionRepository.matchTransactionToSubscription(
                 transaction.merchantName,
@@ -637,11 +650,7 @@ class TransactionDetailViewModel @Inject constructor(
                     // Revert source: Originally subtracted, so add
                     updateBalance(bankName, accountLast4, transaction.amount, transaction.currency)
 
-                    // NOTE: TransactionEntity stores toAccount as accountLast4 string, does not store target bank name explicitly
-                    // Assuming we can find target account by last4 if unique, or need to rethink schema.
-                    // However, EditAccountSheet uses "wallet" as last4 for Cash.
-                    // AddTransactionUseCase stores toAccount as string.
-                    // For now, we try to find an account with that last4.
+                   //find an account with that last4.
                     transaction.toAccount?.let { targetLast4 ->
                         findAccountByLast4(targetLast4)?.let { targetAccount ->
                             updateBalance(

@@ -71,14 +71,18 @@ class AccountBalanceRepository @Inject constructor(
         isCreditCard: Boolean = false
     ) {
         if (bankName != null && accountLast4 != null && (balance != null || creditLimit != null)) {
+            val latest = getLatestBalance(bankName, accountLast4)
             val balanceEntity = AccountBalanceEntity(
                 bankName = bankName,
                 accountLast4 = accountLast4,
                 balance = balance ?: BigDecimal.ZERO,
                 timestamp = timestamp,
                 transactionId = transactionId,
-                creditLimit = creditLimit,
-                isCreditCard = isCreditCard
+                creditLimit = creditLimit ?: latest?.creditLimit,
+                isCreditCard = isCreditCard || (latest?.isCreditCard ?: false),
+                iconResId = latest?.iconResId ?: 0,
+                isWallet = latest?.isWallet ?: false,
+                color = latest?.color ?: "#33B5E5"
             )
             insertBalance(balanceEntity)
         }
@@ -96,6 +100,7 @@ class AccountBalanceRepository @Inject constructor(
         sourceType: String? = null,
         currency: String = "INR"
     ): Long {
+        val latest = getLatestBalance(bankName, accountLast4)
         val balanceEntity = AccountBalanceEntity(
             bankName = bankName,
             accountLast4 = accountLast4,
@@ -104,7 +109,12 @@ class AccountBalanceRepository @Inject constructor(
             transactionId = null,
             smsSource = smsSource?.take(500),  // Limit to 500 chars
             sourceType = sourceType,
-            currency = currency
+            currency = currency,
+            iconResId = latest?.iconResId ?: 0,
+            isWallet = latest?.isWallet ?: false,
+            isCreditCard = latest?.isCreditCard ?: false,
+            creditLimit = latest?.creditLimit,
+            color = latest?.color ?: "#33B5E5"
         )
         return insertBalance(balanceEntity)
     }
