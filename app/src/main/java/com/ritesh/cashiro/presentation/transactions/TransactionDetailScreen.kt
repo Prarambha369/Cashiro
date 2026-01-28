@@ -102,6 +102,8 @@ fun TransactionDetailScreen(
     val accountPrimaryCurrency by viewModel.primaryCurrency.collectAsStateWithLifecycle()
     val convertedAmount by viewModel.convertedAmount.collectAsStateWithLifecycle()
     val availableAccounts by viewModel.availableAccounts.collectAsStateWithLifecycle()
+    val allSubcategories by viewModel.allSubcategories.collectAsStateWithLifecycle()
+    val categories by viewModel.categories.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -252,7 +254,9 @@ fun TransactionDetailScreen(
                     onTargetAccountClick = { showTargetAccountSheet = true },
                     showBillingCycleMenu = showBillingCycleMenu,
                     onBillingCycleMenuChange = { showBillingCycleMenu = it },
-                    paddingValues = paddingValues
+                    paddingValues = paddingValues,
+                    categories = categories,
+                    subcategoriesMap = allSubcategories
                 )
             }
 
@@ -346,8 +350,6 @@ fun TransactionDetailScreen(
 
     // Category Selection Sheet
     if (showCategoryMenu) {
-        val allSubcategories by viewModel.allSubcategories.collectAsStateWithLifecycle()
-        val categories by viewModel.categories.collectAsStateWithLifecycle()
         ModalBottomSheet(
             onDismissRequest = { showCategoryMenu = false },
             dragHandle = { BottomSheetDefaults.DragHandle() },
@@ -522,6 +524,8 @@ private fun TransactionDetailContent(
     onBillingCycleMenuChange: (Boolean) -> Unit,
     paddingValues: PaddingValues,
     availableAccounts: List<TransactionDetailViewModel.AccountInfo>,
+    categories: List<com.ritesh.cashiro.data.database.entity.CategoryEntity>,
+    subcategoriesMap: Map<Long, List<com.ritesh.cashiro.data.database.entity.SubcategoryEntity>>,
     modifier: Modifier = Modifier
 ) {
 
@@ -540,11 +544,11 @@ private fun TransactionDetailContent(
             ),
     ) {
         // Header with amount and merchant
-        BlurredAnimatedVisibility (
+        BlurredAnimatedVisibility(
             visible = isEditMode,
             enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
             exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
-            ) {
+        ) {
             Column() {
                 EditableTransactionHeader(
                     transaction = transaction,
@@ -573,18 +577,19 @@ private fun TransactionDetailContent(
             }
 
         }
-        BlurredAnimatedVisibility (
+        BlurredAnimatedVisibility(
             visible = !isEditMode,
             enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
             exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
-        )  {
-            TransactionReceipt(transaction, accountPrimaryCurrency, convertedAmount, availableAccounts)
-            Spacer(modifier = Modifier.height(Spacing.md))
-        }
-        Spacer(modifier = Modifier.height(Spacing.md))
-
-        // Add extra bottom padding when in edit mode to ensure description field is visible above keyboard
-        if (isEditMode) {
+        ) {
+            TransactionReceipt(
+                transaction,
+                accountPrimaryCurrency,
+                convertedAmount,
+                availableAccounts,
+                categories,
+                subcategoriesMap
+            )
             Spacer(modifier = Modifier.height(100.dp))
         }
     }
@@ -1934,7 +1939,9 @@ private fun TransactionReceipt(
     transaction: TransactionEntity,
     primaryCurrency: String,
     convertedAmount: BigDecimal?,
-    availableAccounts: List<TransactionDetailViewModel.AccountInfo>
+    availableAccounts: List<TransactionDetailViewModel.AccountInfo>,
+    categories: List<com.ritesh.cashiro.data.database.entity.CategoryEntity>,
+    subcategoriesMap: Map<Long, List<com.ritesh.cashiro.data.database.entity.SubcategoryEntity>>
 ) {
     val density = androidx.compose.ui.platform.LocalDensity.current
     var cutoutOffsetPx by remember { mutableStateOf(with(density) { 420.dp.toPx() }) }
@@ -1943,7 +1950,7 @@ private fun TransactionReceipt(
     val scallopRadiusPx = with(density) { 4.dp.toPx() }
 
     Box(
-        modifier = Modifier
+        modifier = Modifier 
             .fillMaxWidth()
             .padding(top = 32.dp) // Space for floating badge
     ) {
@@ -1953,14 +1960,8 @@ private fun TransactionReceipt(
                 .animateContentSize(
                     animationSpec = tween(durationMillis = 300)
                 )
-                .fillMaxWidth()
-                .clip(ReceiptShape(cutoutRadiusPx, cutoutOffsetPx, scallopRadiusPx))
-                .shadow(
-                    elevation = 12.dp,
-                    shape = ReceiptShape(cutoutRadiusPx, cutoutOffsetPx, scallopRadiusPx),
-                    spotColor = Color.Black.copy(1f),
-                    ambientColor = Color.Black.copy(1f),
-                ),
+                .fillMaxWidth(),
+            shape = ReceiptShape(cutoutRadiusPx, cutoutOffsetPx, scallopRadiusPx),
             color = MaterialTheme.colorScheme.surfaceContainerLow
         ) {
             Column(
@@ -2106,12 +2107,47 @@ private fun TransactionReceipt(
                         },
                         subIcon = {
                             if(transaction.subcategory != null) {
-                                CategoryIcon(
-                                    category = transaction.subcategory,
-                                    size = 20.dp,
-                                    tint = null // Original colors
-                                )
+                                // Find subcategory entity for color/icon
+                                val categoryEntity = categories.find { it.name == transaction.category }
+                                val subcategoryEntity = if (categoryEntity != null) {
+                                    subcategoriesMap[categoryEntity.id]?.find { it.name == transaction.subcategory }
+                                } else null
+                                
+                                if (subcategoryEntity != null && subcategoryEntity.iconResId != 0) {
+                                     val iconColor = try {
+                                         Color(android.graphics.Color.parseColor(subcategoryEntity.color))
+                                     } catch (e: Exception) {
+                                         Color.Unspecified
+                                     }
+                                     
+                                     Icon(
+                                         painter = painterResource(id = subcategoryEntity.iconResId),
+                                         contentDescription = transaction.subcategory,
+                                         tint = Color.Unspecified, // Use original colors or tint if needed? Usually category icons are tinted.
+                                         modifier = Modifier.size(20.dp)
+                                     )
+                                } else {
+                                    CategoryIcon(
+                                        category = transaction.subcategory,
+                                        size = 20.dp,
+                                        tint = null // Original colors
+                                    )
+                                }
                             }
+                        },
+                        subcategoryColor = run {
+                             val categoryEntity = categories.find { it.name == transaction.category }
+                             val subcategoryEntity = if (categoryEntity != null && transaction.subcategory != null) {
+                                 subcategoriesMap[categoryEntity.id]?.find { it.name == transaction.subcategory }
+                             } else null
+                             
+                             if (subcategoryEntity != null) {
+                                  try {
+                                      Color(android.graphics.Color.parseColor(subcategoryEntity.color)).copy(alpha = 0.2f)
+                                  } catch (e: Exception) {
+                                      null
+                                  }
+                             } else null
                         }
                     )
 
@@ -2379,7 +2415,8 @@ private fun ReceiptInfoRow(
     bankName: String? = null,
     subBankName: String? = null,
     icon: (@Composable () -> Unit)? = null,
-    subIcon: (@Composable () -> Unit)? = null
+    subIcon: (@Composable () -> Unit)? = null,
+    subcategoryColor: Color? = null
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -2464,7 +2501,7 @@ private fun ReceiptInfoRow(
                             }
                         }
 
-                        val subcategoryColor = CategoryMapping.categories[value]?.color?.copy(0.2f) ?: MaterialTheme.colorScheme.surfaceVariant
+                        val resolvedSubcategoryColor = subcategoryColor ?: CategoryMapping.categories[value]?.color?.copy(0.2f) ?: MaterialTheme.colorScheme.surfaceVariant
                         if (subValue != null) {
                             DashedLine(
                                 modifier = Modifier.weight(1f),
@@ -2475,7 +2512,7 @@ private fun ReceiptInfoRow(
                                 modifier = Modifier
                                     .padding(vertical = 4.dp)
                                     .background(
-                                        color = subcategoryColor,
+                                        color = resolvedSubcategoryColor,
                                         shape = RoundedCornerShape(8.dp)
                                     )
                                     .padding(horizontal = 12.dp, vertical = 6.dp)
