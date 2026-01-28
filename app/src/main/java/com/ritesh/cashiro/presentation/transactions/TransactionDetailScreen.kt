@@ -609,7 +609,7 @@ private fun TransactionDetailContent(
                 subcategoriesMap,
                 linkedSubscription
             )
-            Spacer(modifier = Modifier.height(100.dp))
+            Spacer(modifier = Modifier.height(200.dp)) // for better scroll
         }
     }
 }
@@ -1227,6 +1227,7 @@ private fun EditableExtractedInfoCard(
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(300.dp)) // For better scroll space
         }
     }
 }
@@ -1702,7 +1703,7 @@ private fun TransactionReceipt(
     Box(
         modifier = Modifier 
             .fillMaxWidth()
-            .padding(top = 32.dp) // Space for floating badge
+            .padding(top = 24.dp)
     ) {
         // Main Receipt Card
         Surface(
