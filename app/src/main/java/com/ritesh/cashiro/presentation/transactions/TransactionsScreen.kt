@@ -659,7 +659,7 @@ fun TransactionsScreen(
                                 item {
                                     SectionHeader(
                                         title = dateGroup.label,
-                                        modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.sm)
+                                        modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.sm, start = Spacing.md)
                                     )
                                 }
 
@@ -677,7 +677,10 @@ fun TransactionsScreen(
                                         accountColorHex = accountsMap["${transaction.bankName}_${transaction.accountNumber}"]?.color,
                                         showDate = dateGroup == DateGroup.EARLIER,
                                         shape = position.toShape(),
-                                        onClick = { onTransactionClick(transaction.id) }
+                                        onClick = { onTransactionClick(transaction.id) },
+                                        sharedTransitionScope = sharedTransitionScope,
+                                        animatedContentScope = animatedContentScope,
+                                        sharedElementKey = "transaction_${transaction.id}"
                                     )
                                 }
                             }

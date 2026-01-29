@@ -6,6 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.ritesh.cashiro.ui.theme.Spacing
 
 /**
@@ -22,10 +23,7 @@ fun <T> ExpandableList(
     var isExpanded by rememberSaveable { mutableStateOf(false) }
     val displayItems = if (isExpanded) items else items.take(visibleItemCount)
     
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(Spacing.md)
-    ) {
+    Column(modifier = modifier) {
         // Display items
         displayItems.forEachIndexed { index, item ->
             itemContent(index, displayItems.size, item)
@@ -33,6 +31,7 @@ fun <T> ExpandableList(
         
         // View All / View Less button
         if (items.size > visibleItemCount) {
+            Spacer(Modifier.size(Spacing.md))
             TextButton(
                 onClick = { isExpanded = !isExpanded },
                 modifier = Modifier.fillMaxWidth()

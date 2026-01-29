@@ -168,7 +168,9 @@ fun CashiroNavHost(
                     onNavigateBack = {
                         onEditComplete()
                         navController.popBackStack()
-                    }
+                    },
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedContentScope = this@composable
                 )
             }
 

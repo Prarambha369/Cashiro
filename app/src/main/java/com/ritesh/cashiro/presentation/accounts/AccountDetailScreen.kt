@@ -9,52 +9,72 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
-import com.ritesh.cashiro.data.database.entity.CategoryEntity
-import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
-import com.ritesh.cashiro.data.database.entity.TransactionEntity
-import com.ritesh.cashiro.data.database.entity.TransactionType
 import com.ritesh.cashiro.navigation.TransactionDetail
 import com.ritesh.cashiro.presentation.categories.NavigationContent
-import com.ritesh.cashiro.ui.components.*
+import com.ritesh.cashiro.ui.components.AccountCard
+import com.ritesh.cashiro.ui.components.BalanceChart
+import com.ritesh.cashiro.ui.components.BalancePoint
+import com.ritesh.cashiro.ui.components.CashiroCard
+import com.ritesh.cashiro.ui.components.CustomTitleTopAppBar
+import com.ritesh.cashiro.ui.components.ListItemPosition
+import com.ritesh.cashiro.ui.components.SectionHeader
+import com.ritesh.cashiro.ui.components.TransactionItem
+import com.ritesh.cashiro.ui.components.TransactionTotalsCard
+import com.ritesh.cashiro.ui.components.toShape
 import com.ritesh.cashiro.ui.effects.overScrollVertical
 import com.ritesh.cashiro.ui.effects.rememberOverscrollFlingBehavior
-import com.ritesh.cashiro.ui.theme.*
-import com.ritesh.cashiro.utils.CurrencyFormatter
-import dev.chrisbanes.haze.HazeDefaults
+import com.ritesh.cashiro.ui.theme.Dimensions
+import com.ritesh.cashiro.ui.theme.Spacing
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeSource
-import java.math.BigDecimal
-import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
+ @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun AccountDetailScreen(
     navController: NavController,
@@ -104,7 +124,7 @@ fun AccountDetailScreen(
                 title = uiState.bankName.ifEmpty { "Account Details" },
                 hasBackButton = true,
                 hazeState = hazeState,
-                navigationContent = { NavigationContent({navController.navigateUp()}) },
+                navigationContent = { NavigationContent { navController.navigateUp() } },
             )
         }
     ) { paddingValues ->
@@ -115,8 +135,7 @@ fun AccountDetailScreen(
                 .hazeSource(state = hazeState),
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
             contentPadding = PaddingValues(
-                top =Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                bottom = 0.dp
+                top =Dimensions.Padding.content + paddingValues.calculateTopPadding()
             ),
         ) {
             // Account Card
@@ -217,7 +236,10 @@ fun AccountDetailScreen(
                             )
                         },
                         shape = position.toShape(),
-                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedContentScope = animatedContentScope,
+                        sharedElementKey = "transaction_${transaction.id}"
                     )
                 }
             }

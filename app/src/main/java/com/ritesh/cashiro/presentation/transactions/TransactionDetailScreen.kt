@@ -2,8 +2,13 @@ package com.ritesh.cashiro.presentation.transactions
 
 import android.content.Intent
 import android.util.Log
+import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -54,6 +59,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.layout.ContentScale
 import androidx.core.graphics.toColorInt
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -83,12 +89,18 @@ import java.time.format.DateTimeFormatter
 import androidx.core.net.toUri
 import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalMaterial3ExpressiveApi::class,
+    ExperimentalSharedTransitionApi::class
+)
 @Composable
 fun TransactionDetailScreen(
     transactionId: Long,
     onNavigateBack: () -> Unit,
-    viewModel: TransactionDetailViewModel = hiltViewModel()
+    viewModel: TransactionDetailViewModel = hiltViewModel(),
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedContentScope: AnimatedContentScope? = null
 ) {
     val transaction by viewModel.transaction.collectAsStateWithLifecycle()
     val isEditMode by viewModel.isEditMode.collectAsStateWithLifecycle()
@@ -154,7 +166,23 @@ fun TransactionDetailScreen(
     val context = LocalContext.current
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection).then(
+            if (sharedTransitionScope != null && animatedContentScope != null) {
+                with(sharedTransitionScope) {
+                    Modifier.sharedBounds(
+                        rememberSharedContentState(key = "transaction_$transactionId"),
+                        animatedVisibilityScope = animatedContentScope,
+                        boundsTransform = { _, _ ->
+                            spring(
+                                stiffness = Spring.StiffnessLow,
+                                dampingRatio = Spring.DampingRatioLowBouncy
+                            )
+                        },
+                        resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
+                    )
+                }
+            } else Modifier
+        ),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
             // Show FABs only when not in edit mode and transaction exists
@@ -238,7 +266,10 @@ fun TransactionDetailScreen(
             )
         },
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
             val displayTransaction = if (isEditMode) editableTransaction else transaction
             displayTransaction?.let { txn ->
                 TransactionDetailContent(
