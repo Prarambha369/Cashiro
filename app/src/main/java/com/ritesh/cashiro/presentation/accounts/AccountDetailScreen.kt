@@ -221,7 +221,11 @@ fun AccountDetailScreen(
                         subcategoriesMap[transaction.subcategory]
                     } else null
 
-                    val position = ListItemPosition.from(index, uiState.transactions.size)
+                    val position = remember(index, uiState.transactions.size) {
+                        ListItemPosition.from(index, uiState.transactions.size)
+                    }
+                    val shape = position.toShape()
+
                     TransactionItem(
                         transaction = transaction,
                         categoryEntity = categoryEntity,
@@ -235,7 +239,7 @@ fun AccountDetailScreen(
                                 TransactionDetail(transaction.id)
                             )
                         },
-                        shape = position.toShape(),
+                        shape = shape,
                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                         sharedTransitionScope = sharedTransitionScope,
                         animatedContentScope = animatedContentScope,

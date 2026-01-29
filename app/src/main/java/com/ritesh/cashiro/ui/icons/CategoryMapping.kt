@@ -23,6 +23,8 @@ object CategoryMapping {
     )
 
     // --- helpers ---
+    private val regexCache = mutableMapOf<String, Regex>()
+
     private fun matches(
         merchantRaw: String,
         anyOf: Set<String>,
@@ -35,7 +37,9 @@ object CategoryMapping {
         return anyOf.any { keyword ->
             // For single word keywords, check word boundaries
             if (!keyword.contains(" ")) {
-                val regex = "\\b${keyword.replace(".", "\\.")}\\b".toRegex()
+                val regex = regexCache.getOrPut(keyword) {
+                    "\\b${keyword.replace(".", "\\.")}\\b".toRegex()
+                }
                 regex.containsMatchIn(m)
             } else {
                 // For multi-word keywords, use contains as before

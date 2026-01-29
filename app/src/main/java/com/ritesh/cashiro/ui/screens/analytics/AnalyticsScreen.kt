@@ -307,7 +307,7 @@ fun AnalyticsScreen(
                                     start = Spacing.lg,
                                     end = Spacing.lg,
                                     top = Dimensions.Padding.content,
-                                    bottom = 0.dp
+                                    bottom = Spacing.sm
                                 )
                             )
                             // Chart Type Selector
@@ -482,7 +482,7 @@ fun AnalyticsScreen(
                             // Pie Chart
                             BlurredAnimatedVisibility(
                                 visible = selectedBreakdownType == BreakdownType.PIE,
-                                enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
+                                enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
                                 exit = fadeOut() + slideOutVertically(targetOffsetY = { -it }),
                             ) {
                                 CashiroCard(
@@ -501,8 +501,8 @@ fun AnalyticsScreen(
                             uiState.categoryBreakdown.take(5).forEach { category ->
                                 BlurredAnimatedVisibility(
                                     visible = selectedBreakdownType != BreakdownType.PIE,
-                                    enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
-                                    exit = fadeOut() + slideOutVertically(targetOffsetY = { -it }),
+                                    enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
+                                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
                                 ) {
                                     CategoryProgressItem(
                                         name = category.name,

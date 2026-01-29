@@ -93,6 +93,9 @@ fun TransactionTotalsCard(
                             .padding(Spacing.sm),
                         contentAlignment = Alignment.Center
                     ) {
+                        val formattedIncome = remember(income, currency, isEstimated) {
+                            formatAmount(income, currency, isEstimated)
+                        }
                         TotalColumn(
                             icon = {
                                 Icon(
@@ -103,7 +106,7 @@ fun TransactionTotalsCard(
                                 )
                             },
                             label = "Income",
-                            amount = formatAmount(income, currency, isEstimated),
+                            amount = formattedIncome,
                             color = if (!isSystemInDarkTheme()) income_light else income_dark,
                             modifier = Modifier
                                 .alpha(incomeAlpha)
@@ -136,6 +139,9 @@ fun TransactionTotalsCard(
                             .padding(Spacing.sm),
                         contentAlignment = Alignment.Center
                     ) {
+                        val formattedExpenses = remember(expenses, currency, isEstimated) {
+                            formatAmount(expenses, currency, isEstimated)
+                        }
                         TotalColumn(
                             icon = {
                                 Icon(
@@ -146,7 +152,7 @@ fun TransactionTotalsCard(
                                 )
                             },
                             label = "Expenses",
-                            amount = formatAmount(expenses, currency, isEstimated),
+                            amount = formattedExpenses,
                             color = if (!isSystemInDarkTheme()) expense_light else expense_dark,
                             modifier = Modifier
                                 .alpha(expenseAlpha)
@@ -188,6 +194,9 @@ fun TransactionTotalsCard(
                             .padding(Spacing.sm),
                         contentAlignment = Alignment.Center
                     ) {
+                        val formattedNet = remember(netPrefix, netBalance, currency, isEstimated) {
+                            "$netPrefix${formatAmount(netBalance, currency, isEstimated)}"
+                        }
                         TotalColumn(
                             icon = {
                                 Icon(
@@ -198,7 +207,7 @@ fun TransactionTotalsCard(
                                 )
                             },
                             label = "Net",
-                            amount = "$netPrefix${formatAmount(netBalance, currency, isEstimated)}",
+                            amount = formattedNet,
                             color = netColor,
                             modifier = Modifier
                                 .alpha(netAlpha)

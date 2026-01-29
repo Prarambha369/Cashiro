@@ -16,6 +16,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -62,17 +63,24 @@ fun TransactionItem(
     val finalType = transactionType ?: transaction?.transactionType ?: TransactionType.EXPENSE
     val isRecurring = transaction?.isRecurring ?: false
 
-    val amountColor = amountColorOverride ?: when (finalType) {
-        TransactionType.INCOME -> if (!isSystemInDarkTheme()) income_light else income_dark
-        TransactionType.EXPENSE -> if (!isSystemInDarkTheme()) expense_light else expense_dark
-        TransactionType.CREDIT -> if (!isSystemInDarkTheme()) credit_light else credit_dark
-        TransactionType.TRANSFER -> if (!isSystemInDarkTheme()) transfer_light else transfer_dark
-        TransactionType.INVESTMENT -> if (!isSystemInDarkTheme()) investment_light else investment_dark
+    val isDark = isSystemInDarkTheme()
+    val amountColor = amountColorOverride ?: remember(finalType, isRecurring, isDark) {
+        when (finalType) {
+            TransactionType.INCOME -> if (!isDark) income_light else income_dark
+            TransactionType.EXPENSE -> if (!isDark) expense_light else expense_dark
+            TransactionType.CREDIT -> if (!isDark) credit_light else credit_dark
+            TransactionType.TRANSFER -> if (!isDark) transfer_light else transfer_dark
+            TransactionType.INVESTMENT -> if (!isDark) investment_light else investment_dark
+        }
     }
 
-    val dateTimeFormatter = DateTimeFormatter.ofPattern("MMM d • h:mm a")
-    val defaultSubtitle = transaction?.dateTime?.format(dateTimeFormatter) ?: ""
-    val amountText = amountOverride ?: transaction?.formatAmount() ?: finalAmount.toString()
+    val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("MMM d • h:mm a") }
+    val defaultSubtitle = remember(transaction?.dateTime) { 
+        transaction?.dateTime?.format(dateTimeFormatter) ?: "" 
+    }
+    val amountText = remember(transaction, amountOverride, finalAmount) {
+        amountOverride ?: transaction?.formatAmount() ?: finalAmount.toString()
+    }
 
     val itemModifier = modifier.then(
         if (sharedTransitionScope != null && animatedContentScope != null && sharedElementKey != null) {
@@ -99,29 +107,39 @@ fun TransactionItem(
     }
 
     // Build subtitle parts
-    val subtitleParts = buildList {
-        if (subtitleOverride != null) {
-            add(subtitleOverride)
-        } else {
-            if (transaction != null) {
-                when (finalType) {
-                    TransactionType.CREDIT -> add("Credit Card")
-                    TransactionType.TRANSFER -> add("Transfer")
-                    TransactionType.INVESTMENT -> add("Investment")
-                    else -> {}
+    val (subtitleParts, subtitleFinal) = remember(
+        subtitleOverride,
+        transaction,
+        finalType,
+        defaultSubtitle,
+        isRecurring,
+        balanceAfter,
+        balanceCurrency
+    ) {
+        val parts = buildList {
+            if (subtitleOverride != null) {
+                add(subtitleOverride)
+            } else {
+                if (transaction != null) {
+                    when (finalType) {
+                        TransactionType.CREDIT -> add("Credit Card")
+                        TransactionType.TRANSFER -> add("Transfer")
+                        TransactionType.INVESTMENT -> add("Investment")
+                        else -> {}
+                    }
+                }
+                if (defaultSubtitle.isNotEmpty()) {
+                    add(defaultSubtitle)
+                }
+                if (isRecurring) add("Recurring")
+
+                balanceAfter?.let { balance ->
+                    add("Bal: ${CurrencyFormatter.formatCurrency(balance, balanceCurrency ?: "INR")}")
                 }
             }
-            if (defaultSubtitle.isNotEmpty()) {
-                add(defaultSubtitle)
-            }
-            if (isRecurring) add("Recurring")
-            
-            balanceAfter?.let { balance ->
-                add("Bal: ${CurrencyFormatter.formatCurrency(balance, balanceCurrency ?: "INR")}")
-            }
         }
+        parts to parts.joinToString(" • ")
     }
-    val subtitleFinal = subtitleParts.joinToString(" • ")
 
     if (useCardStyle) {
         ListItemCard(
