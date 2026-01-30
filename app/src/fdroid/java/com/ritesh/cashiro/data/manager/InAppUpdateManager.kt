@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.data.manager
+package com.ritesh.cashiro.data.manager
 
 import android.app.Activity
 import android.content.Context

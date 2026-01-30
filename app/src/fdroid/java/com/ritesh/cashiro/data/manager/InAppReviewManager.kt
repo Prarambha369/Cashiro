@@ -1,9 +1,9 @@
-package com.pennywiseai.tracker.data.manager
+package com.ritesh.cashiro.data.manager
 
 import android.content.Context
 import android.util.Log
 import androidx.activity.ComponentActivity
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.ritesh.cashiro.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
