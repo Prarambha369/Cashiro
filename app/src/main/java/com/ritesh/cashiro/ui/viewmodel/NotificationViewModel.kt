@@ -3,6 +3,7 @@ package com.ritesh.cashiro.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
+import com.ritesh.cashiro.data.manager.NotificationScheduler
 import com.ritesh.cashiro.data.preferences.UserPreferencesRepository
 import com.ritesh.cashiro.data.repository.SubscriptionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,6 +17,7 @@ import javax.inject.Inject
 @HiltViewModel
 class NotificationViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val notificationScheduler: NotificationScheduler,
     subscriptionRepository: SubscriptionRepository
 ) : ViewModel() {
 
@@ -44,18 +46,21 @@ class NotificationViewModel @Inject constructor(
     fun setScanNewTransactionsEnabled(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.setScanNewTransactionsEnabled(enabled)
+            notificationScheduler.scheduleDailyReminder()
         }
     }
 
     fun setScanNewTransactionsAlertTime(minutes: Long) {
         viewModelScope.launch {
             userPreferencesRepository.setScanNewTransactionsAlertTime(minutes)
+            notificationScheduler.scheduleDailyReminder()
         }
     }
 
     fun setUpcomingNotificationsEnabled(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.setUpcomingNotificationsEnabled(enabled)
+            notificationScheduler.scheduleDailyReminder()
         }
     }
 

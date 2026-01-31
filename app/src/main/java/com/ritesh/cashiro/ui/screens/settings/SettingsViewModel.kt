@@ -417,7 +417,7 @@ class SettingsViewModel @Inject constructor(
             )
 
             val notification = NotificationCompat.Builder(context, SmsBroadcastReceiver.CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setSmallIcon(R.drawable.cashiro)
                 .setContentTitle("Test Notification")
                 .setContentText("This is a test notification from Cashiro.")
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)

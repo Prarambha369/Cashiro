@@ -16,7 +16,7 @@
 
 ## Cashiro — Free & Open‑Source, private SMS‑powered expense tracker
 
-A Fork of [PennyWise AI](https://github.com/sarim2000/pennywiseai-tracker) that Turn bank SMS into a clean, searchable money timeline with on-device AI assistance. 100% private, no cloud processing.
+A Fork of [PennyWise AI v2.15.42](https://github.com/sarim2000/pennywiseai-tracker) that Turn bank SMS into a clean, searchable money timeline with on-device AI assistance. 100% private, no cloud processing.
 
 
 [//]: # ()

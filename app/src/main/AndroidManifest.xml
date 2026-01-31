@@ -9,6 +9,10 @@
     <!-- Notification permission for Android 13+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Alarm permissions -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <!-- Telephony hardware feature (optional for ChromeOS compatibility) -->
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
 
@@ -85,6 +89,20 @@
             <intent-filter>
                 <action android:name="com.ritesh.cashiro.ACTION_DELETE_TRANSACTION" />
                 <action android:name="com.ritesh.cashiro.ACTION_CONFIRM_TRANSACTION" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Reminder Receiver for daily alerts -->
+        <receiver
+            android:name=".receiver.ReminderReceiver"
+            android:exported="false" />
+
+        <!-- Boot Receiver for rescheduling alarms on reboot -->
+        <receiver
+            android:name=".receiver.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
     </application>

@@ -10,6 +10,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ritesh.cashiro.R
+import com.ritesh.cashiro.presentation.profile.EditProfileState
 import com.ritesh.cashiro.presentation.profile.PresetAvatarSelection
 import com.ritesh.cashiro.presentation.profile.ProfileCardPreview
 import com.ritesh.cashiro.ui.components.ColorPickerContent
@@ -140,12 +142,23 @@ fun WelcomeStep() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Image(
-            painter = painterResource(id = R.mipmap.ic_launcher_foreground),
-            contentDescription = "App Logo",
-            modifier = Modifier.size(100.dp),
-            contentScale = ContentScale.Fit
-        )
+        Box(
+            modifier = Modifier
+                .size(125.dp)
+                .clip(CircleShape)
+                .background(
+                    color = Color(0xFF181818),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ){
+            Image(
+                painter = painterResource(id = R.drawable.cashiro),
+                contentDescription = "App Logo",
+                modifier = Modifier.size(100.dp),
+                contentScale = ContentScale.Fit
+            )
+        }
 
         Spacer(modifier = Modifier.height(Spacing.xl))
 
@@ -171,7 +184,7 @@ fun WelcomeStep() {
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ProfileStep(
-    state: com.ritesh.cashiro.presentation.profile.EditProfileState,
+    state: EditProfileState,
     onNameChange: (String) -> Unit,
     onProfileImageChange: (Uri?) -> Unit,
     onBackgroundColorChange: (Color) -> Unit

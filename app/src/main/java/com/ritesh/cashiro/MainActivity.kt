@@ -11,10 +11,17 @@ import androidx.compose.runtime.setValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import com.ritesh.cashiro.receiver.SmsBroadcastReceiver
+import com.ritesh.cashiro.data.manager.NotificationScheduler
+import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
+    
+    @Inject
+    lateinit var notificationScheduler: NotificationScheduler
 
     // Transaction ID to edit when launched from notification
     var editTransactionId by mutableStateOf<Long?>(null)
@@ -33,6 +40,11 @@ class MainActivity : FragmentActivity() {
 
         // Handle intent if activity is launched from notification
         handleEditIntent(intent)
+
+        // Schedule daily reminders
+        lifecycleScope.launch {
+            notificationScheduler.scheduleDailyReminder()
+        }
 
         setContent {
             CashiroApp(
