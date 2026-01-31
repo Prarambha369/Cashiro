@@ -1,6 +1,5 @@
 package com.ritesh.cashiro.ui.screens.chat
 
-import android.widget.Space
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -10,11 +9,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -38,12 +35,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.haze
 import com.ritesh.cashiro.ui.components.CustomTitleTopAppBar
 import com.ritesh.cashiro.ui.effects.overScrollVertical
 import com.ritesh.cashiro.ui.effects.rememberOverscrollFlingBehavior
 import com.ritesh.cashiro.presentation.categories.NavigationContent
-import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -130,7 +125,7 @@ fun ChatScreen(
                         }
                     }
                 },
-                greetingCard = {
+                extraInfoCard = {
                     // Developer info card
                     if(isDeveloperMode && messages.isNotEmpty()) {
                         DeveloperInfoCard(

@@ -60,6 +60,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -233,7 +234,7 @@ fun HomeScreen(
                 scrollBehaviorLarge = scrollBehavior,
                 hazeState = hazeState,
                 hasBackButton = false,
-                greetingCard = {
+                extraInfoCard = {
                     GreetingCard(
                         userName = uiState.userName,
                         profileImageUri = uiState.profileImageUri,
@@ -708,42 +709,73 @@ fun HomeScreen(
                 }
             }
 
-            // Add FAB
-            FloatingActionButton(
-                onClick = onNavigateToAddScreen,
+            // FABs Container
+            Column(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(Dimensions.Padding.content)
-                    .padding(bottom = 72.dp)
-                    .then(
-                        if (sharedTransitionScope != null && animatedContentScope != null) {
-                            with(sharedTransitionScope) {
-                                Modifier.sharedBounds(
-                                    rememberSharedContentState(key = "fab_to_add"),
-                                    animatedVisibilityScope = animatedContentScope,
-                                    boundsTransform = { _, _ ->
-                                        spring(
-                                            stiffness = Spring.StiffnessLow,
-                                            dampingRatio = Spring.DampingRatioLowBouncy
-                                        )
-                                    },
-                                    resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(
-                                        contentScale = ContentScale.FillBounds,
-                                        alignment = Alignment.Center
-                                    )
-                                )
-                                .skipToLookaheadSize()
-                            }
-                        } else Modifier
-                    ),
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    .padding(bottom = 72.dp),
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Transaction or Subscription",
-                    modifier = Modifier.size(24.dp)
-                )
+                // Sync FAB
+                SmallFloatingActionButton(
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        viewModel.scanSmsMessages()
+                    },
+                    modifier = Modifier.pointerInput(Unit) {
+                        detectTapGestures(
+                            onLongPress = {
+                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                showFullResyncDialog = true
+                            }
+                        )
+                    },
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Sync,
+                        contentDescription = "Sync SMS transactions",
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                // Add FAB
+                FloatingActionButton(
+                    onClick = onNavigateToAddScreen,
+                    modifier = Modifier
+                        .then(
+                            if (sharedTransitionScope != null && animatedContentScope != null) {
+                                with(sharedTransitionScope) {
+                                    Modifier.sharedBounds(
+                                        rememberSharedContentState(key = "fab_to_add"),
+                                        animatedVisibilityScope = animatedContentScope,
+                                        boundsTransform = { _, _ ->
+                                            spring(
+                                                stiffness = Spring.StiffnessLow,
+                                                dampingRatio = Spring.DampingRatioLowBouncy
+                                            )
+                                        },
+                                        resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(
+                                            contentScale = ContentScale.FillBounds,
+                                            alignment = Alignment.Center
+                                        )
+                                    )
+                                    .skipToLookaheadSize()
+                                }
+                            } else Modifier
+                        ),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add Transaction or Subscription",
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
 
             // Full Resync Confirmation Dialog

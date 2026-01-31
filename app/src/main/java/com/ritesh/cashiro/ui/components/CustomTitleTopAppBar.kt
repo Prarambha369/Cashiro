@@ -6,27 +6,11 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowBackIosNew
-import androidx.compose.material.icons.rounded.Contacts
-import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.FilterList
-import androidx.compose.material.icons.rounded.Menu
-import androidx.compose.material.icons.rounded.MoreHoriz
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layout
@@ -52,7 +36,7 @@ fun CustomTitleTopAppBar(
     hasBackButton: Boolean = false,
     actionContent: @Composable () -> Unit = {},
     navigationContent: @Composable () -> Unit = {},
-    greetingCard: @Composable () -> Unit = {},
+    extraInfoCard: @Composable () -> Unit = {},
     hazeState: HazeState = HazeState(),
 ) {
     val collapsedFraction = scrollBehaviorLarge.state.collapsedFraction
@@ -67,7 +51,7 @@ fun CustomTitleTopAppBar(
             collapsedFraction = collapsedFraction,
             actionContent = actionContent,
             navigationContent = navigationContent,
-            greetingCard = greetingCard,
+            extraInfoCard = extraInfoCard,
             hazeState = hazeState,
             themeColors = MaterialTheme.colorScheme
         )
@@ -153,7 +137,7 @@ private fun LargerTopAppBar(
     title: String,
     hasBackButton: Boolean = false,
     collapsedFraction: Float,
-    greetingCard: @Composable () -> Unit = {} ,
+    extraInfoCard: @Composable () -> Unit = {},
     actionContent: @Composable () -> Unit = {},
     navigationContent: @Composable () -> Unit = {},
     hazeState: HazeState,
@@ -165,7 +149,7 @@ private fun LargerTopAppBar(
             TitleForLargeTopAppBar(
                 title = title,
                 modifier = modifier ,
-                greetingCard = greetingCard,
+                extraInfoCard = extraInfoCard,
             )
         },
         colors = TopAppBarDefaults.topAppBarColors(
@@ -222,7 +206,7 @@ private fun LargerTopAppBar(
 private fun TitleForLargeTopAppBar(
     modifier: Modifier = Modifier,
     title: String,
-    greetingCard: @Composable () -> Unit = {},
+    extraInfoCard: @Composable () -> Unit = {},
 ){
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -244,7 +228,7 @@ private fun TitleForLargeTopAppBar(
                     .padding(start = 10.dp)
             )
         }
-        greetingCard()
+        extraInfoCard()
     }
 }
 
