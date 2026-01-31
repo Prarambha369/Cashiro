@@ -5,7 +5,8 @@
 [![Android](https://img.shields.io/badge/Android-12+-3DDC84)](https://developer.android.com/about/versions/12)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF)](https://kotlinlang.org/)
 [![Privacy](https://img.shields.io/badge/AI-100%25_On--Device-FF6B6B)](https://developers.google.com/mediapipe)
-[![Downloads](https://img.shields.io/badge/Downloads-100+-green)](https://play.google.com/store/apps/details?id=com.pennywiseai.tracker)
+
+[//]: # ([![Downloads]&#40;https://img.shields.io/badge/Downloads-100+-green&#41;]&#40;https://play.google.com/store/apps/details?id=com.pennywiseai.tracker&#41;)
 
 [//]: # ([![F-Droid]&#40;https://img.shields.io/f-droid/v/com.pennywiseai.tracker?color=1976d2&#41;]&#40;https://f-droid.org/packages/com.pennywiseai.tracker/&#41;)
 [//]: # ([![GitHub release]&#40;https://img.shields.io/github/v/release/sarim2000/pennywiseai-tracker&#41;]&#40;https://github.com/sarim2000/pennywiseai-tracker/releases&#41;)
