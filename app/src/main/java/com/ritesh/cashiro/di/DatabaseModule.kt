@@ -6,6 +6,7 @@ import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.ritesh.cashiro.data.database.CashiroDatabase
 import com.ritesh.cashiro.data.database.dao.AccountBalanceDao
+import com.ritesh.cashiro.data.database.dao.BudgetDao
 import com.ritesh.cashiro.data.database.dao.CardDao
 import com.ritesh.cashiro.data.database.dao.CategoryDao
 import com.ritesh.cashiro.data.database.dao.ChatDao
@@ -207,6 +208,12 @@ object DatabaseModule {
     @Singleton
     fun provideSubcategoryDao(database: CashiroDatabase): SubcategoryDao {
         return database.subcategoryDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideBudgetDao(database: CashiroDatabase): BudgetDao {
+        return database.budgetDao()
     }
 }
 /** Database callback to seed initial data when database is first created */

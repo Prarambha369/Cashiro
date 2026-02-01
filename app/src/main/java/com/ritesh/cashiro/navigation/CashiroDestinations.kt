@@ -52,3 +52,4 @@ data class Transactions(
 
 @Serializable object NotificationSettings
 
+@Serializable data class Budgets(val sharedElementPrefix: Long? = null)

@@ -20,9 +20,12 @@ import com.ritesh.cashiro.data.database.dao.RuleApplicationDao
 import com.ritesh.cashiro.data.database.dao.RuleDao
 import com.ritesh.cashiro.data.database.dao.SubcategoryDao
 import com.ritesh.cashiro.data.database.dao.SubscriptionDao
+import com.ritesh.cashiro.data.database.dao.BudgetDao
 import com.ritesh.cashiro.data.database.dao.TransactionDao
 import com.ritesh.cashiro.data.database.dao.UnrecognizedSmsDao
 import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
+import com.ritesh.cashiro.data.database.entity.BudgetCategoryLimitEntity
+import com.ritesh.cashiro.data.database.entity.BudgetEntity
 import com.ritesh.cashiro.data.database.entity.CardEntity
 import com.ritesh.cashiro.data.database.entity.CategoryEntity
 import com.ritesh.cashiro.data.database.entity.ChatMessage
@@ -59,9 +62,11 @@ import com.ritesh.cashiro.data.database.entity.UnrecognizedSmsEntity
             RuleEntity::class,
             RuleApplicationEntity::class,
             ExchangeRateEntity::class,
-            SubcategoryEntity::class
+            SubcategoryEntity::class,
+            BudgetEntity::class,
+            BudgetCategoryLimitEntity::class
         ],
-    version = 36,
+    version = 37,
     exportSchema = true,
     autoMigrations =
         [
@@ -73,7 +78,8 @@ import com.ritesh.cashiro.data.database.entity.UnrecognizedSmsEntity
             AutoMigration(from = 32, to = 33),
             AutoMigration(from = 33, to = 34),
             AutoMigration(from = 34, to = 35, spec = Migration34To35::class),
-            AutoMigration(from = 35, to = 36)
+            AutoMigration(from = 35, to = 36),
+            AutoMigration(from = 36, to = 37)
         ]
 )
 @TypeConverters(Converters::class)
@@ -90,6 +96,7 @@ abstract class CashiroDatabase : RoomDatabase() {
     abstract fun ruleApplicationDao(): RuleApplicationDao
     abstract fun exchangeRateDao(): ExchangeRateDao
     abstract fun subcategoryDao(): SubcategoryDao
+    abstract fun budgetDao(): BudgetDao
 
     companion object {
         const val DATABASE_NAME = "pennywise_database"

@@ -58,6 +58,7 @@ import com.ritesh.cashiro.presentation.home.HomeScreen
 import com.ritesh.cashiro.presentation.home.HomeViewModel
 import com.ritesh.cashiro.presentation.navigation.BottomNavItem
 import com.ritesh.cashiro.presentation.profile.ProfileScreen
+import com.ritesh.cashiro.navigation.Budgets
 import com.ritesh.cashiro.ui.components.SpotlightTutorial
 import com.ritesh.cashiro.ui.effects.BlurredAnimatedVisibility
 import com.ritesh.cashiro.ui.screens.analytics.AnalyticsScreen
@@ -106,7 +107,7 @@ fun MainScreen(
                     visible = themeUiState.navigationBarStyle == NavigationBarStyle.NORMAL &&
                             currentRoute in listOf("home", "analytics"),
                     enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
-                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
+                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
                 ) {
                     NavigationBar(
                         containerColor = MaterialTheme.colorScheme.surface,
@@ -170,6 +171,7 @@ fun MainScreen(
                                     Transactions(focusSearch = true)) },
                                 onNavigateToSubscriptions = { rootNavController?.navigate(Subscriptions) },
                                 onNavigateToAddScreen = { rootNavController?.navigate(AddTransaction()) },
+                                onNavigateToBudgets = { id -> rootNavController?.navigate(Budgets(sharedElementPrefix = id)) },
                                 onTransactionClick = { transactionId, key ->
                                     rootNavController?.navigate(
                                         TransactionDetail(transactionId, key)
@@ -239,6 +241,9 @@ fun MainScreen(
                                 },
                                 onNavigateToNotifications = {
                                     navController.navigate("notification_settings")
+                                },
+                                onNavigateToBudgets = {
+                                    rootNavController?.navigate(Budgets())
                                 },
                                 onNavigateToDeveloper = {
                                     navController.navigate("developer_options")
@@ -352,7 +357,8 @@ fun MainScreen(
                     visible = themeUiState.navigationBarStyle == NavigationBarStyle.FLOATING &&
                     currentRoute in listOf("home", "analytics"),
                     enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
-                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
+                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
+                    modifier = Modifier.align(Alignment.BottomCenter)
                 ) {
                     Box(
                         modifier = Modifier

@@ -113,6 +113,7 @@ import com.ritesh.cashiro.navigation.NotificationSettings
 import com.ritesh.cashiro.navigation.UnrecognizedSms
 import com.ritesh.cashiro.ui.components.AccountCarousel
 import com.ritesh.cashiro.ui.components.BalanceCard
+import com.ritesh.cashiro.ui.components.BudgetCarousel
 import com.ritesh.cashiro.ui.components.CashiroCard
 import com.ritesh.cashiro.ui.components.CurrencySelectionBottomSheet
 import com.ritesh.cashiro.ui.components.CustomTitleTopAppBar
@@ -151,11 +152,13 @@ fun HomeScreen(
     onNavigateToTransactionsWithSearch: () -> Unit = {},
     onNavigateToSubscriptions: () -> Unit = {},
     onNavigateToAddScreen: () -> Unit = {},
+    onNavigateToBudgets: (Long?) -> Unit = {},
     onTransactionClick: (Long, String) -> Unit = { _, _ -> },
     onFabPositioned: (Rect) -> Unit = {},
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedContentScope: AnimatedContentScope? = null
 ) {
+
     val uiState by viewModel.uiState.collectAsState()
     val deletedTransaction by viewModel.deletedTransaction.collectAsState()
     val smsScanWorkInfo by viewModel.smsScanWorkInfo.collectAsState()
@@ -398,6 +401,20 @@ fun HomeScreen(
                 }
                 item{
                     Spacer(Modifier.height(Spacing.md))
+                }
+
+                // Budgets Carousel
+                if (uiState.activeBudgets.isNotEmpty()) {
+                    item {
+                       BudgetCarousel(
+                            budgets = uiState.activeBudgets,
+                            onBudgetClick = { onNavigateToBudgets(it) },
+                            onEditClick = { onNavigateToBudgets(it) },
+                            modifier = Modifier.padding(bottom = Spacing.md),
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedContentScope
+                        )
+                    }
                 }
 
                 if (uiState.creditCards.isNotEmpty() ||

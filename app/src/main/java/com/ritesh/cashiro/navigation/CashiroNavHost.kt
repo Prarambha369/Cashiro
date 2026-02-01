@@ -31,6 +31,7 @@ import com.ritesh.cashiro.ui.screens.unrecognized.UnrecognizedSmsScreen
 import com.ritesh.cashiro.presentation.subscriptions.SubscriptionsScreen
 import com.ritesh.cashiro.ui.screens.settings.SMSScreen
 import com.ritesh.cashiro.ui.viewmodel.ThemeViewModel
+import com.ritesh.cashiro.presentation.budgets.BudgetsScreen
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -116,7 +117,8 @@ fun CashiroNavHost(
                     onNavigateToAppearance = { navController.navigate(Appearance) },
                     onNavigateToProfile = { navController.navigate(Profile) },
                     onNavigateToSms = { navController.navigate(SmsSettings) },
-                    onNavigateToNotifications = { navController.navigate(NotificationSettings) }
+                    onNavigateToNotifications = { navController.navigate(NotificationSettings) },
+                    onNavigateToBudgets = { navController.navigate(Budgets) }
                 )
             }
 
@@ -262,6 +264,21 @@ fun CashiroNavHost(
                     },
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedContentScope = this@composable
+                )
+            }
+
+            composable<Budgets>(
+                enterTransition = { EnterTransition.None },
+                exitTransition = { ExitTransition.None },
+                popEnterTransition = { EnterTransition.None },
+                popExitTransition = { ExitTransition.None }
+            ) { backStackEntry ->
+                val budgets = backStackEntry.toRoute<Budgets>()
+                BudgetsScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedContentScope = this@composable,
+                    sharedElementPrefix = budgets.sharedElementPrefix
                 )
             }
         }

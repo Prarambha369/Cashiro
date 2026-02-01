@@ -48,6 +48,7 @@ import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material.icons.rounded.PieChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -135,6 +136,7 @@ fun SettingsScreen(
     onNavigateToProfile: () -> Unit = {},
     onNavigateToSms: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
+    onNavigateToBudgets: () -> Unit = {},
     onNavigateToDeveloper: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.ritesh.cashiro.ui.viewmodel.AppLockViewModel = hiltViewModel()
@@ -476,6 +478,51 @@ fun SettingsScreen(
                         },
                         onClick = { onNavigateToManageAccounts() },
                         shape = ListItemPosition.Top.toShape(),
+                        padding = PaddingValues(0.dp)
+                    )
+
+                    // Budgets
+                    ListItem(
+                        headline = {
+                            Text(
+                                text = "Budgets",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                        },
+                        supporting = {
+                            Text(
+                                text = "Set and manage monthly spending limits",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        leading = {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(
+                                        color = green_light,
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Rounded.PieChart,
+                                    contentDescription = null,
+                                    tint = green_dark
+                                )
+                            }
+                        },
+                        trailing = {
+                            Icon(
+                                Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        onClick = { onNavigateToBudgets() },
+                        shape = ListItemPosition.Middle.toShape(),
                         padding = PaddingValues(0.dp)
                     )
 

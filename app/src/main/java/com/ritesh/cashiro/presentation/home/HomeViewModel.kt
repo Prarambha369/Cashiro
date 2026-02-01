@@ -24,9 +24,12 @@ import com.ritesh.cashiro.data.repository.SubscriptionRepository
 import com.ritesh.cashiro.data.repository.SubcategoryRepository
 import com.ritesh.cashiro.data.repository.TransactionRepository
 import com.ritesh.cashiro.data.repository.UnrecognizedSmsRepository
+import com.ritesh.cashiro.data.repository.BudgetRepository
+import com.ritesh.cashiro.data.repository.BudgetWithSpending
 import com.ritesh.cashiro.data.preferences.UserPreferencesRepository
 import com.ritesh.cashiro.worker.OptimizedSmsReaderWorker
 import androidx.compose.ui.graphics.Color
+import java.time.YearMonth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,6 +57,7 @@ class HomeViewModel @Inject constructor(
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     private val categoryRepository: CategoryRepository,
     private val subcategoryRepository: SubcategoryRepository,
+    private val budgetRepository: BudgetRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     
@@ -249,6 +253,17 @@ class HomeViewModel @Inject constructor(
                     upcomingSubscriptionsCurrency = targetCurrency
                 )
             }
+        }
+
+        viewModelScope.launch {
+            // Load active budgets for current month
+            val yearMonth = YearMonth.now()
+            budgetRepository.getBudgetsWithSpendingForMonth(yearMonth.year, yearMonth.monthValue)
+                .collect { budgets ->
+                    _uiState.value = _uiState.value.copy(
+                        activeBudgets = budgets
+                    )
+                }
         }
     }
     
@@ -656,5 +671,6 @@ data class HomeUiState(
     val profileBackgroundColor: Color = Color.Transparent,
     val unreadUpdatesCount: Int = 0,
     val bannerImageUri: Uri? = null,
-    val showBannerImage: Boolean = false
+    val showBannerImage: Boolean = false,
+    val activeBudgets: List<BudgetWithSpending> = emptyList()
 )
