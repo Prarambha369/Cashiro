@@ -2,8 +2,6 @@ package com.ritesh.cashiro.presentation.ui.features.transactions
 
 import android.content.Intent
 import android.util.Log
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -21,8 +19,22 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -34,26 +46,84 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.EventRepeat
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.SubdirectoryArrowRight
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalContext
@@ -62,22 +132,31 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
+import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ritesh.cashiro.data.database.entity.CategoryEntity
 import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
+import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionType
-import com.ritesh.cashiro.presentation.ui.features.accounts.NumberPad
-import com.ritesh.cashiro.presentation.ui.features.add.AmountInput
-import com.ritesh.cashiro.presentation.ui.components.*
+import com.ritesh.cashiro.presentation.common.icons.BrandIcons
 import com.ritesh.cashiro.presentation.common.icons.CategoryMapping
 import com.ritesh.cashiro.presentation.effects.BlurredAnimatedVisibility
 import com.ritesh.cashiro.presentation.effects.overScrollVertical
-import com.ritesh.cashiro.presentation.common.icons.BrandIcons
+import com.ritesh.cashiro.presentation.ui.components.BrandIcon
+import com.ritesh.cashiro.presentation.ui.components.CashiroCard
+import com.ritesh.cashiro.presentation.ui.components.CategoryIcon
+import com.ritesh.cashiro.presentation.ui.components.CategorySelectionSheet
+import com.ritesh.cashiro.presentation.ui.components.CustomTitleTopAppBar
+import com.ritesh.cashiro.presentation.ui.components.PreferenceSwitch
+import com.ritesh.cashiro.presentation.ui.features.accounts.NumberPad
+import com.ritesh.cashiro.presentation.ui.features.add.AmountInput
 import com.ritesh.cashiro.presentation.ui.theme.Dimensions
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
 import com.ritesh.cashiro.utils.CurrencyFormatter
@@ -90,10 +169,6 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import androidx.core.net.toUri
-import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
-import com.ritesh.cashiro.presentation.navigation.sharedBounds
-import androidx.activity.compose.BackHandler
 
 @OptIn(
     ExperimentalMaterial3Api::class,
@@ -140,13 +215,6 @@ fun SharedTransitionScope.TransactionDetailScreen(
     var showTargetAccountSheet by remember { mutableStateOf(false) }
     var showBillingCycleMenu by remember { mutableStateOf(false) }
 
-    // Track if a transition is currently running to prevent race conditions in UI interaction
-    val isTransitioning = animatedContentScope?.transition?.let { 
-        it.currentState != it.targetState 
-    } ?: false
-
-    // Intercept back button during transition to prevent double-pops or desync
-    BackHandler(enabled = isTransitioning) { }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -190,7 +258,7 @@ fun SharedTransitionScope.TransactionDetailScreen(
                     animatedVisibilityScope = animatedContentScope,
                     boundsTransform = { _, _ ->
                         spring(
-                            stiffness = Spring.StiffnessLow,
+                            stiffness = 600f,
                             dampingRatio = Spring.DampingRatioNoBouncy
                         )
                     },
@@ -242,12 +310,10 @@ fun SharedTransitionScope.TransactionDetailScreen(
                     TransactionNavigationContent(
                         isEditMode = isEditMode,
                         onBackClick = {
-                            if (!isTransitioning) {
-                                if (isEditMode) {
-                                    transactionDetailViewModel.cancelEdit()
-                                } else {
-                                    onNavigateBack()
-                                }
+                            if (isEditMode) {
+                                transactionDetailViewModel.cancelEdit()
+                            } else {
+                                onNavigateBack()
                             }
                         }
                     )
@@ -310,8 +376,6 @@ fun SharedTransitionScope.TransactionDetailScreen(
                     categories = categories,
                     subcategoriesMap = allSubcategories,
                     linkedSubscription = linkedSubscription,
-                    animatedContentScope = animatedContentScope,
-                    isTransitioning = isTransitioning
                 )
             }
 
@@ -371,11 +435,12 @@ fun SharedTransitionScope.TransactionDetailScreen(
                             Icon(
                                 imageVector = Icons.Default.Delete,
                                 contentDescription = "Delete Transaction",
-                                modifier = Modifier.size(Dimensions.Icon.medium)
+                                modifier = Modifier.size(Dimensions.Icon.small)
                             )
                             Spacer(modifier = Modifier.width(Spacing.xs))
                             Text(
                                 text = "Delete",
+                                style = MaterialTheme.typography.labelLarge
                             )
                         }
                     }
@@ -583,9 +648,7 @@ private fun TransactionDetailContent(
     availableAccounts: List<AccountInfo>,
     categories: List<CategoryEntity>,
     subcategoriesMap: Map<Long, List<SubcategoryEntity>>,
-    linkedSubscription: SubscriptionEntity? = null,
-    animatedContentScope: AnimatedContentScope? = null,
-    isTransitioning: Boolean = false
+    linkedSubscription: SubscriptionEntity? = null
 ) {
 
     Column(
@@ -595,8 +658,7 @@ private fun TransactionDetailContent(
             .hazeSource(state = hazeState)
             .overScrollVertical()
             .verticalScroll(
-                state = rememberScrollState(),
-                enabled = !isTransitioning
+                state = rememberScrollState()
             )
             .padding(
                 start = Dimensions.Padding.content,
@@ -2221,7 +2283,7 @@ private fun ReceiptBadge(
     Surface(
         shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shadowElevation = 8.dp,
+        shadowElevation = 2.dp,
         border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)),
         modifier = Modifier.wrapContentSize()
     ) {

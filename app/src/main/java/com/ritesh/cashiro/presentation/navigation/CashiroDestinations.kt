@@ -3,8 +3,8 @@ package com.ritesh.cashiro.presentation.navigation
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -33,104 +33,152 @@ object SharedElementKeys {
 
 // Centralized transition definitions
 object CashiroTransitions {
-    private const val DURATION_NORMAL = 300
-    private const val DURATION_FAST = 200
     
     // Horizontal slide transitions for sub-screens
     val horizontalSlideEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
         slideInHorizontally(
             initialOffsetX = { it },
-            animationSpec = tween(DURATION_NORMAL, easing = FastOutSlowInEasing)
-        ) + fadeIn(animationSpec = tween(DURATION_NORMAL))
+            animationSpec = spring(
+                stiffness = Spring.StiffnessLow,
+                dampingRatio = Spring.DampingRatioNoBouncy
+            )
+        ) + fadeIn(animationSpec = spring(stiffness = Spring.StiffnessLow))
     }
     
     val horizontalSlideExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
         slideOutHorizontally(
             targetOffsetX = { -it / 4 },
-            animationSpec = tween(DURATION_NORMAL, easing = FastOutSlowInEasing)
-        ) + fadeOut(animationSpec = tween(DURATION_NORMAL))
+            animationSpec = spring(
+                stiffness = Spring.StiffnessLow,
+                dampingRatio = Spring.DampingRatioNoBouncy
+            )
+        ) + fadeOut(animationSpec = spring(stiffness = Spring.StiffnessLow))
     }
     
     val horizontalSlidePopEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
         slideInHorizontally(
             initialOffsetX = { -it / 4 },
-            animationSpec = tween(DURATION_NORMAL, easing = FastOutSlowInEasing)
-        ) + fadeIn(animationSpec = tween(DURATION_NORMAL))
+            animationSpec = spring(
+                stiffness = Spring.StiffnessLow,
+                dampingRatio = Spring.DampingRatioNoBouncy
+            )
+        ) + fadeIn(animationSpec = spring(stiffness = Spring.StiffnessLow))
     }
     
     val horizontalSlidePopExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
         slideOutHorizontally(
             targetOffsetX = { it },
-            animationSpec = tween(DURATION_NORMAL, easing = FastOutSlowInEasing)
-        ) + fadeOut(animationSpec = tween(DURATION_NORMAL))
+            animationSpec = spring(
+                stiffness = Spring.StiffnessLow,
+                dampingRatio = Spring.DampingRatioNoBouncy
+            )
+        ) + fadeOut(animationSpec = spring(stiffness = Spring.StiffnessLow))
     }
     
     // Vertical slide transitions
     val verticalSlideEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
         slideInVertically(
             initialOffsetY = { it },
-            animationSpec = tween(DURATION_NORMAL, easing = FastOutSlowInEasing)
-        ) + fadeIn(animationSpec = tween(DURATION_NORMAL))
+            animationSpec = spring(
+                stiffness = Spring.StiffnessLow,
+                dampingRatio = Spring.DampingRatioNoBouncy
+            )
+        ) + fadeIn(animationSpec = spring(stiffness = Spring.StiffnessLow))
     }
     
     val verticalSlideExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
         slideOutVertically(
-            targetOffsetY = { it },
-            animationSpec = tween(DURATION_NORMAL, easing = FastOutSlowInEasing)
-        ) + fadeOut(animationSpec = tween(DURATION_NORMAL))
+            targetOffsetY = { -it / 4},
+            animationSpec = spring(
+                stiffness = Spring.StiffnessLow,
+                dampingRatio = Spring.DampingRatioNoBouncy
+            )
+        ) + fadeOut(animationSpec = spring(stiffness = Spring.StiffnessLow))
+    }
+
+    val verticalSlidePopEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+        slideInVertically(
+            initialOffsetY = { -it / 4 },
+            animationSpec = spring(
+                stiffness = Spring.StiffnessLow,
+                dampingRatio = Spring.DampingRatioNoBouncy
+            )
+        ) + fadeIn(animationSpec = spring(stiffness = Spring.StiffnessLow))
+    }
+
+    val verticalSlidePopExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+        slideOutVertically(
+            targetOffsetY = { -it },
+            animationSpec = spring(
+                stiffness = Spring.StiffnessLow,
+                dampingRatio = Spring.DampingRatioNoBouncy
+            )
+        ) + fadeOut(animationSpec = spring(stiffness = Spring.StiffnessLow))
     }
     
     // FAB to screen scale transitions
     val fabScaleEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
-        fadeIn(animationSpec = tween(DURATION_NORMAL)) +
+        fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMedium)) +
             scaleIn(
                 initialScale = 0.8f,
-                animationSpec = tween(DURATION_NORMAL + 100, easing = FastOutSlowInEasing)
+                animationSpec = spring(
+                    stiffness = Spring.StiffnessMedium,
+                    dampingRatio = Spring.DampingRatioLowBouncy
+                )
             )
     }
     
     val fabScaleExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
-        fadeOut(animationSpec = tween(DURATION_FAST)) +
+        fadeOut(animationSpec = spring(stiffness = Spring.StiffnessMedium)) +
             scaleOut(
                 targetScale = 1.1f,
-                animationSpec = tween(DURATION_FAST, easing = FastOutSlowInEasing)
+                animationSpec = spring(
+                    stiffness = Spring.StiffnessMedium,
+                    dampingRatio = Spring.DampingRatioLowBouncy
+                )
             )
     }
     
     val fabScalePopEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
-        fadeIn(animationSpec = tween(DURATION_NORMAL)) +
+        fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMedium)) +
             scaleIn(
                 initialScale = 1.1f,
-                animationSpec = tween(DURATION_NORMAL, easing = FastOutSlowInEasing)
+                animationSpec = spring(
+                    stiffness = Spring.StiffnessMedium,
+                    dampingRatio = Spring.DampingRatioLowBouncy
+                )
             )
     }
     
     val fabScalePopExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
-        fadeOut(animationSpec = tween(DURATION_FAST)) +
+        fadeOut(animationSpec = spring(stiffness = Spring.StiffnessMedium)) +
             scaleOut(
                 targetScale = 0.8f,
-                animationSpec = tween(DURATION_FAST, easing = FastOutSlowInEasing)
+                animationSpec = spring(
+                    stiffness = Spring.StiffnessMedium,
+                    dampingRatio = Spring.DampingRatioLowBouncy
+                )
             )
     }
     
     // Scale transitions for detail screens
     val scaleEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
-        fadeIn(animationSpec = tween(DURATION_NORMAL)) +
-            scaleIn(animationSpec = tween(DURATION_NORMAL, easing = FastOutSlowInEasing))
+        fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMedium)) +
+            scaleIn(animationSpec = spring(stiffness = Spring.StiffnessMedium, dampingRatio = Spring.DampingRatioLowBouncy))
     }
     
     val scaleExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
-        fadeOut(animationSpec = tween(DURATION_FAST)) +
-            scaleOut(animationSpec = tween(DURATION_FAST, easing = FastOutSlowInEasing))
+        fadeOut(animationSpec = spring(stiffness = Spring.StiffnessMedium)) +
+            scaleOut(animationSpec = spring(stiffness = Spring.StiffnessMedium, dampingRatio = Spring.DampingRatioLowBouncy))
     }
     
     // None transitions - for screens using shared element transitions entirely
     val noneEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
-        EnterTransition.None
+        fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMedium))
     }
     
     val noneExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
-        ExitTransition.None
+        fadeOut(animationSpec = spring(stiffness = Spring.StiffnessMedium))
     }
 }
 

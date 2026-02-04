@@ -101,7 +101,7 @@ fun SharedTransitionScope.TransactionItem(
                 animatedVisibilityScope = animatedContentScope,
                 boundsTransform = { _, _ ->
                     spring(
-                        stiffness = Spring.StiffnessLow,
+                        stiffness = 600f,
                         dampingRatio = Spring.DampingRatioNoBouncy
                     )
                 },

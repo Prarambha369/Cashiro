@@ -131,13 +131,6 @@ fun SettingsScreen(
     appLockViewModel: AppLockViewModel = hiltViewModel(),
     animatedVisibilityScope: androidx.compose.animation.AnimatedVisibilityScope? = null
 ) {
-    // Track if a transition is currently running to prevent race conditions in UI interaction
-    val isTransitioning = animatedVisibilityScope?.transition?.let { 
-        it.currentState != it.targetState 
-    } ?: false
-
-    // Intercept back button during transition to prevent double-pops or desync
-    BackHandler(enabled = isTransitioning) { }
     val appLockUiState by appLockViewModel.uiState.collectAsStateWithLifecycle()
     val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
     val downloadState = uiState.downloadStatus
@@ -183,7 +176,7 @@ fun SettingsScreen(
                 scrollBehaviorLarge = scrollBehavior,
                 hazeState = hazeState,
                 hasBackButton = true,
-                navigationContent = { NavigationContent { if (!isTransitioning) onNavigateBack() } }
+                navigationContent = { NavigationContent { onNavigateBack() } }
             )
         }
     ) { paddingValues ->
@@ -198,8 +191,7 @@ fun SettingsScreen(
                     .hazeSource(state = hazeState)
                     .overScrollVertical()
                     .verticalScroll(
-                        state = rememberScrollState(),
-                        enabled = !isTransitioning
+                        state = rememberScrollState()
                     )
                     .padding(
                         start = Dimensions.Padding.content,

@@ -138,16 +138,9 @@ fun SharedTransitionScope.AnalyticsScreen(
     
     var lastBackPressTime by remember { mutableStateOf(0L) }
     
-    // Track if a transition is currently running to prevent race conditions in UI interaction
-    val isTransitioning = animatedContentScope?.transition?.let { 
-        it.currentState != it.targetState 
-    } ?: false
-
-    // Intercept back button during transition to prevent double-pops or desync
-    BackHandler(enabled = isTransitioning) { }
     val context = LocalContext.current
     
-    BackHandler(enabled = !isTransitioning) {
+    BackHandler {
         val currentTime = System.currentTimeMillis()
         if (currentTime - lastBackPressTime < 2000) {
             (context as? Activity)?.finish()
@@ -201,7 +194,6 @@ fun SharedTransitionScope.AnalyticsScreen(
                     top = paddingValues.calculateTopPadding() + Dimensions.Padding.content,
                     bottom = Dimensions.Padding.content + 80.dp
                 ),
-                userScrollEnabled = !isTransitioning
             ) {
                 // Filters (Period and Type)
                 item {
@@ -580,14 +572,12 @@ fun SharedTransitionScope.AnalyticsScreen(
                                         percentage = category.percentage / 100f,
                                         currency = uiState.currency,
                                         onClick = {
-                                            if (!isTransitioning) {
-                                                onNavigateToTransactions(
-                                                    category.name,
-                                                    null,
-                                                    selectedPeriod.name,
-                                                    uiState.currency
-                                                )
-                                            }
+                                         onNavigateToTransactions(
+                                             category.name,
+                                             null,
+                                             selectedPeriod.name,
+                                             uiState.currency
+                                         )
                                         },
                                         animatedContentScope = animatedContentScope
                                     )
@@ -637,14 +627,12 @@ fun SharedTransitionScope.AnalyticsScreen(
                                     subcategoriesMap[merchant.subcategoryName]
                                 } else null,
                                 onClick = {
-                                    if (!isTransitioning) {
-                                        onNavigateToTransactions(
-                                            null,
-                                            merchant.name,
-                                            selectedPeriod.name,
-                                            uiState.currency
-                                        )
-                                    }
+                                     onNavigateToTransactions(
+                                         null,
+                                         merchant.name,
+                                         selectedPeriod.name,
+                                         uiState.currency
+                                     )
                                 },
                                 shape = position.toShape(),
                                 modifier = Modifier.padding(
@@ -749,7 +737,7 @@ fun SharedTransitionScope.CategoryProgressItem(
                         animatedVisibilityScope = animatedContentScope,
                         boundsTransform = { _, _ ->
                             spring(
-                                stiffness = Spring.StiffnessLow,
+                                stiffness = 600f,
                                 dampingRatio = Spring.DampingRatioNoBouncy
                             )
                         },

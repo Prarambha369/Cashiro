@@ -53,13 +53,6 @@ fun SharedTransitionScope.BudgetsScreen(
     
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     
-    // Track if a transition is currently running to prevent race conditions in UI interaction
-    val isTransitioning = animatedContentScope?.transition?.let { 
-        it.currentState != it.targetState 
-    } ?: false
-
-    // Intercept back button during transition to prevent double-pops or desync
-    BackHandler(enabled = isTransitioning) { }
     
     // Edit budget sheet
     if (showEditSheet) {
@@ -246,7 +239,6 @@ private fun SharedTransitionScope.BudgetsList(
             bottom = 100.dp // Space for FAB
         ),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        userScrollEnabled = !isTransitioning
     ) {
         items(
             items = budgets,

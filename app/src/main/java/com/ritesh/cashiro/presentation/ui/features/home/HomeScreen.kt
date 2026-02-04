@@ -165,10 +165,6 @@ fun SharedTransitionScope.HomeScreen(
     var lastBackPressTime by remember { mutableLongStateOf(0L) }
     val context = LocalContext.current
     
-    // Track if a transition is currently running to prevent race conditions in UI interaction
-    val isTransitioning = animatedContentScope?.transition?.let { 
-        it.currentState != it.targetState 
-    } ?: false
     
     BackHandler {
         val currentTime = System.currentTimeMillis()
@@ -259,10 +255,10 @@ fun SharedTransitionScope.HomeScreen(
                         profileImageUri = uiState.profileImageUri,
                         profileBackgroundColor = uiState.profileBackgroundColor,
                         unreadUpdatesCount = uiState.unreadUpdatesCount,
-                        onProfileClick = { if (!isTransitioning) onNavigateToSettings() },
-                        onNotificationClick = { if (!isTransitioning) navController.safeNavigate(NotificationSettings) },
-                        onMoreClick = { if (!isTransitioning) showMoreBottomSheet = true },
-                        onUpdatesClick = { if (!isTransitioning) navController.safeNavigate(UnrecognizedSms) }
+                        onProfileClick = onNavigateToSettings,
+                        onNotificationClick = { navController.safeNavigate(NotificationSettings) },
+                        onMoreClick = { showMoreBottomSheet = true },
+                        onUpdatesClick = { navController.safeNavigate(UnrecognizedSms) }
                     )
                 },
                 navigationContent = {
@@ -272,7 +268,7 @@ fun SharedTransitionScope.HomeScreen(
                             .size(40.dp)
                             .clip(CircleShape)
                             .background(uiState.profileBackgroundColor)
-                            .clickable { if (!isTransitioning) onNavigateToSettings() },
+                            .clickable { onNavigateToSettings() },
                         contentAlignment = Alignment.Center
                     ) {
                         if (uiState.profileImageUri != null) {
@@ -385,7 +381,6 @@ fun SharedTransitionScope.HomeScreen(
                         top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
                         bottom = 0.dp
                     ),
-                userScrollEnabled = !isTransitioning
             ) {
                 // Transaction Summary Cards
                 item {
@@ -406,23 +401,19 @@ fun SharedTransitionScope.HomeScreen(
                        var lastBudgetClickTime by remember { mutableLongStateOf(0L) }
                        BudgetCarousel(
                             budgets = uiState.activeBudgets,
-                            onBudgetClick = { 
-                                if (!isTransitioning) {
-                                    val currentTime = System.currentTimeMillis()
-                                    if (currentTime - lastBudgetClickTime > 500) {
-                                        lastBudgetClickTime = currentTime
-                                        onNavigateToBudgets(it) 
-                                    }
+                            onBudgetClick = {
+                                val currentTime = System.currentTimeMillis()
+                                if (currentTime - lastBudgetClickTime > 500) {
+                                    lastBudgetClickTime = currentTime
+                                    onNavigateToBudgets(it)
                                 }
                             },
-                            onEditClick = { 
-                                if (!isTransitioning) {
-                                  val currentTime = System.currentTimeMillis()
-                                  if (currentTime - lastBudgetClickTime > 500) {
-                                    lastBudgetClickTime = currentTime
-                                    onNavigateToBudgets(it) 
-                                  }
-                                }
+                            onEditClick = {
+                               val currentTime = System.currentTimeMillis()
+                               if (currentTime - lastBudgetClickTime > 500) {
+                                 lastBudgetClickTime = currentTime
+                                 onNavigateToBudgets(it) 
+                               }
                             },
                             modifier = Modifier.padding(bottom = Spacing.md),
                             animatedVisibilityScope = animatedContentScope
@@ -438,14 +429,12 @@ fun SharedTransitionScope.HomeScreen(
                             creditCards = uiState.creditCards,
                             bankAccounts = uiState.accountBalances,
                             onAccountClick = { bankName, accountLast4 ->
-                                if (!isTransitioning) {
-                                    navController.safeNavigate(
-                                        AccountDetail(
-                                            bankName = bankName,
-                                            accountLast4 = accountLast4
-                                        )
-                                    )
-                                }
+                                     navController.safeNavigate(
+                                         AccountDetail(
+                                             bankName = bankName,
+                                             accountLast4 = accountLast4
+                                         )
+                                     )
                             },
                             animatedContentScope = animatedContentScope
                         )
@@ -631,9 +620,7 @@ fun SharedTransitionScope.HomeScreen(
                             categoryEntity = categoryEntity,
                             subcategoryEntity = subcategoryEntity,
                             onClick = {
-                                if (!isTransitioning) {
-                                    onTransactionClick(transaction.id, "transaction_${transaction.id}")
-                                }
+                                 onTransactionClick(transaction.id, "transaction_${transaction.id}")
                             },
                             shape = position.toShape(),
                             modifier = Modifier.padding(

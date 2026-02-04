@@ -97,13 +97,6 @@ fun SharedTransitionScope.TransactionsScreen(
     var showDateRangePicker by remember { mutableStateOf(false) }
     var showCurrencySheet by remember { mutableStateOf(false) }
 
-    // Track if a transition is currently running to prevent race conditions in UI interaction
-    val isTransitioning = animatedContentScope?.transition?.let { 
-        it.currentState != it.targetState 
-    } ?: false
-
-    // Intercept back button during transition to prevent double-pops or desync
-    BackHandler(enabled = isTransitioning) { }
     
     // Focus management for search field
     val searchFocusRequester = remember { FocusRequester() }
@@ -230,7 +223,7 @@ fun SharedTransitionScope.TransactionsScreen(
                         animatedVisibilityScope = animatedContentScope,
                         boundsTransform = { _, _ ->
                             spring(
-                                stiffness = Spring.StiffnessLow,
+                                stiffness = 600f,
                                 dampingRatio = Spring.DampingRatioLowBouncy
                             )
                         },
@@ -245,7 +238,7 @@ fun SharedTransitionScope.TransactionsScreen(
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 hazeState = hazeState,
                 hasBackButton = true,
-                navigationContent = {NavigationContent { if (!isTransitioning) onNavigateBack() }}
+                navigationContent = {NavigationContent { onNavigateBack() }}
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -533,7 +526,6 @@ fun SharedTransitionScope.TransactionsScreen(
                             horizontal = Dimensions.Padding.content,
                             vertical = Spacing.md
                         ),
-                        userScrollEnabled = !isTransitioning
                     ) {
                         item {
                             // Totals Card - Moved after filters
@@ -621,7 +613,7 @@ fun SharedTransitionScope.TransactionsScreen(
                                         accountColorHex = accountsMap["${transaction.bankName}_${transaction.accountNumber}"]?.color,
                                         showDate = dateGroup == DateGroup.EARLIER,
                                         shape = position.toShape(),
-                                        onClick = { if (!isTransitioning) onTransactionClick(transaction.id, "transaction_${transaction.id}") },
+                                        onClick = { onTransactionClick(transaction.id, "transaction_${transaction.id}") },
                                         animatedContentScope = animatedContentScope,
                                         sharedElementKey = "transaction_${transaction.id}"
                                     )

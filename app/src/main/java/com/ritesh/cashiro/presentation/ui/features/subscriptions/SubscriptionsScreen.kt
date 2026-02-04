@@ -84,13 +84,6 @@ fun SubscriptionsScreen(
     val scrollBehaviorSmall = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     
-    // Track if a transition is currently running to prevent race conditions in UI interaction
-    val isTransitioning = animatedContentScope?.transition?.let { 
-        it.currentState != it.targetState 
-    } ?: false
-
-    // Intercept back button during transition to prevent double-pops or desync
-    BackHandler(enabled = isTransitioning) { }
 
     Box(
         modifier = Modifier.then(
@@ -175,7 +168,6 @@ fun SubscriptionsScreen(
                 bottom = paddingValues.calculateBottomPadding() + Dimensions.Padding.content
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
-            userScrollEnabled = !isTransitioning
         ) {
             // Total Monthly & Yearly Subscriptions Summary
             item {

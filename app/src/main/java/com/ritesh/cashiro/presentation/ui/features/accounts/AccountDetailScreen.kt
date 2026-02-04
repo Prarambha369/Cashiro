@@ -98,13 +98,6 @@ fun SharedTransitionScope.AccountDetailScreen(
     val hazeState = remember { HazeState() }
     val lazyListState = rememberLazyListState()
     
-    // Track if a transition is currently running to prevent race conditions in UI interaction
-    val isTransitioning = animatedContentScope?.transition?.let { 
-        it.currentState != it.targetState 
-    } ?: false
-
-    // Intercept back button during transition to prevent double-pops or desync
-    BackHandler(enabled = isTransitioning) { }
     
     Box(
         modifier = Modifier
@@ -116,7 +109,7 @@ fun SharedTransitionScope.AccountDetailScreen(
                         animatedVisibilityScope = animatedContentScope,
                         boundsTransform = { _, _ ->
                             spring(
-                                stiffness = Spring.StiffnessLow,
+                                stiffness = 600f,
                                 dampingRatio = Spring.DampingRatioNoBouncy
                             )
                         },
@@ -135,7 +128,7 @@ fun SharedTransitionScope.AccountDetailScreen(
                 title = uiState.bankName.ifEmpty { "Account Details" },
                 hasBackButton = true,
                 hazeState = hazeState,
-                navigationContent = { NavigationContent { if (!isTransitioning) navController.safePopBackStack() } },
+                navigationContent = { NavigationContent { navController.safePopBackStack() } },
             )
         }
     ) { paddingValues ->
@@ -148,7 +141,6 @@ fun SharedTransitionScope.AccountDetailScreen(
             contentPadding = PaddingValues(
                 top = Dimensions.Padding.content + paddingValues.calculateTopPadding()
             ),
-            userScrollEnabled = !isTransitioning
         ) {
             // Account Card
             item {
@@ -247,14 +239,12 @@ fun SharedTransitionScope.AccountDetailScreen(
                         accountIconResId = uiState.currentBalance?.iconResId ?: 0,
                         accountColorHex = uiState.currentBalance?.color,
                         onClick = {
-                            if (!isTransitioning) {
-                                navController.safeNavigate(
-                                    TransactionDetail(
-                                        transactionId = transaction.id,
-                                        sharedElementKey = "transaction_${transaction.id}"
-                                    )
+                            navController.safeNavigate(
+                                TransactionDetail(
+                                    transactionId = transaction.id,
+                                    sharedElementKey = "transaction_${transaction.id}"
                                 )
-                            }
+                            )
                         },
                         shape = shape,
                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content),

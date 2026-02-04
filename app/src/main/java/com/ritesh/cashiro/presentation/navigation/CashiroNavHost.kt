@@ -173,10 +173,10 @@ fun CashiroNavHost(
 
                 // Home Screen
                 composable<Home>(
-                    enterTransition = CashiroTransitions.noneEnter,
-                    exitTransition = CashiroTransitions.noneExit,
-                    popEnterTransition = CashiroTransitions.noneEnter,
-                    popExitTransition = CashiroTransitions.noneExit
+                    enterTransition = CashiroTransitions.verticalSlideEnter,
+                    exitTransition = CashiroTransitions.verticalSlideExit,
+                    popEnterTransition = CashiroTransitions.verticalSlidePopEnter,
+                    popExitTransition = CashiroTransitions.verticalSlidePopExit
                 ) {
                     HomeScreen(
                         navController = navController,
@@ -200,10 +200,10 @@ fun CashiroNavHost(
 
                 // Analytics Screen
                 composable<Analytics>(
-                    enterTransition = CashiroTransitions.noneEnter,
-                    exitTransition = CashiroTransitions.noneExit,
-                    popEnterTransition = CashiroTransitions.noneEnter,
-                    popExitTransition = CashiroTransitions.noneExit
+                    enterTransition = CashiroTransitions.verticalSlideEnter,
+                    exitTransition = CashiroTransitions.verticalSlideExit,
+                    popEnterTransition = CashiroTransitions.verticalSlidePopEnter,
+                    popExitTransition = CashiroTransitions.verticalSlidePopExit
                 ) {
                     AnalyticsScreen(
                         onNavigateToTransactions = { category, merchant, period, currency ->
@@ -222,10 +222,10 @@ fun CashiroNavHost(
 
                 // Chat Screen
                 composable<Chat>(
-                    enterTransition = CashiroTransitions.noneEnter,
-                    exitTransition = CashiroTransitions.noneExit,
-                    popEnterTransition = CashiroTransitions.noneEnter,
-                    popExitTransition = CashiroTransitions.noneExit
+                    enterTransition = CashiroTransitions.verticalSlideEnter,
+                    exitTransition = CashiroTransitions.verticalSlideExit,
+                    popEnterTransition = CashiroTransitions.verticalSlidePopEnter,
+                    popExitTransition = CashiroTransitions.verticalSlidePopExit
                 ) {
                     ChatScreen(
                         modifier = Modifier.imePadding(),
@@ -488,10 +488,15 @@ fun CashiroNavHost(
                 }
 
                 composable<Budgets>(
-                    enterTransition = CashiroTransitions.noneEnter,
-                    exitTransition = CashiroTransitions.noneExit,
-                    popEnterTransition = CashiroTransitions.noneEnter,
-                    popExitTransition = CashiroTransitions.noneExit
+//                    enterTransition = CashiroTransitions.noneEnter,
+//                    exitTransition = CashiroTransitions.noneExit,
+//                    popEnterTransition = CashiroTransitions.noneEnter,
+//                    popExitTransition = CashiroTransitions.noneExit
+
+                    enterTransition = CashiroTransitions.horizontalSlideEnter,
+                    exitTransition = CashiroTransitions.horizontalSlideExit,
+                    popEnterTransition = CashiroTransitions.horizontalSlidePopEnter,
+                    popExitTransition = CashiroTransitions.horizontalSlidePopExit
                 ) { backStackEntry ->
                     val budgets = backStackEntry.toRoute<Budgets>()
                     BudgetsScreen(
@@ -536,8 +541,8 @@ fun CashiroNavHost(
                         .padding(Dimensions.Padding.content)
                         .padding(
                             bottom = when (themeUiState.navigationBarStyle) {
-                                NavigationBarStyle.FLOATING if isHomeScreen -> 72.dp
-                                NavigationBarStyle.NORMAL if isHomeScreen -> 100.dp
+                                NavigationBarStyle.FLOATING if isHomeScreen -> 56.dp
+                                NavigationBarStyle.NORMAL if isHomeScreen -> 84.dp
                                 else -> 10.dp
                             }
                         )
