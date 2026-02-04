@@ -8,7 +8,7 @@ import com.ritesh.parser.core.bank.IndianBankParser
 import com.ritesh.parser.core.bank.SBIBankParser
 import com.ritesh.parser.core.bank.FederalBankParser
 import com.ritesh.parser.core.MandateInfo
-import com.ritesh.cashiro.ui.icons.CategoryMapping
+import com.ritesh.cashiro.presentation.common.icons.CategoryMapping
 import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
 import java.time.LocalDate

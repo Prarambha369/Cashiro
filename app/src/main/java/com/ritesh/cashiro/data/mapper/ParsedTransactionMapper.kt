@@ -3,7 +3,7 @@ package com.ritesh.cashiro.data.mapper
 import com.ritesh.parser.core.ParsedTransaction
 import com.ritesh.cashiro.data.database.entity.TransactionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionType
-import com.ritesh.cashiro.ui.icons.CategoryMapping
+import com.ritesh.cashiro.presentation.common.icons.CategoryMapping
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId

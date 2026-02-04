@@ -14,16 +14,14 @@ plugins {
 android {
     namespace = "com.ritesh.cashiro"
     compileSdk = 36
-//    buildToolsVersion = "34.0.0"
     
     buildFeatures {
         buildConfig = true
     }
-
     defaultConfig {
         applicationId = "com.ritesh.cashiro"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 80
         versionName = "1.0.1"
 

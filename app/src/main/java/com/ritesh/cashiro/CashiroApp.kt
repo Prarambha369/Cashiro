@@ -16,13 +16,15 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
-import com.ritesh.cashiro.navigation.AppLock
-import com.ritesh.cashiro.navigation.Home
-import com.ritesh.cashiro.navigation.CashiroNavHost
-import com.ritesh.cashiro.navigation.OnBoarding
-import com.ritesh.cashiro.ui.theme.CashiroTheme
-import com.ritesh.cashiro.ui.viewmodel.AppLockViewModel
-import com.ritesh.cashiro.ui.viewmodel.ThemeViewModel
+import com.ritesh.cashiro.presentation.navigation.AppLock
+import com.ritesh.cashiro.presentation.navigation.Home
+import com.ritesh.cashiro.presentation.navigation.CashiroNavHost
+import com.ritesh.cashiro.presentation.navigation.OnBoarding
+import com.ritesh.cashiro.presentation.navigation.Settings
+import com.ritesh.cashiro.presentation.navigation.TransactionDetail
+import com.ritesh.cashiro.presentation.ui.theme.CashiroTheme
+import com.ritesh.cashiro.presentation.ui.features.settings.applock.AppLockViewModel
+import com.ritesh.cashiro.presentation.ui.features.settings.appearance.ThemeViewModel
 
 @Composable
 fun CashiroApp(
@@ -73,7 +75,7 @@ fun CashiroApp(
             val currentRoute = navController.currentDestination?.route
             // Don't navigate if already on lock screen or in Settings (user is configuring)
             if (currentRoute != AppLock::class.qualifiedName &&
-                currentRoute != com.ritesh.cashiro.navigation.Settings::class.qualifiedName) {
+                currentRoute != Settings::class.qualifiedName) {
                 navController.navigate(AppLock) {
                     // Don't add to back stack, force lock screen
                     popUpTo(navController.graph.startDestinationId) { inclusive = false }
@@ -86,7 +88,7 @@ fun CashiroApp(
     // Navigate to transaction detail when editTransactionId changes
     LaunchedEffect(editTransactionId) {
         editTransactionId?.let { transactionId ->
-            navController.navigate(com.ritesh.cashiro.navigation.TransactionDetail(transactionId))
+            navController.navigate(TransactionDetail(transactionId))
         }
     }
 
@@ -97,7 +99,6 @@ fun CashiroApp(
     ) {
         CashiroNavHost(
             navController = navController,
-            themeViewModel = themeViewModel,
             startDestination = startDestination,
             onEditComplete = onEditComplete
         )

@@ -1,3 +1,4 @@
+import com.ritesh.cashiro.presentation.common.icons.CategoryMapping
 import org.junit.Test
 import kotlin.test.assertEquals
 
@@ -80,9 +81,9 @@ class CategoryMappingTest {
 
 // Helper function to test categorization
 private fun getCategory(merchantName: String): String {
-    return com.ritesh.cashiro.ui.icons.CategoryMapping.getCategory(merchantName)
+    return CategoryMapping.getCategory(merchantName)
 }
 
 private fun findDuplicateKeywords(): Set<String> {
-    return com.ritesh.cashiro.ui.icons.CategoryMapping.findDuplicateKeywords()
+    return CategoryMapping.findDuplicateKeywords()
 }
