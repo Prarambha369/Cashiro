@@ -111,14 +111,7 @@ fun ManageAccountsScreen(
                 hazeState = hazeState,
                 hasBackButton = true,
                 navigationContent = { NavigationContent(onNavigateBack) },
-                actionContent = {
-                    IconButton(onClick = { manageAccountsViewModel.seedSampleData() }) {
-                        Icon(
-                            imageVector = Icons.Default.Science,
-                            contentDescription = "Seed Sample Data"
-                        )
-                    }
-                }
+                actionContent = {}
             ) },
         floatingActionButton = {
             ExtendedFloatingActionButton(
@@ -179,17 +172,6 @@ fun ManageAccountsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(Spacing.sm))
-                        Button(
-                            onClick = { manageAccountsViewModel.seedSampleData() },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        ) {
-                            Icon(Icons.Default.Science, contentDescription = null)
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("Seed Sample Data")
-                        }
                     }
                 }
             } else {

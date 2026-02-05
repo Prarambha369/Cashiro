@@ -42,6 +42,13 @@ import java.io.File
 import javax.inject.Inject
 import androidx.core.net.toUri
 import com.ritesh.cashiro.data.repository.TransactionRepository
+import com.ritesh.cashiro.data.repository.AccountBalanceRepository
+import com.ritesh.cashiro.data.repository.CardRepository
+import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
+import com.ritesh.cashiro.data.database.entity.CardEntity
+import com.ritesh.cashiro.data.database.entity.CardType
+import java.math.BigDecimal
+import java.time.LocalDateTime
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -50,6 +57,8 @@ class SettingsViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     private val transactionRepository: TransactionRepository,
+    private val accountBalanceRepository: AccountBalanceRepository,
+    private val cardRepository: CardRepository,
     private val backupExporter: BackupExporter,
     private val backupImporter: BackupImporter
 ) : ViewModel() {
@@ -649,5 +658,119 @@ class SettingsViewModel @Inject constructor(
 
     fun clearImportExportMessage() {
         _uiState.update { it.copy(importExportMessage = null) }
+    }
+
+    fun seedSampleData() {
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isSeeding = true) }
+
+                val now = LocalDateTime.now()
+
+                // HDFC Bank (Savings) with History
+                val hdfcLast4 = "1234"
+                for (i in 4 downTo 0) {
+                    accountBalanceRepository.insertBalance(
+                        AccountBalanceEntity(
+                            bankName = "HDFC Bank",
+                            accountLast4 = hdfcLast4,
+                            balance = BigDecimal(50000 - (i * 1000)),
+                            timestamp = now.minusDays(i.toLong()),
+                            sourceType = "MANUAL",
+                            iconResId = R.drawable.type_finance_bank,
+                            color = "#33B5E5"
+                        )
+                    )
+                }
+
+                // ICICI Bank (Credit Card)
+                accountBalanceRepository.insertBalance(
+                    AccountBalanceEntity(
+                        bankName = "ICICI Bank",
+                        accountLast4 = "5678",
+                        balance = BigDecimal(25000),
+                        creditLimit = BigDecimal(100000),
+                        timestamp = now,
+                        isCreditCard = true,
+                        sourceType = "MANUAL",
+                        iconResId = R.drawable.type_stationary_card_file_box,
+                        color = "#E91E63"
+                    )
+                )
+
+                // SBI Bank (Current)
+                accountBalanceRepository.insertBalance(
+                    AccountBalanceEntity(
+                        bankName = "SBI Bank",
+                        accountLast4 = "9012",
+                        balance = BigDecimal(75000),
+                        timestamp = now,
+                        iconResId = R.drawable.type_finance_bank,
+                        color = "#1976D2"
+                    )
+                )
+
+                // Cash (Wallet)
+                accountBalanceRepository.insertBalance(
+                    AccountBalanceEntity(
+                        bankName = "Cash",
+                        accountLast4 = "wallet", // Special identifier for wallet
+                        balance = BigDecimal(2500),
+                        timestamp = now,
+                        sourceType = "MANUAL",
+                        isWallet = true,
+                        iconResId = R.drawable.type_finance_dollar_banknote
+                    )
+                )
+
+                // Linked Card for HDFC
+                cardRepository.insertCard(
+                    CardEntity(
+                        cardLast4 = "4321",
+                        cardType = CardType.DEBIT,
+                        bankName = "HDFC Bank",
+                        accountLast4 = hdfcLast4,
+                        nickname = "Salary Card",
+                        lastBalance = BigDecimal(48000),
+                        lastBalanceSource = "Your HDFC Bank account ending in 1234 has been credited with INR 50,000.00. Avl bal: INR 48,000.00",
+                        lastBalanceDate = now
+                    )
+                )
+
+                // Unlinked Card
+                cardRepository.insertCard(
+                    CardEntity(
+                        cardLast4 = "8765",
+                        cardType = CardType.DEBIT,
+                        bankName = "Axis Bank",
+                        nickname = "Travel Card",
+                        lastBalance = BigDecimal(15420),
+                        lastBalanceSource = "Bank Alert: Your Axis Bank Card XX8765 was used for a transaction of INR 500 at STARBUCKS. Avl Bal: INR 15,420.75",
+                        lastBalanceDate = now
+                    )
+                )
+
+                _uiState.update {
+                    it.copy(
+                        isSeeding = false,
+                        seedMessage = "Sample data seeded successfully"
+                    )
+                }
+                delay(3000)
+                _uiState.update { it.copy(seedMessage = null) }
+
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isSeeding = false,
+                        seedMessage = "Failed to seed sample data: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    fun clearSeedMessage() {
+        _uiState.update { it.copy(seedMessage = null) }
     }
 }
