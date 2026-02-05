@@ -34,6 +34,7 @@ import kotlin.math.sign
 import kotlin.math.sqrt
 
 /**
+ * Taken from : https://github.com/Yos-X/FlamingoSank/blob/master/overscroll_core/src/main/java/com/cormor/overscroll/core/OverScroll.kt
  * A parabolic rolling easing curve.
  *
  * When rolling in the same direction, the farther away from 0, the greater the "resistance"; the closer to 0, the smaller the "resistance";
