@@ -34,7 +34,9 @@ import androidx.compose.animation.core.spring
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.ContentScale
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class,
+    ExperimentalMaterial3ExpressiveApi::class
+)
 @Composable
 fun SharedTransitionScope.BudgetsScreen(
     onNavigateBack: () -> Unit,
@@ -52,7 +54,6 @@ fun SharedTransitionScope.BudgetsScreen(
     var editingBudgetId by remember { mutableStateOf<Long?>(null) }
     
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    
     
     // Edit budget sheet
     if (showEditSheet) {
@@ -112,6 +113,15 @@ fun SharedTransitionScope.BudgetsScreen(
     val lazyListState = rememberLazyListState()
     val hazeState = remember { HazeState() }
 
+    var showFloatingLabel by remember { mutableStateOf(true) }
+
+    LaunchedEffect(lazyListState) {
+        snapshotFlow { lazyListState.firstVisibleItemIndex }.collect { firstVisibleItem ->
+            // Show the label only when the list is scrolled to the top
+            showFloatingLabel = firstVisibleItem == 0
+        }
+    }
+
 
     val sharedModifier = if (animatedContentScope != null && sharedElementPrefix != null) {
         Modifier.sharedBounds(
@@ -156,7 +166,8 @@ fun SharedTransitionScope.BudgetsScreen(
                     showEditSheet = true
                 },
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("New Budget") }
+                text = { Text("New Budget") },
+                shape = if (showFloatingLabel) MaterialTheme.shapes.extraLargeIncreased else MaterialTheme.shapes.large
             )
         }
     ) { paddingValues ->

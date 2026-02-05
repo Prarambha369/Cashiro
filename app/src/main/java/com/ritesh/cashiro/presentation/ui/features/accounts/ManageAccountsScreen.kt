@@ -80,8 +80,16 @@ fun ManageAccountsScreen(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val hazeState = remember { HazeState() }
+    val lazyListState = rememberLazyListState()
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    LaunchedEffect(lazyListState) {
+        snapshotFlow { lazyListState.firstVisibleItemIndex }.collect { firstVisibleItem ->
+            // Show the label only when the list is scrolled to the top
+            showFloatingLabel = firstVisibleItem == 0
+        }
+    }
 
     // Show snackbar messages
     LaunchedEffect(uiState.successMessage) {
@@ -175,7 +183,6 @@ fun ManageAccountsScreen(
                     }
                 }
             } else {
-                val lazyListState = rememberLazyListState()
                 LazyColumn(
                     state = lazyListState,
                     modifier = Modifier
