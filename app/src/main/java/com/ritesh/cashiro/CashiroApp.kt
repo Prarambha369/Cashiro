@@ -95,7 +95,8 @@ fun CashiroApp(
     CashiroTheme(
         darkTheme = darkTheme,
         dynamicColor = themeUiState.isDynamicColorEnabled,
-        isAmoledMode = themeUiState.isAmoledMode
+        isAmoledMode = themeUiState.isAmoledMode,
+        appFont = themeUiState.appFont
     ) {
         CashiroNavHost(
             navController = navController,

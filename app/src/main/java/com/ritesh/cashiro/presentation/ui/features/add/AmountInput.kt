@@ -65,7 +65,6 @@ fun AmountInput(
                 fontSize = amountFontSize.value.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                fontFamily = FontFamily.Default,
                 color = if (amount.isEmpty() || amount == "0") MaterialTheme.colorScheme.inverseSurface.copy(
                     0.5f
                 ) else MaterialTheme.colorScheme.inverseSurface
@@ -73,7 +72,7 @@ fun AmountInput(
             AnimatedCounterText(
                 amount = amount,
                 fontSize = amountFontSize.value.sp,
-                fontFamily = FontFamily.Default
+                fontWeight = FontWeight.Bold,
             )
         }
     }
@@ -85,7 +84,6 @@ fun AnimatedCounterText(
     modifier: Modifier = Modifier,
     fontSize: TextUnit = 24.sp,
     maxLines: Int = 1,
-    fontFamily: FontFamily? = FontFamily.Default,
     fontWeight: FontWeight? = FontWeight.Normal,
     animationSpec: AnimationSpec<Float> = spring(
         dampingRatio = Spring.DampingRatioLowBouncy,
@@ -170,7 +168,6 @@ fun AnimatedCounterText(
         maxLines = maxLines,
         overflow = TextOverflow.Ellipsis,
         fontWeight = fontWeight,
-        fontFamily = fontFamily,
         color = if (amount.isEmpty() || amount == "0")
             MaterialTheme.colorScheme.inverseSurface.copy(0.5f)
         else

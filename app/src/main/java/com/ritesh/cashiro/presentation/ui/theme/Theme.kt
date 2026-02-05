@@ -16,7 +16,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontFamily
 import androidx.core.view.WindowCompat
+import com.ritesh.cashiro.data.preferences.AppFont
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -25,6 +27,7 @@ fun CashiroTheme(
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
     isAmoledMode: Boolean = false,
+    appFont: AppFont = AppFont.SYSTEM,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
@@ -66,9 +69,14 @@ fun CashiroTheme(
         }
     }
 
+    val fontFamily = when (appFont) {
+        AppFont.SYSTEM -> FontFamily.Default
+        AppFont.SN_PRO -> SNProFontFamily
+    }
+
     MaterialExpressiveTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = getTypography(fontFamily = fontFamily),
         shapes = Shapes,
         content = content
     )

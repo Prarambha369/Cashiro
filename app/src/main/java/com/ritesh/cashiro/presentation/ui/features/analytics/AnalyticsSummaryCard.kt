@@ -77,7 +77,7 @@ fun AnalyticsSummaryCard(
                         text = CurrencyFormatter.formatCurrency(totalAmount, currency),
                         style = MaterialTheme.typography.displaySmall.copy(
                             fontSize = 32.sp,
-                            fontWeight = FontWeight.Black
+                            fontWeight = FontWeight.Bold
                         ),
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -104,7 +104,7 @@ fun AnalyticsSummaryCard(
                         Text(
                             text = "$transactionCount TXNS",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Black,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
@@ -147,7 +147,7 @@ fun AnalyticsSummaryCard(
                                     CurrencyFormatter.formatCurrency(BigDecimal.ZERO, currency)
                                 },
                                 style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Black,
+                                fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(

@@ -64,6 +64,7 @@ constructor(@ApplicationContext private val context: Context) {
         val TEST_NOTIFICATION_ALERTS_ENABLED = booleanPreferencesKey("test_notification_alerts_enabled")
         val SHOW_BANNER_IMAGE = booleanPreferencesKey("show_banner_image")
         val NAVIGATION_BAR_STYLE = stringPreferencesKey("navigation_bar_style")
+        val APP_FONT = stringPreferencesKey("app_font")
     }
 
     val userPreferences: Flow<UserPreferences> =
@@ -97,6 +98,13 @@ constructor(@ApplicationContext private val context: Context) {
                             )
                         } catch (e: Exception) {
                             NavigationBarStyle.FLOATING
+                        },
+                        appFont = try {
+                            AppFont.valueOf(
+                                preferences[PreferencesKeys.APP_FONT] ?: AppFont.SYSTEM.name
+                            )
+                        } catch (e: Exception) {
+                            AppFont.SYSTEM
                         }
                 )
             }
@@ -496,6 +504,12 @@ constructor(@ApplicationContext private val context: Context) {
             preferences[PreferencesKeys.NAVIGATION_BAR_STYLE] = style.name
         }
     }
+
+    suspend fun updateAppFont(font: AppFont) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.APP_FONT] = font.name
+        }
+    }
 }
 
 data class UserPreferences(
@@ -513,5 +527,6 @@ data class UserPreferences(
         val profileBackgroundColor: Int = 0,
         val bannerImageUri: String? = null,
         val showBannerImage: Boolean = false,
-        val navigationBarStyle: NavigationBarStyle = NavigationBarStyle.FLOATING
+        val navigationBarStyle: NavigationBarStyle = NavigationBarStyle.FLOATING,
+        val appFont: AppFont = AppFont.SYSTEM
 )

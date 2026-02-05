@@ -94,7 +94,7 @@ fun BalanceCard(
                 Text(
                     text = "Net Balance",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
                 
@@ -104,7 +104,7 @@ fun BalanceCard(
                     text = CurrencyFormatter.formatCurrency(totalBalance, currency),
                     style = MaterialTheme.typography.headlineLarge.copy(
                         fontSize = 36.sp,
-                        fontWeight = FontWeight.Black
+                        fontWeight = FontWeight.Bold
                     ),
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -116,7 +116,7 @@ fun BalanceCard(
                     text = "$changePrefix${CurrencyFormatter.formatCurrency(monthlyChange, currency)}",
                     style = MaterialTheme.typography.bodyLarge,
                     color = success_dark,
-                    fontWeight = FontWeight.Black
+                    fontWeight = FontWeight.Bold
                 )
 
                 if (subtitle != null) {

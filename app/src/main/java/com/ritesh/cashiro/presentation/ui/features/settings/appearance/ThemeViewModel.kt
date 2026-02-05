@@ -3,6 +3,7 @@ package com.ritesh.cashiro.presentation.ui.features.settings.appearance
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ritesh.cashiro.data.preferences.NavigationBarStyle
+import com.ritesh.cashiro.data.preferences.AppFont
 import com.ritesh.cashiro.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -24,7 +25,8 @@ class ThemeViewModel @Inject constructor(
                 isDynamicColorEnabled = preferences.isDynamicColorEnabled,
                 hasSkippedSmsPermission = preferences.hasSkippedSmsPermission,
                 isAmoledMode = preferences.isAmoledMode,
-                navigationBarStyle = preferences.navigationBarStyle
+                navigationBarStyle = preferences.navigationBarStyle,
+                appFont = preferences.appFont
             )
         }
         .stateIn(
@@ -56,6 +58,12 @@ class ThemeViewModel @Inject constructor(
             userPreferencesRepository.updateNavigationBarStyle(style)
         }
     }
+
+    fun updateAppFont(font: AppFont) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateAppFont(font)
+        }
+    }
 }
 
 data class ThemeUiState(
@@ -63,5 +71,6 @@ data class ThemeUiState(
     val isDynamicColorEnabled: Boolean = false, // Default to custom theme colors
     val hasSkippedSmsPermission: Boolean = false,
     val isAmoledMode: Boolean = false,
-    val navigationBarStyle: NavigationBarStyle = NavigationBarStyle.FLOATING
+    val navigationBarStyle: NavigationBarStyle = NavigationBarStyle.FLOATING,
+    val appFont: AppFont = AppFont.SYSTEM
 )

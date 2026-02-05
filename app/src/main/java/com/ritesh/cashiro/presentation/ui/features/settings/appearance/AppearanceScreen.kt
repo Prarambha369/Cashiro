@@ -52,6 +52,9 @@ import com.ritesh.cashiro.presentation.ui.components.SectionHeader
 import com.ritesh.cashiro.presentation.effects.overScrollVertical
 import com.ritesh.cashiro.presentation.ui.theme.Dimensions
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
+import com.ritesh.cashiro.data.preferences.AppFont
+import com.ritesh.cashiro.presentation.ui.theme.SNProFontFamily
+import androidx.compose.ui.text.font.FontFamily
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 
@@ -337,6 +340,106 @@ fun AppearanceScreen(
                                         text = "Standard M3",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = if (themeUiState.navigationBarStyle == NavigationBarStyle.NORMAL)
+                                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Font Family Section
+                SectionHeader(
+                    title = "Font Family",
+                    modifier = Modifier.padding(start = Spacing.md)
+                )
+
+                CashiroCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(Spacing.md),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                        ) {
+                            // System Default Option
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(80.dp)
+                                    .shadow(
+                                        elevation = 4.dp,
+                                        shape = RoundedCornerShape(Dimensions.Radius.md)
+                                    )
+                                    .clip(RoundedCornerShape(Dimensions.Radius.md))
+                                    .background(
+                                        color = if (themeUiState.appFont == AppFont.SYSTEM)
+                                            MaterialTheme.colorScheme.primaryContainer
+                                        else MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                    .clickable {
+                                        themeViewModel.updateAppFont(AppFont.SYSTEM)
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "Default",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = FontFamily.Default,
+                                        color = if (themeUiState.appFont == AppFont.SYSTEM)
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = "System",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontFamily = FontFamily.Default,
+                                        color = if (themeUiState.appFont == AppFont.SYSTEM)
+                                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
+
+                            // SN Pro Option
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(80.dp)
+                                    .shadow(
+                                        elevation = 4.dp,
+                                        shape = RoundedCornerShape(Dimensions.Radius.md)
+                                    )
+                                    .clip(RoundedCornerShape(Dimensions.Radius.md))
+                                    .background(
+                                        color = if (themeUiState.appFont == AppFont.SN_PRO)
+                                            MaterialTheme.colorScheme.primaryContainer
+                                        else MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                    .clickable {
+                                        themeViewModel.updateAppFont(AppFont.SN_PRO)
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "SN Pro",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = SNProFontFamily,
+                                        color = if (themeUiState.appFont == AppFont.SN_PRO)
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = "Modern Mono",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontFamily = SNProFontFamily,
+                                        color = if (themeUiState.appFont == AppFont.SN_PRO)
                                             MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                                         else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                     )
