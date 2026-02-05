@@ -191,7 +191,8 @@ constructor(
                             createdAt = LocalDateTime.now(),
                             updatedAt = LocalDateTime.now(),
                             currency = currency,
-                            billingCycle = billingCycle
+                            billingCycle = billingCycle,
+                            lastPaidDate = date.toLocalDate()
                     )
 
             subscriptionRepository.insertSubscription(subscription)
@@ -202,14 +203,29 @@ constructor(
         fromDate: java.time.LocalDate,
         billingCycle: String?
     ): java.time.LocalDate {
-        return when (billingCycle) {
-            "Weekly" -> fromDate.plusWeeks(1)
-            "Monthly" -> fromDate.plusMonths(1)
-            "Quarterly" -> fromDate.plusMonths(3)
-            "Semi-Annual" -> fromDate.plusMonths(6)
-            "Annual" -> fromDate.plusYears(1)
-            else -> fromDate.plusMonths(1)
+        val today = java.time.LocalDate.now()
+        val cycle = billingCycle?.lowercase() ?: "monthly"
+        
+        // Start from first occurrence after fromDate
+        var nextDate = when (cycle) {
+            "weekly" -> fromDate.plusWeeks(1)
+            "quarterly" -> fromDate.plusMonths(3)
+            "semi-annual" -> fromDate.plusMonths(6)
+            "annual" -> fromDate.plusYears(1)
+            else -> fromDate.plusMonths(1) // covers "monthly" and defaults
         }
+
+        // Catch up to today if the start date was long ago
+        while (nextDate.isBefore(today)) {
+            nextDate = when (cycle) {
+                "weekly" -> nextDate.plusWeeks(1)
+                "quarterly" -> nextDate.plusMonths(3)
+                "semi-annual" -> nextDate.plusMonths(6)
+                "annual" -> nextDate.plusYears(1)
+                else -> nextDate.plusMonths(1)
+            }
+        }
+        return nextDate
     }
 
     private fun generateManualTransactionHash(

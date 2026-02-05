@@ -430,6 +430,9 @@ constructor(
                 )
 
                 val actualNextPaymentDate = calculateNextPaymentDate(state.nextPaymentDate, state.billingCycle)
+                Log.d("AddViewModel", "DEBUG_SUBSCRIPTION: fromDate=${state.nextPaymentDate}, billingCycle=${state.billingCycle}, today=${LocalDate.now()}, result=$actualNextPaymentDate")
+
+                Log.d("AddViewModel", "Saving subscription: selectedDate=${state.nextPaymentDate}, today=${LocalDate.now()}, result=$actualNextPaymentDate")
 
                 Log.d(
                     "AddViewModel",
@@ -451,7 +454,8 @@ constructor(
                         autoRenewal = false, // Not implemented yet
                         paymentReminder = false, // Not implemented yet
                         currency = state.currency,
-                        notes = state.notes.takeIf { it.isNotBlank() }
+                        notes = state.notes.takeIf { it.isNotBlank() },
+                        lastPaidDate = state.nextPaymentDate
                     )
 
                 Log.d("AddViewModel", "Subscription saved successfully with ID: $subscriptionId")
@@ -474,15 +478,30 @@ constructor(
     private fun calculateNextPaymentDate(
         fromDate: LocalDate,
         billingCycle: String?
-    ):LocalDate {
-        return when (billingCycle) {
-            "Weekly" -> fromDate.plusWeeks(1)
-            "Monthly" -> fromDate.plusMonths(1)
-            "Quarterly" -> fromDate.plusMonths(3)
-            "Semi-Annual" -> fromDate.plusMonths(6)
-            "Annual" -> fromDate.plusYears(1)
-            else -> fromDate.plusMonths(1)
+    ): LocalDate {
+        val today = LocalDate.now()
+        val cycle = billingCycle?.lowercase() ?: "monthly"
+        
+        // Start from first occurrence after fromDate
+        var nextDate = when (cycle) {
+            "weekly" -> fromDate.plusWeeks(1)
+            "quarterly" -> fromDate.plusMonths(3)
+            "semi-annual" -> fromDate.plusMonths(6)
+            "annual" -> fromDate.plusYears(1)
+            else -> fromDate.plusMonths(1) // covers "monthly" and defaults
         }
+
+        // Catch up to current period
+        while (nextDate.isBefore(today)) {
+            nextDate = when (cycle) {
+                "weekly" -> nextDate.plusWeeks(1)
+                "quarterly" -> nextDate.plusMonths(3)
+                "semi-annual" -> nextDate.plusMonths(6)
+                "annual" -> nextDate.plusYears(1)
+                else -> nextDate.plusMonths(1)
+            }
+        }
+        return nextDate
     }
 
     // Validation helpers

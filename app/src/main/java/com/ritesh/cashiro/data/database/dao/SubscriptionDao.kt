@@ -59,6 +59,9 @@ interface SubscriptionDao {
     @Query("UPDATE subscriptions SET next_payment_date = :nextPaymentDate, updated_at = datetime('now') WHERE id = :id")
     suspend fun updateNextPaymentDate(id: Long, nextPaymentDate: LocalDate)
     
+    @Query("UPDATE subscriptions SET next_payment_date = :nextPaymentDate, last_paid_date = :lastPaidDate, updated_at = datetime('now') WHERE id = :id")
+    suspend fun updatePaymentStatus(id: Long, nextPaymentDate: LocalDate, lastPaidDate: LocalDate?)
+    
     @Delete
     suspend fun deleteSubscription(subscription: SubscriptionEntity)
     

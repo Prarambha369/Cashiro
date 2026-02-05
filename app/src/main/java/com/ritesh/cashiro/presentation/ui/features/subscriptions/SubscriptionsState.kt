@@ -9,5 +9,6 @@ data class SubscriptionsUiState(
     val totalYearlyAmount: BigDecimal = BigDecimal.ZERO,
     val targetCurrency: String = "INR",
     val isLoading: Boolean = true,
-    val lastHiddenSubscription: SubscriptionEntity? = null
+    val lastHiddenSubscription: SubscriptionEntity? = null,
+    val selectedSubscription: SubscriptionEntity? = null
 )

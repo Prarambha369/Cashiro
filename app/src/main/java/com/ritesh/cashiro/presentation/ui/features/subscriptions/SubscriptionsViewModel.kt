@@ -109,4 +109,40 @@ class SubscriptionsViewModel @Inject constructor(
             }
         }
     }
+
+    fun selectSubscription(subscription: SubscriptionEntity?) {
+        _uiState.value = _uiState.value.copy(selectedSubscription = subscription)
+    }
+
+    fun markAsPaid(subscription: SubscriptionEntity) {
+        viewModelScope.launch {
+            val today = java.time.LocalDate.now()
+            val nextDate = calculateNextBillingDate(subscription.nextPaymentDate ?: today, subscription.billingCycle)
+            subscriptionRepository.updatePaymentStatus(subscription.id, nextDate, today)
+            selectSubscription(null)
+        }
+    }
+
+    private fun calculateNextBillingDate(currentDate: java.time.LocalDate, billingCycle: String?): java.time.LocalDate {
+        val today = java.time.LocalDate.now()
+        var nextDate = when (billingCycle?.lowercase()) {
+            "weekly" -> currentDate.plusWeeks(1)
+            "quarterly" -> currentDate.plusMonths(3)
+            "semi-annual" -> currentDate.plusMonths(6)
+            "annual" -> currentDate.plusYears(1)
+            else -> currentDate.plusMonths(1) // Default to monthly
+        }
+
+        // Catch up to today if needed
+        while (nextDate.isBefore(today)) {
+            nextDate = when (billingCycle?.lowercase()) {
+                "weekly" -> nextDate.plusWeeks(1)
+                "quarterly" -> nextDate.plusMonths(3)
+                "semi-annual" -> nextDate.plusMonths(6)
+                "annual" -> nextDate.plusYears(1)
+                else -> nextDate.plusMonths(1)
+            }
+        }
+        return nextDate
+    }
 }

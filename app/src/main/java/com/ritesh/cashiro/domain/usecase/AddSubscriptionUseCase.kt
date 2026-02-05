@@ -23,7 +23,8 @@ constructor(private val subscriptionRepository: SubscriptionRepository) {
         autoRenewal: Boolean = true,
         paymentReminder: Boolean = true,
         currency: String = "INR",
-        notes: String? = null
+        notes: String? = null,
+        lastPaidDate: LocalDate? = null
     ): Long {
         Log.d("AddSubscriptionUseCase", "Creating subscription entity...")
 
@@ -38,7 +39,9 @@ constructor(private val subscriptionRepository: SubscriptionRepository) {
             smsBody = notes, // Store user notes in smsBody field
             createdAt = LocalDateTime.now(),
             updatedAt = LocalDateTime.now(),
-            currency = currency
+            currency = currency,
+            billingCycle = billingCycle,
+            lastPaidDate = lastPaidDate
         )
 
         Log.d("AddSubscriptionUseCase", "Subscription entity created: $subscription")

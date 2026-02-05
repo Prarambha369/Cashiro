@@ -222,6 +222,9 @@ class SubscriptionRepository @Inject constructor(
         return subscriptionDao.insertSubscription(subscription)
     }
 
+    suspend fun updatePaymentStatus(id: Long, nextPaymentDate: LocalDate, lastPaidDate: LocalDate?) =
+        subscriptionDao.updatePaymentStatus(id, nextPaymentDate, lastPaidDate)
+
     private fun determineCategory(merchantName: String): String {
         // Use unified category mapping
         return CategoryMapping.getCategory(merchantName)

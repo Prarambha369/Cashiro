@@ -4,28 +4,74 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Subscriptions
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,11 +79,12 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ritesh.cashiro.data.database.entity.CategoryEntity
 import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
 import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
-import com.ritesh.cashiro.presentation.ui.features.categories.NavigationContent
-import com.ritesh.cashiro.presentation.ui.components.*
 import com.ritesh.cashiro.presentation.effects.overScrollVertical
 import com.ritesh.cashiro.presentation.effects.rememberOverscrollFlingBehavior
-import androidx.activity.compose.BackHandler
+import com.ritesh.cashiro.presentation.ui.components.BrandIcon
+import com.ritesh.cashiro.presentation.ui.components.CashiroCard
+import com.ritesh.cashiro.presentation.ui.components.CustomTitleTopAppBar
+import com.ritesh.cashiro.presentation.ui.features.categories.NavigationContent
 import com.ritesh.cashiro.presentation.ui.theme.Dimensions
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
 import com.ritesh.cashiro.presentation.ui.theme.expense_dark
@@ -50,7 +97,6 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import kotlin.collections.get
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -154,6 +200,17 @@ fun SubscriptionsScreen(
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { paddingValues ->
+        val selectedSubscription = uiState.selectedSubscription
+        
+        if (selectedSubscription != null) {
+            PaymentStatusBottomSheet(
+                subscription = selectedSubscription,
+                categoryEntity = categoriesMap[selectedSubscription.category],
+                subcategoryEntity = subcategoriesMap[selectedSubscription.subcategory],
+                onDismiss = { subscriptionsViewModel.selectSubscription(null) },
+                onMarkAsPaid = { subscriptionsViewModel.markAsPaid(selectedSubscription) }
+            )
+        }
         LazyColumn(
             state = lazyListState,
             modifier = Modifier
@@ -194,7 +251,8 @@ fun SubscriptionsScreen(
                         subscription = subscription,
                         categoryEntity = categoryEntity,
                         subcategoryEntity = subcategoryEntity,
-                        onHide = { subscriptionsViewModel.hideSubscription(subscription.id) }
+                        onHide = { subscriptionsViewModel.hideSubscription(subscription.id) },
+                        onClick = { subscriptionsViewModel.selectSubscription(subscription) }
                     )
                 }
             }
@@ -317,36 +375,41 @@ private fun SwipeableSubscriptionItem(
     subscription: SubscriptionEntity,
     categoryEntity: CategoryEntity? = null,
     subcategoryEntity: SubcategoryEntity? = null,
-    onHide: () -> Unit
+    onHide: () -> Unit,
+    onClick: () -> Unit
 ) {
     var showSmsBody by remember { mutableStateOf(false) }
     
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { dismissValue ->
-            when (dismissValue) {
-                SwipeToDismissBoxValue.EndToStart -> {
-                    onHide()
-                    true
-                }
-                else -> false
-            }
+    val dismissState = rememberSwipeToDismissBoxState()
+    var isInitialized by remember { mutableStateOf(false) }
+
+    // Handle dismissal event when the state changes to EndToStart
+    LaunchedEffect(dismissState.currentValue) {
+        if (isInitialized && dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
+            onHide()
         }
-    )
-    
+        isInitialized = true
+    }
+
+    // Reset the swipe state when the subscription is restored (Undo)
+    LaunchedEffect(subscription) {
+        if (dismissState.currentValue != SwipeToDismissBoxValue.Settled) {
+            dismissState.reset()
+        }
+    }
+
     SwipeToDismissBox(
         state = dismissState,
+        enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = true,
         backgroundContent = {
-            val color by animateColorAsState(
-                when (dismissState.targetValue) {
-                    SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.error
-                    else -> Color.Transparent
-                },
-                label = "background color"
-            )
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(color)
+                    .background(
+                        color = MaterialTheme.colorScheme.error,
+                        shape = MaterialTheme.shapes.large
+                    )
                     .padding(horizontal = Dimensions.Padding.content),
                 contentAlignment = Alignment.CenterEnd
             ) {
@@ -365,12 +428,11 @@ private fun SwipeableSubscriptionItem(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(enabled = !subscription.smsBody.isNullOrBlank()) {
-                            showSmsBody = !showSmsBody
-                        },
+                        .clickable { onClick() },
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                    )
+                    ),
+                    shape = MaterialTheme.shapes.large
                 ) {
                     Row(
                         modifier = Modifier
@@ -428,13 +490,7 @@ private fun SwipeableSubscriptionItem(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 } else {
-
-                                    var nextPaymentDate: LocalDate = subscriptionDate
-                                    while (nextPaymentDate.isBefore(today) || nextPaymentDate.isEqual(today)) {
-                                        nextPaymentDate = nextPaymentDate.plusMonths(1)
-                                    }
-                                    
-                                    val daysUntilNext = ChronoUnit.DAYS.between(today, nextPaymentDate)
+                                    val daysUntilNext = ChronoUnit.DAYS.between(today, subscriptionDate)
                                 
                                     Icon(
                                         imageVector = Icons.Default.CalendarToday,
@@ -443,20 +499,25 @@ private fun SwipeableSubscriptionItem(
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     
+                                    val isOverdue = subscriptionDate.isBefore(today) && 
+                                                   (subscription.lastPaidDate == null || subscription.lastPaidDate!!.isBefore(subscriptionDate))
+
                                     Text(
                                         text = when {
+                                            isOverdue -> "Overdue"
                                             daysUntilNext == 0L -> "Due today"
                                             daysUntilNext == 1L -> "Due tomorrow"
                                             daysUntilNext in 2..7 -> "Due in $daysUntilNext days"
-                                            else -> nextPaymentDate.format(
+                                            else -> subscriptionDate.format(
                                                 DateTimeFormatter.ofPattern("MMM d")
                                             )
                                         },
                                         style = MaterialTheme.typography.bodySmall,
                                         color = when {
-                                            daysUntilNext <= 3 -> MaterialTheme.colorScheme.error
+                                            isOverdue || daysUntilNext <= 3 -> MaterialTheme.colorScheme.error
                                             else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                        }
+                                        },
+                                        fontWeight = if (isOverdue) FontWeight.Bold else FontWeight.Normal
                                     )
                                 }
                                 
@@ -531,6 +592,158 @@ private fun SwipeableSubscriptionItem(
             }
         }
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PaymentStatusBottomSheet(
+    subscription: SubscriptionEntity,
+    categoryEntity: CategoryEntity? = null,
+    subcategoryEntity: SubcategoryEntity? = null,
+    onDismiss: () -> Unit,
+    onMarkAsPaid: () -> Unit
+) {
+    var showSmsBody by remember { mutableStateOf(false) }
+    val today = LocalDate.now()
+    val isOverdue = subscription.nextPaymentDate?.isBefore(today) == true && 
+                    (subscription.lastPaidDate == null || subscription.lastPaidDate!!.isBefore(subscription.nextPaymentDate!!))
+    
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { BottomSheetDefaults.DragHandle() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Track Payment",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isOverdue) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer
+                ),
+                shape = MaterialTheme.shapes.large
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    BrandIcon(
+                        merchantName = subscription.merchantName,
+                        size = 56.dp,
+                        showBackground = true,
+                        categoryEntity = categoryEntity,
+                        subcategoryEntity = subcategoryEntity
+                    )
+                    
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        Text(
+                            text = "Payment for ${subscription.merchantName}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isOverdue) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = subscription.formatAmount(),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isOverdue) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        if (subscription.nextPaymentDate != null) {
+                            Text(
+                                text = if (isOverdue) "Overdue since ${subscription.nextPaymentDate.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}"
+                                       else "Due on ${subscription.nextPaymentDate.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (isOverdue) MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f) 
+                                       else MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Text(
+                text = "Is this subscription paid?",
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center
+            )
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f).height(56.dp)
+                ) {
+                    Text("No", style = MaterialTheme.typography.titleMedium)
+                }
+                
+                Button(
+                    onClick = onMarkAsPaid,
+                    modifier = Modifier.weight(1f).height(56.dp)
+                ) {
+                    Text("Yes, it's paid", style = MaterialTheme.typography.titleMedium)
+                }
+            }
+            
+            if (!subscription.smsBody.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                TextButton(
+                    onClick = { showSmsBody = !showSmsBody }
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = if (showSmsBody) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = null
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(if (showSmsBody) "Hide Original Message" else "Show Original Message")
+                    }
+                }
+                
+                if (showSmsBody) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = subscription.smsBody,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontFamily = FontFamily.Monospace
+                            ),
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
