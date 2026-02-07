@@ -32,15 +32,14 @@ fun CustomTitleTopAppBar(
     scrollBehaviorSmall: TopAppBarScrollBehavior,
     scrollBehaviorLarge: TopAppBarScrollBehavior,
     title: String,
-    previousScreenTitle: String = "",
     hasBackButton: Boolean = false,
+    hasActionButton: Boolean = false,
     actionContent: @Composable () -> Unit = {},
     navigationContent: @Composable () -> Unit = {},
     extraInfoCard: @Composable () -> Unit = {},
     hazeState: HazeState = HazeState(),
 ) {
     val collapsedFraction = scrollBehaviorLarge.state.collapsedFraction
-    val displayTitle = remember { mutableStateOf(previousScreenTitle.ifEmpty { title }) }
 
     // LargeTopAppBar
     if(scrollBehaviorLarge != scrollBehaviorSmall) {
@@ -62,6 +61,7 @@ fun CustomTitleTopAppBar(
         scrollBehaviorSmall = scrollBehaviorSmall,
         title = title,
         hasBackButton = hasBackButton,
+        hasActionButton = hasActionButton,
         actionContent = actionContent,
         navigationContent = navigationContent,
         collapsedFraction = if(scrollBehaviorLarge != scrollBehaviorSmall)collapsedFraction else 1f,
@@ -75,25 +75,17 @@ fun CustomTitleTopAppBar(
 @Composable
 private fun Modifier.animatedOffsetModifier(
     hasBackButton: Boolean,
-    isProfileScreen: Boolean = false,
+    hasActionButton: Boolean = false,
     isTransactionScreen : Boolean = false,
-    isTransactionDetailScreen : Boolean = false,
     isEditTransactionScreen: Boolean = false,
     isHomeScreen: Boolean = false,
-    isCategoryScreen: Boolean = false,
-    isRuleScreen: Boolean = false,
-    isChatScreen: Boolean = false
 ): Modifier {
     // Define the target offset based on conditions
     val targetOffsetX = when {
-        hasBackButton && isProfileScreen-> 0.dp
-        hasBackButton && isTransactionDetailScreen -> 0.dp
+        hasBackButton && hasActionButton-> 0.dp
         isEditTransactionScreen -> (-28).dp
         isTransactionScreen -> (-28).dp
         isHomeScreen-> (0).dp
-        hasBackButton && isCategoryScreen-> 0.dp
-        hasBackButton && isRuleScreen-> 0.dp
-        hasBackButton && isChatScreen-> 0.dp
         hasBackButton -> (-26).dp
         else -> (-10).dp
     }
@@ -267,6 +259,7 @@ private fun RegularTopAppBar(
     scrollBehaviorSmall: TopAppBarScrollBehavior,
     title: String,
     hasBackButton: Boolean = false,
+    hasActionButton: Boolean = false,
     actionContent: @Composable () -> Unit = {},
     navigationContent: @Composable () -> Unit = {},
     collapsedFraction: Float,
@@ -278,11 +271,8 @@ private fun RegularTopAppBar(
         exit = fadeOut()
     ) {
         val isHomeScreen = title == "Cashiro"
-        val isProfileScreen = title == "Profile"
         val isTransactionScreen = title == "Transactions"
-        val isTransactionDetailScreen = title == "Transaction Details"
         val isEditTransactionScreen = title == "Edit Transaction"
-        val isChatScreen = title == "Cashiro AI"
 
         TopAppBar(
             title = {
@@ -293,14 +283,10 @@ private fun RegularTopAppBar(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.animatedOffsetModifier(
                         hasBackButton = hasBackButton,
-                        isProfileScreen = isProfileScreen,
+                        hasActionButton = hasActionButton,
                         isTransactionScreen = isTransactionScreen,
-                        isTransactionDetailScreen = isTransactionDetailScreen,
                         isEditTransactionScreen = isEditTransactionScreen,
                         isHomeScreen = title == "Cashiro",
-                        isCategoryScreen = title == "Categories",
-                        isRuleScreen = title == "Smart Rules",
-                        isChatScreen = isChatScreen
                     )
                 )
             },

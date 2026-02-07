@@ -165,6 +165,7 @@ fun SharedTransitionScope.BudgetDetailScreen(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehavior,
                 hasBackButton = true,
+                hasActionButton = true,
                 navigationContent = {
                     NavigationContent { onNavigateBack() }
                 },

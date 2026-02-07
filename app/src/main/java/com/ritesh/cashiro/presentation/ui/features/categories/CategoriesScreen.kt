@@ -129,6 +129,7 @@ fun CategoriesScreen(
                 scrollBehaviorLarge = scrollBehavior,
                 hazeState = hazeState,
                 hasBackButton = true,
+                hasActionButton = true,
                 navigationContent = { NavigationContent(onNavigateBack) },
                 actionContent = {
                     ActionContent(

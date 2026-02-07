@@ -305,6 +305,7 @@ fun SharedTransitionScope.TransactionDetailScreen(
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = if (isEditMode) "Edit Transaction" else "Transaction Details",
                 hasBackButton = true,
+                hasActionButton = true,
                 hazeState = hazeState,
                 navigationContent = {
                     TransactionNavigationContent(

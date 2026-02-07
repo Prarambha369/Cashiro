@@ -91,6 +91,7 @@ fun ChatScreen(
                 scrollBehaviorLarge = scrollBehavior,
                 hazeState = hazeState,
                 hasBackButton = true,
+                hasActionButton = true,
                 navigationContent = {NavigationContent(onNavigateBack)},
                 actionContent = {
                     Box {
