@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import com.ritesh.cashiro.presentation.ui.components.AccountCard
+import com.ritesh.cashiro.presentation.ui.components.AttachmentSection
 import com.ritesh.cashiro.presentation.ui.components.CategorySelectionSheet
 import com.ritesh.cashiro.presentation.ui.theme.*
 import java.time.format.DateTimeFormatter
@@ -56,6 +57,7 @@ fun TransactionTabContent(
     val uiState by viewModel.transactionUiState.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val transactionSubcategories by viewModel.transactionSubcategories.collectAsState()
+    val transactionAttachments by viewModel.transactionAttachments.collectAsState()
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -990,6 +992,16 @@ fun TransactionTabContent(
                     ),
                 )
             }
+
+            // Attachments Section
+            AttachmentSection(
+                attachments = transactionAttachments,
+                attachmentService = viewModel.attachmentService,
+                onAddAttachment = viewModel::addTransactionAttachment,
+                onRemoveAttachment = viewModel::removeTransactionAttachment,
+                onAttachmentClick = { /* Preview handled internally */ },
+                isEditable = true
+            )
 
             // Bottom padding for keyboard
             Spacer(modifier = Modifier.height(80.dp))

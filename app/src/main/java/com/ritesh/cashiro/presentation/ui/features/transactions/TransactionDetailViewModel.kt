@@ -16,6 +16,7 @@ import com.ritesh.cashiro.data.repository.SubcategoryRepository
 import com.ritesh.cashiro.data.repository.SubscriptionRepository
 import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
 import com.ritesh.cashiro.data.database.entity.SubscriptionState
+import com.ritesh.cashiro.data.service.AttachmentService
 import com.ritesh.cashiro.core.Constants
 import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
 import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
@@ -42,6 +43,7 @@ class TransactionDetailViewModel @Inject constructor(
     private val accountBalanceRepository: AccountBalanceRepository,
     private val subscriptionRepository: SubscriptionRepository,
     private val currencyConversionService: CurrencyConversionService,
+    val attachmentService: AttachmentService,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -114,6 +116,10 @@ class TransactionDetailViewModel @Inject constructor(
     val allSubcategories: StateFlow<Map<Long, List<SubcategoryEntity>>> =
         subcategoryRepository.subcategoriesMap
 
+    // Attachment state for edit mode
+    private val _editableAttachments = MutableStateFlow<List<String>>(emptyList())
+    val editableAttachments: StateFlow<List<String>> = _editableAttachments.asStateFlow()
+
     fun loadTransaction(transactionId: Long) {
         viewModelScope.launch {
             val transaction = transactionRepository.getTransactionById(transactionId)
@@ -176,6 +182,10 @@ class TransactionDetailViewModel @Inject constructor(
                 errorMessage = null
             )
         }
+        // Initialize editable attachments from transaction
+        _uiState.value.transaction?.let { txn ->
+            _editableAttachments.value = attachmentService.parseAttachments(txn.attachments)
+        }
 
         // Load count of other transactions from same merchant
         _uiState.value.transaction?.let { txn ->
@@ -200,6 +210,7 @@ class TransactionDetailViewModel @Inject constructor(
                 existingTransactionCount = 0
             )
         }
+        _editableAttachments.value = emptyList()
     }
 
     fun toggleApplyToAllFromMerchant() {
@@ -241,6 +252,15 @@ class TransactionDetailViewModel @Inject constructor(
         }
 
         updateCategory(newCategory)
+    }
+
+    fun addAttachment(path: String) {
+        _editableAttachments.update { it + path }
+    }
+
+    fun removeAttachment(path: String) {
+        attachmentService.deleteAttachment(path)
+        _editableAttachments.update { it - path }
     }
 
     fun updateCategory(category: String) {
@@ -347,7 +367,8 @@ class TransactionDetailViewModel @Inject constructor(
                 // Normalize merchant name before saving
                 val normalizedTransaction = toSave.copy(
                     merchantName = normalizeMerchantName(toSave.merchantName),
-                    updatedAt = LocalDateTime.now()
+                    updatedAt = LocalDateTime.now(),
+                    attachments = attachmentService.joinAttachments(_editableAttachments.value)
                 )
 
                 transactionRepository.updateTransaction(normalizedTransaction)

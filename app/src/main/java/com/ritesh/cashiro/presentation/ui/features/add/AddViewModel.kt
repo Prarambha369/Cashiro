@@ -1,6 +1,7 @@
 package com.ritesh.cashiro.presentation.ui.features.add
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,6 +10,7 @@ import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
 import com.ritesh.cashiro.data.database.entity.TransactionType
 import com.ritesh.cashiro.data.repository.AccountBalanceRepository
 import com.ritesh.cashiro.data.repository.SubcategoryRepository
+import com.ritesh.cashiro.data.service.AttachmentService
 import com.ritesh.cashiro.domain.usecase.AddSubscriptionUseCase
 import com.ritesh.cashiro.domain.usecase.AddTransactionUseCase
 import com.ritesh.cashiro.domain.usecase.GetCategoriesUseCase
@@ -34,6 +36,7 @@ constructor(
     private val subcategoryRepository: SubcategoryRepository,
     private val accountBalanceRepository:
     AccountBalanceRepository,
+    val attachmentService: AttachmentService,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -93,6 +96,14 @@ constructor(
             StateFlow<List<SubcategoryEntity>> =
         _subscriptionSubcategories.asStateFlow()
 
+    // Transaction attachments
+    private val _transactionAttachments = MutableStateFlow<List<String>>(emptyList())
+    val transactionAttachments: StateFlow<List<String>> = _transactionAttachments.asStateFlow()
+
+    // Subscription attachments
+    private val _subscriptionAttachments = MutableStateFlow<List<String>>(emptyList())
+    val subscriptionAttachments: StateFlow<List<String>> = _subscriptionAttachments.asStateFlow()
+
     init {
         initializeData()
     }
@@ -122,6 +133,8 @@ constructor(
     fun resetAllStates() {
         _transactionUiState.value = TransactionUiState()
         _subscriptionUiState.value = SubscriptionUiState()
+        _transactionAttachments.value = emptyList()
+        _subscriptionAttachments.value = emptyList()
         initializeData()
     }
 
@@ -277,7 +290,8 @@ constructor(
                     currency = state.currency,
                     sourceAccountId = state.selectedAccount?.id,
                     targetAccountBankName = state.targetAccount?.bankName,
-                    targetAccountLast4 = state.targetAccount?.accountLast4
+                    targetAccountLast4 = state.targetAccount?.accountLast4,
+                    attachments = attachmentService.joinAttachments(_transactionAttachments.value)
                 )
 
                 onSuccess()
@@ -308,6 +322,27 @@ constructor(
     ) {
         _transactionUiState.update { currentState -> currentState.copy(targetAccount = account) }
     }
+
+    // Attachment management for transactions
+    fun addTransactionAttachment(path: String) {
+        _transactionAttachments.update { it + path }
+    }
+
+    fun removeTransactionAttachment(path: String) {
+        attachmentService.deleteAttachment(path)
+        _transactionAttachments.update { it - path }
+    }
+
+    // Attachment management for subscriptions
+    fun addSubscriptionAttachment(path: String) {
+        _subscriptionAttachments.update { it + path }
+    }
+
+    fun removeSubscriptionAttachment(path: String) {
+        attachmentService.deleteAttachment(path)
+        _subscriptionAttachments.update { it - path }
+    }
+
 
     // Subscription Tab Functions
     fun updateSubscriptionService(service: String) {

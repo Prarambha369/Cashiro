@@ -9,4 +9,9 @@
     <cache-path 
         name="backups" 
         path="backups/" />
+    
+    <!-- Files directory for attachments -->
+    <files-path 
+        name="attachments" 
+        path="attachments/" />
 </paths>

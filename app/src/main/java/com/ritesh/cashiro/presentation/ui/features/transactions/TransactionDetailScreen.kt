@@ -153,6 +153,8 @@ import com.ritesh.cashiro.presentation.ui.components.BrandIcon
 import com.ritesh.cashiro.presentation.ui.components.CashiroCard
 import com.ritesh.cashiro.presentation.ui.components.CategoryIcon
 import com.ritesh.cashiro.presentation.ui.components.CategorySelectionSheet
+import com.ritesh.cashiro.presentation.ui.components.AttachmentSection
+import com.ritesh.cashiro.data.service.AttachmentService
 import com.ritesh.cashiro.presentation.ui.components.CustomTitleTopAppBar
 import com.ritesh.cashiro.presentation.ui.components.PreferenceSwitch
 import com.ritesh.cashiro.presentation.ui.features.accounts.NumberPad
@@ -202,6 +204,7 @@ fun SharedTransitionScope.TransactionDetailScreen(
     val allSubcategories by transactionDetailViewModel.allSubcategories.collectAsStateWithLifecycle()
     val categories by transactionDetailViewModel.categories.collectAsStateWithLifecycle()
     val linkedSubscription = uiState.subscription
+    val editableAttachments by transactionDetailViewModel.editableAttachments.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -378,6 +381,9 @@ fun SharedTransitionScope.TransactionDetailScreen(
                     categories = categories,
                     subcategoriesMap = allSubcategories,
                     linkedSubscription = linkedSubscription,
+                    editableAttachments = editableAttachments,
+                    onAddAttachment = transactionDetailViewModel::addAttachment,
+                    onRemoveAttachment = transactionDetailViewModel::removeAttachment,
                 )
             }
 
@@ -650,7 +656,10 @@ private fun TransactionDetailContent(
     availableAccounts: List<AccountInfo>,
     categories: List<CategoryEntity>,
     subcategoriesMap: Map<Long, List<SubcategoryEntity>>,
-    linkedSubscription: SubscriptionEntity? = null
+    linkedSubscription: SubscriptionEntity? = null,
+    editableAttachments: List<String> = emptyList(),
+    onAddAttachment: (String) -> Unit = {},
+    onRemoveAttachment: (String) -> Unit = {},
 ) {
 
     Column(
@@ -707,6 +716,18 @@ private fun TransactionDetailContent(
                     onCategoryClick = onCategoryClick,
                     onAccountClick = onAccountClick
                 )
+
+                // Attachments Section in Edit Mode
+                Spacer(modifier = Modifier.height(Spacing.md))
+                AttachmentSection(
+                    attachments = editableAttachments,
+                    attachmentService = viewModel.attachmentService,
+                    onAddAttachment = onAddAttachment,
+                    onRemoveAttachment = onRemoveAttachment,
+                    onAttachmentClick = { /* Preview handled internally */ },
+                    isEditable = true
+                )
+                Spacer(modifier = Modifier.height(300.dp)) // For better scroll space
             }
 
         }
@@ -727,9 +748,10 @@ private fun TransactionDetailContent(
                 availableAccounts,
                 categories,
                 subcategoriesMap,
-                linkedSubscription
+                linkedSubscription,
+                viewModel.attachmentService
             )
-            Spacer(modifier = Modifier.height(200.dp)) // for better scroll
+            Spacer(modifier = Modifier.height(300.dp)) // for better scroll
         }
     }
 }
@@ -1347,7 +1369,6 @@ private fun EditableExtractedInfoCard(
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(300.dp)) // For better scroll space
         }
     }
 }
@@ -1812,7 +1833,8 @@ private fun TransactionReceipt(
     availableAccounts: List<AccountInfo>,
     categories: List<CategoryEntity>,
     subcategoriesMap: Map<Long, List<SubcategoryEntity>>,
-    linkedSubscription: SubscriptionEntity? = null
+    linkedSubscription: SubscriptionEntity? = null,
+    attachmentService: AttachmentService
 ) {
     val density = LocalDensity.current
     var cutoutOffsetPx by remember { mutableFloatStateOf(with(density) { 420.dp.toPx() }) }
@@ -2270,6 +2292,51 @@ private fun TransactionReceipt(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Normal
                     )
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.lg))
+
+
+                // Attachments
+                val attachments = remember(transaction.attachments) {
+                    attachmentService.parseAttachments(transaction.attachments)
+                }
+                val context = LocalContext.current
+
+                if (attachments.isNotEmpty()) {
+                    DashedLine(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = Spacing.md),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        AttachmentSection(
+                            attachments = attachments,
+                            attachmentService = attachmentService,
+                            onAddAttachment = {},
+                            onRemoveAttachment = {},
+                            onAttachmentClick = { path ->
+                                val uri = attachmentService.getAttachmentUri(path)
+                                if (uri != null) {
+                                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                                        setDataAndType(uri, attachmentService.getAttachmentMimeType(path))
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    try {
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        // Handle error
+                                    }
+                                }
+                            },
+                            isEditable = false
+                        )
+                    }
                 }
             }
         }

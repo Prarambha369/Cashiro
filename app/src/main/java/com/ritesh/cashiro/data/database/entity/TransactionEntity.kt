@@ -30,13 +30,14 @@ data class TransactionEntity(
         @ColumnInfo(name = "currency", defaultValue = "INR") val currency: String = "INR",
         @ColumnInfo(name = "from_account") val fromAccount: String? = null,
         @ColumnInfo(name = "to_account") val toAccount: String? = null,
-        @ColumnInfo(name = "billing_cycle") val billingCycle: String? = null
+        @ColumnInfo(name = "billing_cycle") val billingCycle: String? = null,
+        @ColumnInfo(name = "attachments", defaultValue = "") val attachments: String = ""
 )
 
 enum class TransactionType {
-    INCOME, // Money received
-    EXPENSE, // Money spent from accounts
-    CREDIT, // Credit card purchases
-    TRANSFER, // Between own accounts
-    INVESTMENT // Mutual funds, stocks, etc.
+    INCOME,
+    EXPENSE,
+    CREDIT,
+    TRANSFER,
+    INVESTMENT
 }

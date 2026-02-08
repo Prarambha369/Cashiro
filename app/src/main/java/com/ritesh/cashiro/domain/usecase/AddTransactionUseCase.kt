@@ -10,6 +10,7 @@ import com.ritesh.cashiro.data.repository.SubscriptionRepository
 import com.ritesh.cashiro.data.repository.TransactionRepository
 import java.math.BigDecimal
 import java.security.MessageDigest
+import java.time.LocalDate
 import java.time.LocalDateTime
 import javax.inject.Inject
 
@@ -36,7 +37,8 @@ constructor(
             targetAccountBankName: String? = null,
             targetAccountLast4: String? = null,
             billingCycle: String? = null,
-            createSubscription: Boolean = true
+            createSubscription: Boolean = true,
+            attachments: String = ""
     ) {
         // Generate a unique hash for manual transactions
         val transactionHash =
@@ -62,7 +64,8 @@ constructor(
                         createdAt = LocalDateTime.now(),
                         updatedAt = LocalDateTime.now(),
                         currency = currency,
-                        billingCycle = billingCycle
+                        billingCycle = billingCycle,
+                        attachments = attachments
                 )
 
         // Insert the transaction
@@ -200,10 +203,10 @@ constructor(
     }
 
     private fun calculateNextPaymentDate(
-        fromDate: java.time.LocalDate,
+        fromDate: LocalDate,
         billingCycle: String?
-    ): java.time.LocalDate {
-        val today = java.time.LocalDate.now()
+    ): LocalDate {
+        val today = LocalDate.now()
         val cycle = billingCycle?.lowercase() ?: "monthly"
         
         // Start from first occurrence after fromDate

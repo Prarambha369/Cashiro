@@ -13,6 +13,10 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
+import java.io.FileOutputStream
+import java.math.BigDecimal
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -28,7 +32,7 @@ class BackupExporter @Inject constructor(
         .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
         .registerTypeAdapter(LocalDateTime::class.java, LocalDateTimeTypeAdapter())
         .registerTypeAdapter(LocalDate::class.java, LocalDateTypeAdapter())
-        .registerTypeAdapter(java.math.BigDecimal::class.java, BigDecimalTypeAdapter())
+        .registerTypeAdapter(BigDecimal::class.java, BigDecimalTypeAdapter())
         .create()
     
     /**
@@ -44,8 +48,37 @@ class BackupExporter @Inject constructor(
             // Create backup file
             val file = createBackupFile()
             
-            // Write JSON to file
-            file.writeText(gson.toJson(backup))
+            ZipOutputStream(FileOutputStream(file)).use { zipOut ->
+                // Write JSON to file
+                val jsonEntry = ZipEntry("backup.json")
+                zipOut.putNextEntry(jsonEntry)
+                zipOut.write(gson.toJson(backup).toByteArray())
+                zipOut.closeEntry()
+
+                // Write Attachments
+                if (privacy == ExportPrivacy.FULL) {
+                    val filesDir = context.filesDir
+                    // Collect all unique attachment paths
+                    val allAttachments = backup.database.transactions
+                        .flatMap { it.attachments.split(",") }
+                        .filter { it.isNotBlank() }
+                        .toSet()
+
+                    allAttachments.forEach { path ->
+                        // path from DB is like "attachments/filename.ext"
+                        val attachmentFile = File(filesDir, path)
+                        if (attachmentFile.exists()) {
+                            // Use the path directly as entry name to preserve structure
+                            val entry = ZipEntry(path)
+                            zipOut.putNextEntry(entry)
+                            attachmentFile.inputStream().use { input ->
+                                input.copyTo(zipOut)
+                            }
+                            zipOut.closeEntry()
+                        }
+                    }
+                }
+            }
             
             ExportResult.Success(file)
         } catch (e: Exception) {
@@ -56,7 +89,7 @@ class BackupExporter @Inject constructor(
     /**
      * Create backup data structure
      */
-    private suspend fun createBackup(privacy: ExportPrivacy): PennyWiseBackup {
+    private suspend fun createBackup(privacy: ExportPrivacy): CashiroBackup {
         // Get all database data
         val transactions = database.transactionDao().getAllTransactions().first()
         val categories = database.categoryDao().getAllCategories().first()
@@ -100,7 +133,7 @@ class BackupExporter @Inject constructor(
             )}
         }
         
-        return PennyWiseBackup(
+        return CashiroBackup(
             metadata = BackupMetadata(
                 exportId = UUID.randomUUID().toString(),
                 appVersion = BuildConfig.VERSION_NAME,
@@ -162,7 +195,7 @@ class BackupExporter @Inject constructor(
         val timestamp = LocalDateTime.now().format(
             DateTimeFormatter.ofPattern("yyyy_MM_dd_HHmmss")
         )
-        val fileName = "PennyWise_Backup_$timestamp.pennywisebackup"
+        val fileName = "Cashiro_Backup_$timestamp.zip"
         
         return File(exportDir, fileName)
     }

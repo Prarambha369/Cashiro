@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ritesh.cashiro.presentation.ui.features.accounts.NumberPad
 import com.ritesh.cashiro.presentation.ui.components.AccountCard
+import com.ritesh.cashiro.presentation.ui.components.AttachmentSection
 import com.ritesh.cashiro.presentation.ui.components.CategorySelectionSheet
 import com.ritesh.cashiro.presentation.effects.overScrollVertical
 import com.ritesh.cashiro.presentation.effects.rememberOverscrollFlingBehavior
@@ -55,6 +56,7 @@ fun SubscriptionTabContent(
     val allSubcategories by viewModel.allSubcategories.collectAsState(initial = emptyMap())
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val subscriptionAttachments by viewModel.subscriptionAttachments.collectAsState()
 
     val selectedCategoryObj = remember(uiState.category, categories) {
         categories.find { it.name == uiState.category }
@@ -629,6 +631,16 @@ fun SubscriptionTabContent(
                     ),
                 )
             }
+
+            // Attachments Section
+            AttachmentSection(
+                attachments = subscriptionAttachments,
+                attachmentService = viewModel.attachmentService,
+                onAddAttachment = viewModel::addSubscriptionAttachment,
+                onRemoveAttachment = viewModel::removeSubscriptionAttachment,
+                onAttachmentClick = { /* Preview handled internally */ },
+                isEditable = true
+            )
 
             // Bottom padding for keyboard
             Spacer(modifier = Modifier.height(80.dp))

@@ -16,6 +16,10 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.util.zip.ZipInputStream
+import java.io.FileOutputStream
+import java.io.File
+import java.math.BigDecimal
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -30,7 +34,7 @@ class BackupImporter @Inject constructor(
         .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
         .registerTypeAdapter(LocalDateTime::class.java, LocalDateTimeTypeAdapter())
         .registerTypeAdapter(LocalDate::class.java, LocalDateTypeAdapter())
-        .registerTypeAdapter(java.math.BigDecimal::class.java, BigDecimalTypeAdapter())
+        .registerTypeAdapter(BigDecimal::class.java, BigDecimalTypeAdapter())
         .create()
     
     /**
@@ -64,12 +68,54 @@ class BackupImporter @Inject constructor(
     /**
      * Read and parse backup file
      */
-    private suspend fun readBackupFile(uri: Uri): PennyWiseBackup {
+    /**
+     * Read and parse backup file (ZIP or JSON)
+     */
+    private suspend fun readBackupFile(uri: Uri): CashiroBackup {
         return withContext(Dispatchers.IO) {
+            // Try to read as ZIP first
+            try {
+                context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    val zipInput = ZipInputStream(inputStream)
+                    var backup: CashiroBackup? = null
+                    var entry = zipInput.nextEntry
+
+                    if (entry != null) {
+                        val attachmentsDir = File(context.filesDir, "attachments")
+                        if (!attachmentsDir.exists()) attachmentsDir.mkdirs()
+
+                        while (entry != null) {
+                            val name = entry.name
+                            if (name == "backup.json") {
+                                // Read JSON
+                                val bytes = zipInput.readBytes()
+                                val content = String(bytes, Charsets.UTF_8)
+                                backup = gson.fromJson(content, CashiroBackup::class.java)
+                            } else if (name.startsWith("attachments/") && !entry.isDirectory) {
+                                // Extract Attachment
+                                val fileName = File(name).name
+                                val outFile = File(attachmentsDir, fileName)
+                                FileOutputStream(outFile).use { output ->
+                                    zipInput.copyTo(output)
+                                }
+                            }
+                            zipInput.closeEntry()
+                            entry = zipInput.nextEntry
+                        }
+                        // If we found a backup.json, return it
+                        if (backup != null) return@withContext backup
+                    }
+                }
+            } catch (e: Exception) {
+                // Not a ZIP or failed, fall back to legacy JSON
+                Log.d("BackupImporter", "Failed to read as ZIP, trying legacy JSON: ${e.message}")
+            }
+
+            // Legacy JSON handling
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 val reader = BufferedReader(InputStreamReader(inputStream))
                 val content = reader.readText()
-                gson.fromJson(content, PennyWiseBackup::class.java)
+                gson.fromJson(content, CashiroBackup::class.java)
             } ?: throw Exception("Failed to read backup file")
         }
     }
@@ -77,15 +123,16 @@ class BackupImporter @Inject constructor(
     /**
      * Check if backup version is compatible
      */
-    private fun isCompatibleVersion(backup: PennyWiseBackup): Boolean {
+    private fun isCompatibleVersion(backup: CashiroBackup): Boolean {
         // For now, accept all v1.x backups
-        return backup.format.startsWith("PennyWise Backup v1")
+        return backup.format.startsWith("Cashiro Backup v1")
+
     }
     
     /**
      * Replace all existing data with backup data
      */
-    private suspend fun replaceAllData(backup: PennyWiseBackup): ImportResult {
+    private suspend fun replaceAllData(backup: CashiroBackup): ImportResult {
         var importedTransactions = 0
         var importedCategories = 0
         
@@ -153,7 +200,7 @@ class BackupImporter @Inject constructor(
     /**
      * Merge backup data with existing data
      */
-    private suspend fun mergeData(backup: PennyWiseBackup): ImportResult {
+    private suspend fun mergeData(backup: CashiroBackup): ImportResult {
         var importedTransactions = 0
         var importedCategories = 0
         var skippedDuplicates = 0
