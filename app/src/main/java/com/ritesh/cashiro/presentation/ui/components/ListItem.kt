@@ -1,8 +1,8 @@
 package com.ritesh.cashiro.presentation.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -78,6 +78,7 @@ fun ListItem(
         shape: CornerBasedShape? = listSingleItemShape,
         padding: PaddingValues = listItemPadding,
         onClick: (() -> Unit)? = null,
+        onLongClick: (() -> Unit)? = null,
         listColor: Color = MaterialTheme.colorScheme.surfaceContainerLow,
         selectedListColor: Color = MaterialTheme.colorScheme.primaryContainer
 ) {
@@ -96,12 +97,10 @@ fun ListItem(
                 } else Modifier
             )
             .then(
-                if (onClick != null) {
-                    Modifier.selectable(
-                        selected,
-                        true,
-                        Role.Button,
-                        onClick = onClick
+                if (onClick != null || onLongClick != null) {
+                    Modifier.combinedClickable(
+                        onClick = onClick ?: {},
+                        onLongClick = onLongClick
                     )
                 } else Modifier
             )

@@ -152,6 +152,16 @@ class TransactionsViewModel @Inject constructor(
     private val _deletedTransaction = MutableStateFlow<TransactionEntity?>(null)
     val deletedTransaction: StateFlow<TransactionEntity?> = _deletedTransaction.asStateFlow()
     
+    // Selection mode state for bulk deletion
+    private val _selectionMode = MutableStateFlow(false)
+    val selectionMode: StateFlow<Boolean> = _selectionMode.asStateFlow()
+    
+    private val _selectedTransactionIds = MutableStateFlow<Set<Long>>(emptySet())
+    val selectedTransactionIds: StateFlow<Set<Long>> = _selectedTransactionIds.asStateFlow()
+    
+    private val _deletedTransactions = MutableStateFlow<List<TransactionEntity>?>(null)
+    val deletedTransactions: StateFlow<List<TransactionEntity>?> = _deletedTransactions.asStateFlow()
+    
     // Track if initial filters have been applied to prevent resetting on back navigation
     private var hasAppliedInitialFilters = false
     
@@ -367,6 +377,57 @@ class TransactionsViewModel @Inject constructor(
     
     fun clearDeletedTransaction() {
         _deletedTransaction.value = null
+    }
+    
+    // Selection mode methods for bulk deletion
+    fun toggleSelectionMode() {
+        _selectionMode.value = !_selectionMode.value
+        if (!_selectionMode.value) {
+            // Clear selections when exiting selection mode
+            _selectedTransactionIds.value = emptySet()
+        }
+    }
+    
+    fun toggleTransactionSelection(transactionId: Long) {
+        _selectedTransactionIds.value = if (_selectedTransactionIds.value.contains(transactionId)) {
+            _selectedTransactionIds.value - transactionId
+        } else {
+            _selectedTransactionIds.value + transactionId
+        }
+    }
+    
+    fun selectAllTransactions() {
+        val allTransactionIds = _uiState.value.transactions.map { it.id }.toSet()
+        _selectedTransactionIds.value = allTransactionIds
+    }
+    
+    fun clearSelection() {
+        _selectedTransactionIds.value = emptySet()
+    }
+    
+    fun deleteSelectedTransactions() {
+        viewModelScope.launch {
+            val selectedIds = _selectedTransactionIds.value
+            if (selectedIds.isEmpty()) return@launch
+            
+            val transactionsToDelete = _uiState.value.transactions.filter { it.id in selectedIds }
+            _deletedTransactions.value = transactionsToDelete
+            transactionRepository.deleteTransactions(transactionsToDelete)
+            
+            // Clear selection and exit selection mode
+            _selectedTransactionIds.value = emptySet()
+            _selectionMode.value = false
+        }
+    }
+    
+    fun undoDeleteTransactions(transactions: List<TransactionEntity>) {
+        viewModelScope.launch {
+            transactionRepository.undoDeleteTransactions(transactions)
+        }
+    }
+    
+    fun clearDeletedTransactions() {
+        _deletedTransactions.value = null
     }
 
     fun resetFilters() {

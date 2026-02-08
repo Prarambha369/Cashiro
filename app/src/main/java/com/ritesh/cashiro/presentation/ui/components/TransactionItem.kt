@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,6 +30,7 @@ import com.ritesh.cashiro.data.database.entity.CategoryEntity
 import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
 import com.ritesh.cashiro.data.database.entity.TransactionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionType
+import com.ritesh.cashiro.presentation.effects.BlurredAnimatedVisibility
 import com.ritesh.cashiro.presentation.ui.theme.Dimensions
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
 import com.ritesh.cashiro.presentation.ui.theme.credit_dark
@@ -68,7 +70,11 @@ fun SharedTransitionScope.TransactionItem(
     balanceAfter: BigDecimal? = null,
     balanceCurrency: String? = null,
     animatedContentScope: AnimatedVisibilityScope? = null,
-    sharedElementKey: String? = null
+    sharedElementKey: String? = null,
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onSelectionToggle: () -> Unit = {},
+    onLongClick: () -> Unit = {}
 ) {
     val finalMerchantName = merchantName ?: transaction?.merchantName ?: ""
     val finalAmount = amount ?: transaction?.amount ?: BigDecimal.ZERO
@@ -112,15 +118,24 @@ fun SharedTransitionScope.TransactionItem(
     )
 
     val leadingContent: @Composable () -> Unit = {
-        BrandIcon(
-            merchantName = finalMerchantName,
-            size = 40.dp,
-            showBackground = true,
-            categoryEntity = categoryEntity,
-            subcategoryEntity = subcategoryEntity,
-            accountIconResId = accountIconResId,
-            accountColorHex = accountColorHex
-        )
+        BlurredAnimatedVisibility(isSelectionMode) {
+            Checkbox(
+                checked = isSelected,
+                onCheckedChange = { onSelectionToggle() },
+                modifier = Modifier.size(40.dp)
+            )
+        }
+        BlurredAnimatedVisibility(!isSelectionMode){
+            BrandIcon(
+                merchantName = finalMerchantName,
+                size = 40.dp,
+                showBackground = true,
+                categoryEntity = categoryEntity,
+                subcategoryEntity = subcategoryEntity,
+                accountIconResId = accountIconResId,
+                accountColorHex = accountColorHex
+            )
+        }
     }
 
     // Build subtitle parts
@@ -233,9 +248,16 @@ fun SharedTransitionScope.TransactionItem(
                     )
                 }
             },
-            onClick = onClick,
+            onClick = {
+                if (isSelectionMode) {
+                    onSelectionToggle()
+                } else {
+                    onClick()
+                }
+            },
+            onLongClick = onLongClick,
             shape = shape,
-            listColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            listColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceContainerLow,
             padding = PaddingValues(vertical = 1.5.dp),
             modifier = itemModifier
         )

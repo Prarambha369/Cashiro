@@ -161,6 +161,12 @@ interface TransactionDao {
     @Query("UPDATE transactions SET is_deleted = 1 WHERE transaction_hash = :transactionHash")
     suspend fun softDeleteByHash(transactionHash: String)
 
+    @Query("UPDATE transactions SET is_deleted = 1 WHERE id IN (:transactionIds)")
+    suspend fun softDeleteTransactions(transactionIds: List<Long>)
+
+    @Query("DELETE FROM transactions WHERE id IN (:transactionIds)")
+    suspend fun deleteTransactionsByIds(transactionIds: List<Long>)
+
     // Method to check if transaction exists by hash (including deleted)
     @Query("SELECT * FROM transactions WHERE transaction_hash = :transactionHash LIMIT 1")
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity?

@@ -52,12 +52,15 @@ import com.ritesh.cashiro.presentation.ui.theme.Spacing
 import com.ritesh.cashiro.presentation.ui.components.CurrencySelectionBottomSheet
 import com.ritesh.cashiro.presentation.ui.components.ListItemPosition
 import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.rounded.Edit
 import com.ritesh.cashiro.utils.DateRangeUtils
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.delay
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class,
+    ExperimentalMaterial3ExpressiveApi::class
+)
 @Composable
 fun SharedTransitionScope.TransactionsScreen(
     initialCategory: String? = null,
@@ -88,6 +91,9 @@ fun SharedTransitionScope.TransactionsScreen(
     val sortOption by transactionsViewModel.sortOption.collectAsState()
     val smsScanMonths by transactionsViewModel.smsScanMonths.collectAsState()
     val customDateRange by transactionsViewModel.customDateRange.collectAsState()
+    val selectionMode by transactionsViewModel.selectionMode.collectAsState()
+    val selectedTransactionIds by transactionsViewModel.selectedTransactionIds.collectAsState()
+    val deletedTransactions by transactionsViewModel.deletedTransactions.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -95,6 +101,7 @@ fun SharedTransitionScope.TransactionsScreen(
     var showSortMenu by remember { mutableStateOf(false) }
     var showDateRangePicker by remember { mutableStateOf(false) }
     var showCurrencySheet by remember { mutableStateOf(false) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
 
     
     // Focus management for search field
@@ -188,6 +195,25 @@ fun SharedTransitionScope.TransactionsScreen(
         }
     }
     
+    // Handle bulk delete undo snackbar
+    LaunchedEffect(deletedTransactions) {
+        deletedTransactions?.let { transactions ->
+            // Clear the state immediately to prevent re-triggering
+            transactionsViewModel.clearDeletedTransactions()
+            
+            scope.launch {
+                val result = snackbarHostState.showSnackbar(
+                    message = "${transactions.size} transactions deleted",
+                    actionLabel = "Undo",
+                    duration = SnackbarDuration.Short
+                )
+                if (result == SnackbarResult.ActionPerformed) {
+                    transactionsViewModel.undoDeleteTransactions(transactions)
+                }
+            }
+        }
+    }
+    
     // Focus search field if requested
     LaunchedEffect(focusSearch) {
         if (focusSearch) {
@@ -201,6 +227,11 @@ fun SharedTransitionScope.TransactionsScreen(
         onDispose {
             snackbarHostState.currentSnackbarData?.dismiss()
         }
+    }
+    
+    // Handle back button in selection mode
+    BackHandler(enabled = selectionMode) {
+        transactionsViewModel.toggleSelectionMode()
     }
     
     Scaffold(
@@ -232,12 +263,70 @@ fun SharedTransitionScope.TransactionsScreen(
             ),
         topBar = {
             CustomTitleTopAppBar(
-                title = "Transactions",
+                title = if (selectionMode) "${selectedTransactionIds.size} selected" else "Transactions",
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 hazeState = hazeState,
                 hasBackButton = true,
-                navigationContent = {NavigationContent { onNavigateBack() }}
+                navigationContent = {
+                    NavigationContent {
+                        if (selectionMode) {
+                            transactionsViewModel.toggleSelectionMode()
+                        } else {
+                            onNavigateBack()
+                        }
+                    } },
+                actionContent = {
+                    BlurredAnimatedVisibility(selectionMode) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                        ) {
+                            // Select All/Deselect All toggle button
+                            val allSelected =
+                                selectedTransactionIds.size == uiState.transactions.size && uiState.transactions.isNotEmpty()
+                            IconButton(
+                                onClick = {
+                                    if (allSelected) {
+                                        transactionsViewModel.clearSelection()
+                                    } else {
+                                        transactionsViewModel.selectAllTransactions()
+                                    }
+                                },
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                    contentColor = MaterialTheme.colorScheme.onBackground
+                                ),
+                                shapes =  IconButtonDefaults.shapes(),
+                            ) {
+                                Icon(
+                                    imageVector = if (allSelected) Icons.Default.Deselect else Icons.Default.SelectAll,
+                                    contentDescription = if (allSelected) "Deselect All" else "Select All",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            // Delete button
+                            IconButton(
+                                onClick = { showDeleteConfirmation = true },
+                                enabled = selectedTransactionIds.isNotEmpty(),
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                    contentColor = if (selectedTransactionIds.isNotEmpty())
+                                        MaterialTheme.colorScheme.error
+                                    else MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                                ),
+                                shapes =  IconButtonDefaults.shapes(),
+                                modifier = Modifier.padding(end = 16.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete Selected",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -614,7 +703,16 @@ fun SharedTransitionScope.TransactionsScreen(
                                         shape = position.toShape(),
                                         onClick = { onTransactionClick(transaction.id, "transaction_${transaction.id}") },
                                         animatedContentScope = animatedContentScope,
-                                        sharedElementKey = "transaction_${transaction.id}"
+                                        sharedElementKey = "transaction_${transaction.id}",
+                                        isSelectionMode = selectionMode,
+                                        isSelected = selectedTransactionIds.contains(transaction.id),
+                                        onSelectionToggle = { transactionsViewModel.toggleTransactionSelection(transaction.id) },
+                                        onLongClick = {
+                                            if (!selectionMode) {
+                                                transactionsViewModel.toggleSelectionMode()
+                                                transactionsViewModel.toggleTransactionSelection(transaction.id)
+                                            }
+                                        }
                                     )
                                 }
                             }
@@ -648,6 +746,47 @@ fun SharedTransitionScope.TransactionsScreen(
                 showCurrencySheet = false
             },
             onDismiss = { showCurrencySheet = false }
+        )
+    }
+    
+    // Delete confirmation dialog
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = {
+                Text(text = "Delete ${selectedTransactionIds.size} transaction${if (selectedTransactionIds.size > 1) "s" else ""}?")
+            },
+            text = {
+                Text(
+                    text = "This action is irreversible. The selected transactions will be permanently deleted and cannot be recovered.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        transactionsViewModel.deleteSelectedTransactions()
+                        showDeleteConfirmation = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) {
+                    Text("Cancel")
+                }
+            }
         )
     }
 }

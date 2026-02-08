@@ -130,6 +130,21 @@ class TransactionRepository @Inject constructor(private val transactionDao: Tran
         transactionDao.updateTransaction(transaction.copy(isDeleted = false))
     }
 
+    suspend fun deleteTransactions(transactions: List<TransactionEntity>, hardDelete: Boolean = false) {
+        val transactionIds = transactions.map { it.id }
+        if (hardDelete) {
+            transactionDao.deleteTransactionsByIds(transactionIds)
+        } else {
+            transactionDao.softDeleteTransactions(transactionIds)
+        }
+    }
+
+    suspend fun undoDeleteTransactions(transactions: List<TransactionEntity>) {
+        transactions.forEach { transaction ->
+            transactionDao.updateTransaction(transaction.copy(isDeleted = false))
+        }
+    }
+
     suspend fun updateCategoryForMerchant(merchantName: String, newCategory: String) {
         transactionDao.updateCategoryForMerchant(merchantName, newCategory)
     }
