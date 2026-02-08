@@ -54,6 +54,7 @@ import kotlinx.coroutines.launch
 fun ManageAccountsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToAddAccount: () -> Unit,
+    onNavigateToAccountDetail: (String, String) -> Unit,
     manageAccountsViewModel: ManageAccountsViewModel = hiltViewModel()
 ) {
     val uiState by manageAccountsViewModel.uiState.collectAsState()
@@ -275,6 +276,9 @@ fun ManageAccountsScreen(
                                 onEditAccount = {
                                     accountToEdit = account
                                     showEditSheet = true
+                                },
+                                onAccountClick = {
+                                    onNavigateToAccountDetail(account.bankName, account.accountLast4)
                                 }
                             )
                         }
@@ -333,6 +337,9 @@ fun ManageAccountsScreen(
                                 onEditAccount = {
                                     accountToEdit = account
                                     showEditSheet = true
+                                },
+                                onAccountClick = {
+                                    onNavigateToAccountDetail(account.bankName, account.accountLast4)
                                 }
                             )
                         }
@@ -410,6 +417,9 @@ fun ManageAccountsScreen(
                                 onEditAccount = {
                                     accountToEdit = card
                                     showEditSheet = true
+                                },
+                                onAccountClick = {
+                                    onNavigateToAccountDetail(card.bankName, card.accountLast4)
                                 }
                             )
                         }
@@ -513,6 +523,9 @@ fun ManageAccountsScreen(
                                     onEditAccount = {
                                         accountToEdit = account
                                         showEditSheet = true
+                                    },
+                                    onAccountClick = {
+                                        onNavigateToAccountDetail(account.bankName, account.accountLast4)
                                     }
                                 )
                             }
@@ -554,6 +567,9 @@ fun ManageAccountsScreen(
                                     onEditAccount = {
                                         accountToEdit = card
                                         showEditSheet = true
+                                    },
+                                    onAccountClick = {
+                                        onNavigateToAccountDetail(card.bankName, card.accountLast4)
                                     }
                                 )
                             }
@@ -770,7 +786,8 @@ private fun CreditCardItem(
     onDeleteAccount: () -> Unit,
     isMain: Boolean = false,
     onSetAsMain: () -> Unit = {},
-    onEditAccount: () -> Unit = {}
+    onEditAccount: () -> Unit = {},
+    onAccountClick: () -> Unit = {}
 ) {
     val available = (card.creditLimit ?: BigDecimal.ZERO) - card.balance
     val utilization =
@@ -796,7 +813,8 @@ private fun CreditCardItem(
         onToggleVisibility = onToggleVisibility,
         onDeleteAccount = onDeleteAccount,
         isMain = isMain,
-        onSetAsMain = onSetAsMain
+        onSetAsMain = onSetAsMain,
+        onClick = onAccountClick
     ) {
         // Credit Card
         Column(
@@ -872,7 +890,8 @@ private fun AccountItem(
     onSetAsMain: () -> Unit = {},
     onUnlinkCard: (cardId: Long) -> Unit = {},
     onDeleteAccount: () -> Unit = {},
-    onEditAccount: () -> Unit = {}
+    onEditAccount: () -> Unit = {},
+    onAccountClick: () -> Unit = {}
 ) {
     Column {
         AccountCard(
@@ -884,7 +903,8 @@ private fun AccountItem(
             onToggleVisibility = onToggleVisibility,
             onDeleteAccount = onDeleteAccount,
             isMain = isMain,
-            onSetAsMain = onSetAsMain
+            onSetAsMain = onSetAsMain,
+            onClick = onAccountClick
         ) {
 
             // Linked Cards Section

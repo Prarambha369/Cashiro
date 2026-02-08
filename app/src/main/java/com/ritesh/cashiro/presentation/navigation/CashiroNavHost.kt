@@ -360,7 +360,10 @@ fun CashiroNavHost(
                 ) {
                     ManageAccountsScreen(
                         onNavigateBack = { navController.safePopBackStack() },
-                        onNavigateToAddAccount = { navController.safeNavigate(AddAccount) }
+                        onNavigateToAddAccount = { navController.safeNavigate(AddAccount) },
+                        onNavigateToAccountDetail = { bankName, last4 ->
+                            navController.safeNavigate(AccountDetail(bankName, last4))
+                        }
                     )
                 }
 
@@ -432,10 +435,10 @@ fun CashiroNavHost(
                 }
 
                 composable<AccountDetail>(
-                    enterTransition = CashiroTransitions.noneEnter,
-                    exitTransition = CashiroTransitions.noneExit,
-                    popEnterTransition = CashiroTransitions.noneEnter,
-                    popExitTransition = CashiroTransitions.noneExit
+                    enterTransition = CashiroTransitions.horizontalSlideEnter,
+                    exitTransition = CashiroTransitions.horizontalSlideExit,
+                    popEnterTransition = CashiroTransitions.horizontalSlidePopEnter,
+                    popExitTransition = CashiroTransitions.horizontalSlidePopExit
                 ) { backStackEntry ->
                     val accountDetail = backStackEntry.toRoute<AccountDetail>()
                     AccountDetailScreen(
