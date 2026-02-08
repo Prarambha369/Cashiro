@@ -8,6 +8,8 @@ import androidx.room.withTransaction
 import com.ritesh.cashiro.data.database.CashiroDatabase
 import com.ritesh.cashiro.data.database.entity.*
 import com.ritesh.cashiro.data.preferences.UserPreferencesRepository
+import com.ritesh.cashiro.data.preferences.NavigationBarStyle
+import com.ritesh.cashiro.data.preferences.AppFont
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -98,6 +100,16 @@ class BackupImporter @Inject constructor(
                                 FileOutputStream(outFile).use { output ->
                                     zipInput.copyTo(output)
                                 }
+                            } else if (name.startsWith("profile/") && !entry.isDirectory) {
+                                // Extract Profile Images
+                                val profileDir = File(context.filesDir, "profile")
+                                if (!profileDir.exists()) profileDir.mkdirs()
+
+                                val fileName = File(name).name
+                                val outFile = File(profileDir, fileName)
+                                FileOutputStream(outFile).use { output ->
+                                    zipInput.copyTo(output)
+                                }
                             }
                             zipInput.closeEntry()
                             entry = zipInput.nextEntry
@@ -146,7 +158,10 @@ class BackupImporter @Inject constructor(
                 database.subscriptionDao().deleteAllSubscriptions()
                 database.merchantMappingDao().deleteAllMappings()
                 database.unrecognizedSmsDao().deleteAll()
+                database.merchantMappingDao().deleteAllMappings()
+                database.unrecognizedSmsDao().deleteAll()
                 database.chatDao().deleteAllMessages()
+                database.budgetDao().deleteAllBudgets()
                 
                 // Import all data
                 backup.database.categories.forEach { category ->
@@ -181,6 +196,14 @@ class BackupImporter @Inject constructor(
                 
                 backup.database.chatMessages.forEach { message ->
                     database.chatDao().insertMessage(message)
+                }
+                
+                backup.database.budgets.forEach { budget ->
+                    database.budgetDao().insertBudget(budget)
+                }
+
+                backup.database.budgetCategoryLimits.forEach { limit ->
+                    database.budgetDao().insertCategoryLimit(limit)
                 }
                 
                 // Import preferences
@@ -244,7 +267,10 @@ class BackupImporter @Inject constructor(
                 importCardsWithMerge(backup.database.cards)
                 importAccountBalancesWithMerge(backup.database.accountBalances)
                 importSubscriptionsWithMerge(backup.database.subscriptions)
+                importAccountBalancesWithMerge(backup.database.accountBalances)
+                importSubscriptionsWithMerge(backup.database.subscriptions)
                 importMerchantMappingsWithMerge(backup.database.merchantMappings)
+                importBudgetsWithMerge(backup.database.budgets, backup.database.budgetCategoryLimits)
                 
                 // Import preferences (merge with existing)
                 importPreferences(backup.preferences)
@@ -312,6 +338,45 @@ class BackupImporter @Inject constructor(
             database.merchantMappingDao().insertMapping(mapping)
         }
     }
+
+    /**
+     * Import budgets with merge and ID remapping
+     */
+    private suspend fun importBudgetsWithMerge(
+        budgets: List<BudgetEntity>,
+        limits: List<BudgetCategoryLimitEntity>
+    ) {
+        val existingBudgets = database.budgetDao().getAllBudgets().first()
+        // Key by Name + Year + Month
+        val existingKeys = existingBudgets.map { "${it.name}_${it.year}_${it.month}" }.toSet()
+        
+        // Map to track OldID -> NewID for limits
+        val idMap = mutableMapOf<Long, Long>()
+
+        budgets.forEach { budget ->
+            val key = "${budget.name}_${budget.year}_${budget.month}"
+            if (!existingKeys.contains(key)) {
+                val oldId = budget.id
+                val newBudget = budget.copy(id = 0)
+                val newId = database.budgetDao().insertBudget(newBudget)
+                
+                if (oldId != 0L) {
+                    idMap[oldId] = newId
+                }
+            }
+        }
+        
+        // Import limits using new budget IDs
+        limits.forEach { limit ->
+            val newBudgetId = idMap[limit.budgetId]
+            if (newBudgetId != null) {
+                // Check if limit already exists for this budget? 
+                // Since this is a NEW budget (checked above), limits naturally won't exist.
+                val newLimit = limit.copy(id = 0, budgetId = newBudgetId)
+                database.budgetDao().insertCategoryLimit(newLimit)
+            }
+        }
+    }
     
     /**
      * Import user preferences
@@ -344,9 +409,60 @@ class BackupImporter @Inject constructor(
         preferences.app.firstLaunchTime?.let {
             userPreferencesRepository.updateFirstLaunchTime(it)
         }
-        userPreferencesRepository.updateHasShownReviewPrompt(preferences.app.hasShownReviewPrompt)
         preferences.app.lastReviewPromptTime?.let {
             userPreferencesRepository.updateLastReviewPromptTime(it)
+        }
+
+        // Extended Theme Preferences
+        preferences.theme.isAmoledMode?.let {
+            userPreferencesRepository.updateAmoledMode(it)
+        }
+        
+        preferences.theme.navigationBarStyle?.let { styleName ->
+            try {
+                val style = NavigationBarStyle.valueOf(styleName)
+                userPreferencesRepository.updateNavigationBarStyle(style)
+            } catch (e: Exception) {
+                // Ignore invalid style
+            }
+        }
+
+        preferences.theme.appFont?.let { fontName ->
+            try {
+                val font = AppFont.valueOf(fontName)
+                userPreferencesRepository.updateAppFont(font)
+            } catch (e: Exception) {
+                // Ignore invalid font
+            }
+        }
+
+        // Profile Preferences
+        preferences.profile?.let { profile ->
+            userPreferencesRepository.updateUserName(profile.userName)
+            
+            // Profile Image
+            if (profile.profileImageUri == "profile/profile_image") {
+                val file = File(context.filesDir, "profile/profile_image")
+                if (file.exists()) {
+                    userPreferencesRepository.updateProfileImageUri(Uri.fromFile(file).toString())
+                }
+            } else {
+                userPreferencesRepository.updateProfileImageUri(profile.profileImageUri)
+            }
+
+            userPreferencesRepository.updateProfileBackgroundColor(profile.profileBackgroundColor)
+            
+            // Banner Image
+            if (profile.bannerImageUri == "profile/banner_image") {
+                val file = File(context.filesDir, "profile/banner_image")
+                if (file.exists()) {
+                    userPreferencesRepository.updateBannerImageUri(Uri.fromFile(file).toString())
+                }
+            } else {
+                userPreferencesRepository.updateBannerImageUri(profile.bannerImageUri)
+            }
+
+            userPreferencesRepository.updateShowBannerImage(profile.showBannerImage)
         }
     }
 }

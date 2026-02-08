@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Build
 import com.google.gson.GsonBuilder
 import com.ritesh.cashiro.BuildConfig
+import android.net.Uri
 import com.ritesh.cashiro.data.database.CashiroDatabase
 import com.ritesh.cashiro.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -19,6 +20,8 @@ import java.io.FileOutputStream
 import java.math.BigDecimal
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.ritesh.cashiro.data.database.entity.*
+import androidx.core.net.toUri
 
 @Singleton
 class BackupExporter @Inject constructor(
@@ -39,11 +42,11 @@ class BackupExporter @Inject constructor(
      * Export complete app data to a backup file
      */
     suspend fun exportBackup(
-        privacy: ExportPrivacy = ExportPrivacy.FULL
+        config: BackupConfiguration = BackupConfiguration()
     ): ExportResult {
         return try {
             // Collect all data
-            val backup = createBackup(privacy)
+            val backup = createBackup(config)
             
             // Create backup file
             val file = createBackupFile()
@@ -56,7 +59,7 @@ class BackupExporter @Inject constructor(
                 zipOut.closeEntry()
 
                 // Write Attachments
-                if (privacy == ExportPrivacy.FULL) {
+                if (config.privacy == ExportPrivacy.FULL && config.includeTransactionalData) {
                     val filesDir = context.filesDir
                     // Collect all unique attachment paths
                     val allAttachments = backup.database.transactions
@@ -78,6 +81,19 @@ class BackupExporter @Inject constructor(
                         }
                     }
                 }
+
+                // Write Profile Images
+                if (config.includeProfileData) {
+                    val prefs = userPreferencesRepository.userPreferences.first()
+                    
+                    prefs.profileImageUri?.let { uriStr ->
+                        copyToZip(uriStr, "profile/profile_image", zipOut)
+                    }
+                    
+                    prefs.bannerImageUri?.let { uriStr ->
+                        copyToZip(uriStr, "profile/banner_image", zipOut)
+                    }
+                }
             }
             
             ExportResult.Success(file)
@@ -89,16 +105,21 @@ class BackupExporter @Inject constructor(
     /**
      * Create backup data structure
      */
-    private suspend fun createBackup(privacy: ExportPrivacy): CashiroBackup {
+    /**
+     * Create backup data structure
+     */
+    private suspend fun createBackup(config: BackupConfiguration): CashiroBackup {
         // Get all database data
-        val transactions = database.transactionDao().getAllTransactions().first()
-        val categories = database.categoryDao().getAllCategories().first()
-        val cards = database.cardDao().getAllCards().first()
-        val accountBalances = database.accountBalanceDao().getAllBalances().first()
-        val subscriptions = database.subscriptionDao().getAllSubscriptions().first()
-        val merchantMappings = database.merchantMappingDao().getAllMappings().first()
-        val unrecognizedSms = database.unrecognizedSmsDao().getAllUnrecognizedSms().first()
-        val chatMessages = database.chatDao().getAllMessages().first()
+        val transactions = if (config.includeTransactionalData) database.transactionDao().getAllTransactions().first() else emptyList()
+        val categories = if (config.includeProfileData) database.categoryDao().getAllCategories().first() else emptyList()
+        val cards = if (config.includeProfileData) database.cardDao().getAllCards().first() else emptyList()
+        val accountBalances = if (config.includeTransactionalData) database.accountBalanceDao().getAllBalances().first() else emptyList()
+        val subscriptions = if (config.includeBudgets) database.subscriptionDao().getAllSubscriptions().first() else emptyList()
+        val merchantMappings = if (config.includeProfileData) database.merchantMappingDao().getAllMappings().first() else emptyList()
+        val unrecognizedSms = if (config.includeTransactionalData) database.unrecognizedSmsDao().getAllUnrecognizedSms().first() else emptyList()
+        val chatMessages = if (config.includeTransactionalData) database.chatDao().getAllMessages().first() else emptyList()
+        val budgets = if (config.includeBudgets) database.budgetDao().getAllBudgets().first() else emptyList()
+        val budgetCategoryLimits = if (config.includeBudgets) database.budgetDao().getAllCategoryLimits().first() else emptyList()
         
         // Get preferences from repository
         val prefs = userPreferencesRepository.userPreferences.first()
@@ -119,7 +140,7 @@ class BackupExporter @Inject constructor(
         } else null
         
         // Apply privacy settings if needed
-        val finalTransactions = when (privacy) {
+        val finalTransactions = when (config.privacy) {
             ExportPrivacy.FULL -> transactions
             ExportPrivacy.MASKED -> transactions.map { it.copy(
                 smsBody = "[REDACTED]",
@@ -155,13 +176,18 @@ class BackupExporter @Inject constructor(
                 accountBalances = accountBalances,
                 subscriptions = subscriptions,
                 merchantMappings = merchantMappings,
-                unrecognizedSms = if (privacy == ExportPrivacy.FULL) unrecognizedSms else emptyList(),
-                chatMessages = if (privacy == ExportPrivacy.FULL) chatMessages else emptyList()
+                unrecognizedSms = if (config.privacy == ExportPrivacy.FULL) unrecognizedSms else emptyList(),
+                chatMessages = if (config.privacy == ExportPrivacy.FULL) chatMessages else emptyList(),
+                budgets = budgets,
+                budgetCategoryLimits = budgetCategoryLimits
             ),
             preferences = PreferencesSnapshot(
                 theme = ThemePreferences(
-                    isDarkThemeEnabled = prefs.isDarkThemeEnabled,
-                    isDynamicColorEnabled = prefs.isDynamicColorEnabled
+                    isDarkThemeEnabled = if (config.includeAppPreferences) prefs.isDarkThemeEnabled else null,
+                    isDynamicColorEnabled = if (config.includeAppPreferences) prefs.isDynamicColorEnabled else true,
+                    isAmoledMode = if (config.includeAppPreferences) prefs.isAmoledMode else null,
+                    navigationBarStyle = if (config.includeAppPreferences) prefs.navigationBarStyle.name else null,
+                    appFont = if (config.includeAppPreferences) prefs.appFont.name else null
                 ),
                 sms = SmsPreferences(
                     hasSkippedSmsPermission = prefs.hasSkippedSmsPermission,
@@ -178,7 +204,14 @@ class BackupExporter @Inject constructor(
                     firstLaunchTime = firstLaunchTime,
                     hasShownReviewPrompt = hasShownReviewPrompt,
                     lastReviewPromptTime = lastReviewPromptTime
-                )
+                ),
+                profile = if (config.includeProfileData) ProfilePreferences(
+                    userName = prefs.userName,
+                    profileImageUri = if (prefs.profileImageUri != null) "profile/profile_image" else null,
+                    profileBackgroundColor = prefs.profileBackgroundColor,
+                    bannerImageUri = if (prefs.bannerImageUri != null) "profile/banner_image" else null,
+                    showBannerImage = prefs.showBannerImage
+                ) else null
             )
         )
     }
@@ -198,5 +231,23 @@ class BackupExporter @Inject constructor(
         val fileName = "Cashiro_Backup_$timestamp.zip"
         
         return File(exportDir, fileName)
+    }
+
+
+    private fun copyToZip(uriString: String, entryName: String, zipOut: ZipOutputStream) {
+        try {
+            val uri = uriString.toUri()
+            val inputStream = context.contentResolver.openInputStream(uri)
+            
+            inputStream?.use { input ->
+                val entry = ZipEntry(entryName)
+                zipOut.putNextEntry(entry)
+                input.copyTo(zipOut)
+                zipOut.closeEntry()
+            }
+        } catch (e: Exception) {
+            // Log or ignore image copy failure to avoid failing entire backup
+            e.printStackTrace()
+        }
     }
 }

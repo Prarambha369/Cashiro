@@ -76,6 +76,7 @@ import com.ritesh.cashiro.presentation.ui.features.settings.notifications.Notifi
 import com.ritesh.cashiro.presentation.ui.features.settings.rules.CreateRuleScreen
 import com.ritesh.cashiro.presentation.ui.features.settings.rules.RulesScreen
 import com.ritesh.cashiro.presentation.ui.features.settings.rules.RulesViewModel
+import com.ritesh.cashiro.presentation.ui.features.settings.dataprivacy.DataPrivacyScreen
 import com.ritesh.cashiro.presentation.ui.features.settings.sms.SMSScreen
 import com.ritesh.cashiro.presentation.ui.features.settings.unrecognized.UnrecognizedSmsScreen
 import com.ritesh.cashiro.presentation.ui.features.subscriptions.SubscriptionsScreen
@@ -257,7 +258,18 @@ fun CashiroNavHost(
                         onNavigateToNotifications = { navController.safeNavigate(NotificationSettings) },
                         onNavigateToBudgets = { navController.safeNavigate(Budgets()) },
                         onNavigateToDeveloper = { navController.safeNavigate(DeveloperOptions) },
-                        animatedVisibilityScope = this@composable
+                        onNavigateToDataPrivacy = { navController.safeNavigate(DataPrivacy) },
+                    )
+                }
+
+                composable<DataPrivacy>(
+                    enterTransition = CashiroTransitions.horizontalSlideEnter,
+                    exitTransition = CashiroTransitions.horizontalSlideExit,
+                    popEnterTransition = CashiroTransitions.horizontalSlidePopEnter,
+                    popExitTransition = CashiroTransitions.horizontalSlidePopExit
+                ) {
+                    DataPrivacyScreen(
+                        onNavigateBack = { navController.safePopBackStack() }
                     )
                 }
 

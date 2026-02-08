@@ -105,6 +105,12 @@ data class DatabaseSnapshot(
     
     @SerializedName("unrecognized_sms")
     val unrecognizedSms: List<UnrecognizedSmsEntity>,
+
+    @SerializedName("budgets")
+    val budgets: List<BudgetEntity> = emptyList(),
+
+    @SerializedName("budget_category_limits")
+    val budgetCategoryLimits: List<BudgetCategoryLimitEntity> = emptyList(),
     
     @SerializedName("chat_messages")
     val chatMessages: List<ChatMessage>
@@ -124,7 +130,10 @@ data class PreferencesSnapshot(
     val developer: DeveloperPreferences,
     
     @SerializedName("app")
-    val app: AppPreferences
+    val app: AppPreferences,
+
+    @SerializedName("profile")
+    val profile: ProfilePreferences? = null
 )
 
 /**
@@ -135,7 +144,16 @@ data class ThemePreferences(
     val isDarkThemeEnabled: Boolean?,
     
     @SerializedName("is_dynamic_color_enabled")
-    val isDynamicColorEnabled: Boolean
+    val isDynamicColorEnabled: Boolean,
+
+    @SerializedName("is_amoled_mode")
+    val isAmoledMode: Boolean? = null,
+
+    @SerializedName("navigation_bar_style")
+    val navigationBarStyle: String? = null,
+
+    @SerializedName("app_font")
+    val appFont: String? = null
 )
 
 /**
@@ -184,6 +202,26 @@ data class AppPreferences(
 )
 
 /**
+ * Profile-related preferences
+ */
+data class ProfilePreferences(
+    @SerializedName("user_name")
+    val userName: String = "User",
+
+    @SerializedName("profile_image_uri")
+    val profileImageUri: String? = null,
+
+    @SerializedName("profile_background_color")
+    val profileBackgroundColor: Int = 0,
+
+    @SerializedName("banner_image_uri")
+    val bannerImageUri: String? = null,
+
+    @SerializedName("show_banner_image")
+    val showBannerImage: Boolean = false
+)
+
+/**
  * Import result
  */
 sealed class ImportResult {
@@ -222,3 +260,14 @@ enum class ExportPrivacy {
     MASKED,        // Mask sensitive data like account numbers
     ANONYMOUS      // Remove merchant names and descriptions
 }
+
+/**
+ * Configuration for backup export
+ */
+data class BackupConfiguration(
+    val privacy: ExportPrivacy = ExportPrivacy.FULL,
+    val includeTransactionalData: Boolean = true,
+    val includeProfileData: Boolean = true,
+    val includeBudgets: Boolean = true,
+    val includeAppPreferences: Boolean = true
+)

@@ -214,6 +214,9 @@ data class Transactions(
 
 @Serializable object SmsSettings
 
+@Serializable object DataPrivacy
+
+
 @Serializable object NotificationSettings
 
 @Serializable data class Budgets(val sharedElementPrefix: Long? = null)

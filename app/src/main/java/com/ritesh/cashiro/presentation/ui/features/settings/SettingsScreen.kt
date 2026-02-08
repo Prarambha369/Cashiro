@@ -1,8 +1,7 @@
 package com.ritesh.cashiro.presentation.ui.features.settings
 
 import android.content.Intent
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
@@ -43,6 +42,7 @@ import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.rounded.PieChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -108,7 +108,7 @@ import com.ritesh.cashiro.presentation.ui.theme.red_light
 import com.ritesh.cashiro.presentation.ui.theme.yellow_dark
 import com.ritesh.cashiro.presentation.ui.theme.yellow_light
 import com.ritesh.cashiro.presentation.ui.features.settings.appearance.ThemeViewModel
-import com.ritesh.cashiro.presentation.ui.features.settings.applock.AppLockViewModel
+
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 
@@ -127,41 +127,14 @@ fun SettingsScreen(
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
     onNavigateToDeveloper: () -> Unit = {},
+    onNavigateToDataPrivacy: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
-    appLockViewModel: AppLockViewModel = hiltViewModel(),
-    animatedVisibilityScope: androidx.compose.animation.AnimatedVisibilityScope? = null
 ) {
-    val appLockUiState by appLockViewModel.uiState.collectAsStateWithLifecycle()
     val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
     val downloadState = uiState.downloadStatus
     val downloadProgress = uiState.downloadProgress
-    val downloadedMB = uiState.downloadedMB
-    val totalMB = uiState.totalMB
-    val isDeveloperModeEnabled by
-            settingsViewModel.isDeveloperModeEnabled.collectAsStateWithLifecycle(
-                    initialValue = false
-            )
     val totalTransactionsCount by settingsViewModel.totalTransactions.collectAsStateWithLifecycle()
-    val importExportMessage = uiState.importExportMessage
-    val exportedBackupFile = uiState.exportedBackupFile
     val userPreferences by settingsViewModel.userPreferences.collectAsStateWithLifecycle(initialValue = null)
-
-    var showExportOptionsDialog by remember { mutableStateOf(false) }
-    var showTimeoutDialog by remember { mutableStateOf(false) }
-
-    // File picker for import
-    val importLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.GetContent(),
-            onResult = { uri -> uri?.let { settingsViewModel.importBackup(it) } }
-        )
-
-    // File saver for export
-    val exportSaveLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.CreateDocument("application/octet-stream"),
-            onResult = { uri -> uri?.let { settingsViewModel.saveBackupToFile(it) } }
-        )
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
@@ -180,250 +153,175 @@ fun SettingsScreen(
             )
         }
     ) { paddingValues ->
-        Surface(
-            modifier = modifier
-                .fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeSource(state = hazeState)
+                .overScrollVertical()
+                .verticalScroll(
+                    state = rememberScrollState()
+                )
+                .padding(
+                    start = Dimensions.Padding.content,
+                    end = Dimensions.Padding.content,
+                    top = Dimensions.Padding.content +
+                            paddingValues.calculateTopPadding()
+                ),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .hazeSource(state = hazeState)
-                    .overScrollVertical()
-                    .verticalScroll(
-                        state = rememberScrollState()
-                    )
-                    .padding(
-                        start = Dimensions.Padding.content,
-                        end = Dimensions.Padding.content,
-                        top = Dimensions.Padding.content +
-                                paddingValues.calculateTopPadding()
-                    ),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(1.5.dp)
             ) {
+                val profileImageUri = userPreferences?.profileImageUri?.toUri()
+                val profileBackgroundColor = Color(userPreferences?.profileBackgroundColor ?: Color.Transparent.toArgb())
 
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(1.5.dp)
-                ) {
-                    val profileImageUri = userPreferences?.profileImageUri?.toUri()
-                    val profileBackgroundColor = Color(userPreferences?.profileBackgroundColor ?: Color.Transparent.toArgb())
-
-                    ListItem(
-                        headline = {
-                            Text(
-                                text = userPreferences?.userName ?: "User",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        },
-                        supporting = {
-                            Text(
-                                text = "$totalTransactionsCount Transactions",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(0.8f)
-                            )
-                        },
-                        leading = {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                                    .background(profileBackgroundColor),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (profileImageUri != null) {
-                                    AsyncImage(
-                                        model = profileImageUri,
-                                        contentDescription = "Profile",
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                } else {
-                                    Image(
-                                        painter = painterResource(id = R.drawable.avatar_1),
-                                        contentDescription = "Profile",
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                }
-                            }
-                        },
-                        trailing = {
-                            Icon(
-                                Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        },
-                        onClick = { onNavigateToProfile() },
-                        shape = ListItemPosition.Top.toShape(),
-                        listColor = MaterialTheme.colorScheme.primaryContainer,
-                        padding = PaddingValues(0.dp)
-                    )
-
-                    ListItem(
-                        headline = {
-                            Text(
-                                text = "Appearances",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium
-                            )
-                        },
-                        supporting = {
-                            Text(
-                                text = "App's personalization settings",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        leading = {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .background(
-                                        color = orange_light,
-                                        shape = CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.Palette,
-                                    contentDescription = null,
-                                    tint = orange_dark
-                                )
-                            }
-                        },
-                        trailing = {
-                            Icon(
-                                Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        onClick = { onNavigateToAppearance() },
-                        shape = ListItemPosition.Middle.toShape(),
-                        padding = PaddingValues(0.dp)
-                    )
-
-                    ListItem(
-                        headline = {
-                            Text(
-                                text = "Notifications",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium
-                            )
-                        },
-                        supporting = {
-                            Text(
-                                text = "Manage reminder notification settings",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        leading = {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .background(
-                                        color = blue_light,
-                                        shape = CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.NotificationsActive,
-                                    contentDescription = null,
-                                    tint = blue_dark
-                                )
-                            }
-                        },
-                        trailing = {
-                            Icon(
-                                Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        onClick = { onNavigateToNotifications() },
-                        shape = ListItemPosition.Bottom.toShape(),
-                        padding = PaddingValues(0.dp)
-                    )
-                }
-                // Security Section
-                SectionHeader(title = "Security", modifier = Modifier.padding(start = Spacing.md))
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(1.5.dp)
-                ) {
-                    PreferenceSwitch(
-                        title = "App Lock",
-                        subtitle =
-                            if (appLockUiState.canUseBiometric) {
-                                "Protect your data with biometric authentication"
-                            } else {
-                                appLockUiState.biometricCapability.getErrorMessage()
-                            },
-                        checked = appLockUiState.isLockEnabled,
-                        onCheckedChange = { enabled ->
-                            appLockViewModel.setAppLockEnabled(enabled)
-                        },
-                        leadingIcon = {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .background(
-                                        color = green_light,
-                                        shape = CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.Lock,
-                                    contentDescription = null,
-                                    tint = green_dark
-                                )
-                            }
-                        },
-                        padding = PaddingValues(0.dp),
-                        isSingle = !appLockUiState.isLockEnabled,
-                        isFirst = appLockUiState.isLockEnabled,
-                    )
-
-                    // Lock Timeout Setting (only show if app lock is enabled)
-                    AnimatedVisibility(visible = appLockUiState.isLockEnabled) {
-                        ListItem(
-                            headline = { Text("Lock Timeout") },
-                            supporting = {
-                                Text(
-                                    when (appLockUiState.timeoutMinutes) {
-                                        0 -> "Lock immediately when app goes to background"
-                                        1 -> "Lock after 1 minute in background"
-                                        else ->
-                                            "Lock after ${appLockUiState.timeoutMinutes} minutes in background"
-                                    }
-                                )
-                            },
-                            trailing = {
-                                Icon(
-                                    Icons.Default.ChevronRight,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            onClick = { showTimeoutDialog = true },
-                            shape = ListItemPosition.Bottom.toShape(),
-                            padding = PaddingValues(0.dp),
+                ListItem(
+                    headline = {
+                        Text(
+                            text = userPreferences?.userName ?: "User",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
-                    }
-                }
+                    },
+                    supporting = {
+                        Text(
+                            text = "$totalTransactionsCount Transactions",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(0.8f)
+                        )
+                    },
+                    leading = {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                                .background(profileBackgroundColor),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (profileImageUri != null) {
+                                AsyncImage(
+                                    model = profileImageUri,
+                                    contentDescription = "Profile",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Image(
+                                    painter = painterResource(id = R.drawable.avatar_1),
+                                    contentDescription = "Profile",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                        }
+                    },
+                    trailing = {
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    },
+                    onClick = { onNavigateToProfile() },
+                    shape = ListItemPosition.Top.toShape(),
+                    listColor = MaterialTheme.colorScheme.primaryContainer,
+                    padding = PaddingValues(0.dp)
+                )
 
+                ListItem(
+                    headline = {
+                        Text(
+                            text = "Appearances",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                    },
+                    supporting = {
+                        Text(
+                            text = "App's personalization settings",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    leading = {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(
+                                    color = orange_light,
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Palette,
+                                contentDescription = null,
+                                tint = orange_dark
+                            )
+                        }
+                    },
+                    trailing = {
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    onClick = { onNavigateToAppearance() },
+                    shape = ListItemPosition.Middle.toShape(),
+                    padding = PaddingValues(0.dp)
+                )
+
+                ListItem(
+                    headline = {
+                        Text(
+                            text = "Notifications",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                    },
+                    supporting = {
+                        Text(
+                            text = "Manage reminder notification settings",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    leading = {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(
+                                    color = blue_light,
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.NotificationsActive,
+                                contentDescription = null,
+                                tint = blue_dark
+                            )
+                        }
+                    },
+                    trailing = {
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    onClick = { onNavigateToNotifications() },
+                    shape = ListItemPosition.Bottom.toShape(),
+                    padding = PaddingValues(0.dp)
+                )
                 // Data Management Section
                 SectionHeader(
                     title = "Data Management",
-                    modifier = Modifier.padding(start = Spacing.md)
+                    modifier = Modifier.padding(Spacing.md)
                 )
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -609,18 +507,18 @@ fun SettingsScreen(
                         padding = PaddingValues(0.dp)
                     )
 
-                    // Export Data
+                    // Data Privacy
                     ListItem(
                         headline = {
                             Text(
-                                text = "Export Data",
+                                text = "Data Privacy",
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium
                             )
                         },
                         supporting = {
                             Text(
-                                text = "Backup all data to a file",
+                                text = "Manage your data and privacy settings",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -630,15 +528,15 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .size(48.dp)
                                     .background(
-                                        color = yellow_light,
+                                        color = blue_light,
                                         shape = CircleShape
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    Icons.Default.Upload,
+                                    Icons.Default.PrivacyTip,
                                     contentDescription = null,
-                                    tint = yellow_dark
+                                    tint = blue_dark
                                 )
                             }
                         },
@@ -649,55 +547,12 @@ fun SettingsScreen(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         },
-                        onClick = { settingsViewModel.exportBackup() },
+                        onClick = { onNavigateToDataPrivacy() },
                         shape = ListItemPosition.Middle.toShape(),
                         padding = PaddingValues(0.dp)
                     )
 
-                    // Import Data
-                    ListItem(
-                        headline = {
-                            Text(
-                                text = "Import Data",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium
-                            )
-                        },
-                        supporting = {
-                            Text(
-                                text = "Restore data from backup",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        leading = {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .background(
-                                        color = green_light,
-                                        shape = CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.Download,
-                                    contentDescription = null,
-                                    tint = green_dark
-                                )
-                            }
-                        },
-                        trailing = {
-                            Icon(
-                                Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        onClick = { importLauncher.launch("*/*") },
-                        shape = ListItemPosition.Middle.toShape(),
-                        padding = PaddingValues(0.dp)
-                    )
+
 
                     // SMS
                     ListItem(
@@ -749,7 +604,7 @@ fun SettingsScreen(
                 // AI Features Section
                 SectionHeader(
                     title = "AI Features",
-                    modifier = Modifier.padding(start = Spacing.md)
+                    modifier = Modifier.padding(Spacing.md)
                 )
 
                 val aiIconColor = yellow_dark
@@ -856,7 +711,8 @@ fun SettingsScreen(
 
 
                 // Developer Section
-                SectionHeader(title = "Developer", modifier = Modifier.padding(start = Spacing.md))
+                SectionHeader(title = "Developer",
+                    modifier = Modifier.padding(Spacing.md))
 
                 ListItem(
                     headline = {
@@ -905,7 +761,7 @@ fun SettingsScreen(
                 // Support Section
                 SectionHeader(
                     title = "Support & Community",
-                    modifier = Modifier.padding(start = Spacing.md)
+                    modifier = Modifier.padding(Spacing.md)
                 )
 
                 val context = LocalContext.current
@@ -1004,150 +860,10 @@ fun SettingsScreen(
                         shape = ListItemPosition.Bottom.toShape(),
                         padding = PaddingValues(0.dp)
                     )
-                }
 
-                Spacer(modifier = Modifier.height(110.dp))
+                    Spacer(modifier = Modifier.height(110.dp))
+                }
             }
-        }
-
-        // Show import/export message
-        importExportMessage?.let { message ->
-            // Check if we have an exported file ready
-            if (exportedBackupFile != null && message.contains("successfully! Choose")) {
-                showExportOptionsDialog = true
-            } else {
-                LaunchedEffect(message) {
-                    // Auto-clear message after 5 seconds
-                    kotlinx.coroutines.delay(5000)
-                    settingsViewModel.clearImportExportMessage()
-                }
-
-                AlertDialog(
-                    onDismissRequest = { settingsViewModel.clearImportExportMessage() },
-                    title = { Text("Backup Status") },
-                    text = { Text(message) },
-                    confirmButton = {
-                        TextButton(onClick = { settingsViewModel.clearImportExportMessage() }) {
-                            Text("OK")
-                        }
-                    }
-                )
-            }
-        }
-
-        // Export options dialog
-        if (showExportOptionsDialog && exportedBackupFile != null) {
-            val timestamp =
-                java.time.LocalDateTime.now()
-                    .format(java.time.format.DateTimeFormatter.ofPattern(
-                        "yyyy_MM_dd_HHmmss"
-                    ))
-            val fileName = "Cashiro_Backup_$timestamp.cashirobackup"
-
-            AlertDialog(
-                onDismissRequest = {
-                    showExportOptionsDialog = false
-                    settingsViewModel.clearImportExportMessage()
-                },
-                title = { Text("Save Backup") },
-                text = {
-                    Column {
-                        Text("Backup created successfully!")
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "Choose how you want to save it:",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                },
-                confirmButton = {
-                    Row {
-                        TextButton(
-                            onClick = {
-                                exportSaveLauncher.launch(fileName)
-                                showExportOptionsDialog = false
-                                settingsViewModel.clearImportExportMessage()
-                            }
-                        ) {
-                            Icon(Icons.Default.SaveAlt, contentDescription = null)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Save to Files")
-                        }
-
-                        TextButton(
-                            onClick = {
-                                settingsViewModel.shareBackup()
-                                showExportOptionsDialog = false
-                                settingsViewModel.clearImportExportMessage()
-                            }
-                        ) {
-                            Icon(Icons.Default.Share, contentDescription = null)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Share")
-                        }
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = {
-                            showExportOptionsDialog = false
-                            settingsViewModel.clearImportExportMessage()
-                        }
-                    ) { Text("Cancel") }
-                }
-            )
-        }
-
-        // Lock Timeout Dialog
-        if (showTimeoutDialog) {
-            AlertDialog(
-                onDismissRequest = { showTimeoutDialog = false },
-                title = { Text("Lock Timeout") },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        Text(
-                            text =
-                                "Choose when to lock the app after it goes to background",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Spacer(modifier = Modifier.height(Spacing.md))
-
-                        val timeoutOptions =
-                            listOf(
-                                0 to "Immediately",
-                                1 to "1 minute",
-                                5 to "5 minutes",
-                                15 to "15 minutes"
-                            )
-
-                        timeoutOptions.forEach { (minutes, label) ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        appLockViewModel.setTimeoutMinutes(minutes)
-                                        showTimeoutDialog = false
-                                    }
-                                    .padding(vertical = Spacing.sm),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(
-                                    selected = appLockUiState.timeoutMinutes == minutes,
-                                    onClick = {
-                                        appLockViewModel.setTimeoutMinutes(minutes)
-                                        showTimeoutDialog = false
-                                    }
-                                )
-                                Spacer(modifier = Modifier.width(Spacing.sm))
-                                Text(text = label, style = MaterialTheme.typography.bodyMedium)
-                            }
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { showTimeoutDialog = false }) { Text("Done") }
-                }
-            )
         }
     }
 }
