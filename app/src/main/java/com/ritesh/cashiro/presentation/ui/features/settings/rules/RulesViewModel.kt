@@ -7,7 +7,9 @@ import com.ritesh.cashiro.domain.repository.RuleRepository
 import com.ritesh.cashiro.domain.service.RuleTemplateService
 import com.ritesh.cashiro.domain.usecase.ApplyRulesToPastTransactionsUseCase
 import com.ritesh.cashiro.domain.usecase.BatchApplyResult
+import com.ritesh.cashiro.domain.usecase.GetCategoriesUseCase
 import com.ritesh.cashiro.domain.usecase.InitializeRuleTemplatesUseCase
+import com.ritesh.cashiro.data.repository.SubcategoryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +27,9 @@ class RulesViewModel @Inject constructor(
     private val ruleRepository: RuleRepository,
     private val ruleTemplateService: RuleTemplateService,
     private val initializeRuleTemplatesUseCase: InitializeRuleTemplatesUseCase,
-    private val applyRulesToPastTransactionsUseCase: ApplyRulesToPastTransactionsUseCase
+    private val applyRulesToPastTransactionsUseCase: ApplyRulesToPastTransactionsUseCase,
+    private val getCategoriesUseCase: GetCategoriesUseCase,
+    private val subcategoryRepository: SubcategoryRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RulesUiState())
@@ -34,9 +38,20 @@ class RulesViewModel @Inject constructor(
     val rules: StateFlow<List<TransactionRule>> = ruleRepository.getAllRules()
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.Companion.WhileSubscribed(5000),
+            started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+
+    // Categories for selection sheet
+    val categories = getCategoriesUseCase.execute()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    // All subcategories map for selection sheet
+    val allSubcategories = subcategoryRepository.subcategoriesMap
 
     init {
         initializeRules()

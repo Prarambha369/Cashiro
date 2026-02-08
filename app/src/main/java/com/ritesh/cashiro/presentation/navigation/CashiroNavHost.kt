@@ -60,8 +60,6 @@ import com.ritesh.cashiro.presentation.ui.features.add.AddScreen
 import com.ritesh.cashiro.presentation.ui.features.analytics.AnalyticsScreen
 import com.ritesh.cashiro.presentation.ui.features.budgets.BudgetsScreen
 import com.ritesh.cashiro.presentation.ui.features.budgets.BudgetDetailScreen
-import com.ritesh.cashiro.presentation.navigation.safeNavigate
-import com.ritesh.cashiro.presentation.navigation.safePopBackStack
 import com.ritesh.cashiro.presentation.ui.features.categories.CategoriesScreen
 import com.ritesh.cashiro.presentation.ui.features.chat.ChatScreen
 import com.ritesh.cashiro.presentation.ui.features.home.HomeScreen
@@ -402,7 +400,8 @@ fun CashiroNavHost(
                         onSaveRule = { rule ->
                             rulesViewModel.createRule(rule)
                             navController.safePopBackStack()
-                        }
+                        },
+                        rulesViewModel = rulesViewModel
                     )
                 }
 

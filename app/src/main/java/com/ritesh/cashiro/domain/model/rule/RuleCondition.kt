@@ -34,7 +34,8 @@ enum class TransactionField {
     MERCHANT,     // Merchant/vendor name
     NARRATION,    // Description/notes
     SMS_TEXT,     // Original SMS text
-    BANK_NAME     // Bank name from SMS
+    BANK_NAME,    // Bank name from SMS
+    SUBCATEGORY   // Transaction subcategory
 }
 
 @Serializable

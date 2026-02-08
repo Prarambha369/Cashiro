@@ -174,6 +174,7 @@ class RuleEngine @Inject constructor() {
             TransactionField.NARRATION -> transaction.description ?: ""
             TransactionField.SMS_TEXT -> smsText ?: ""
             TransactionField.BANK_NAME -> transaction.bankName ?: ""
+            TransactionField.SUBCATEGORY -> transaction.subcategory ?: ""
         }
     }
 
@@ -229,6 +230,14 @@ class RuleEngine @Inject constructor() {
                     else -> transaction.category ?: ""
                 }
                 transaction.copy(category = newValue) to newValue
+            }
+            TransactionField.SUBCATEGORY -> {
+                val newValue = when (action.actionType) {
+                    ActionType.SET -> action.value
+                    ActionType.CLEAR -> ""
+                    else -> transaction.subcategory ?: ""
+                }
+                transaction.copy(subcategory = newValue) to newValue
             }
             TransactionField.MERCHANT -> {
                 val newValue = when (action.actionType) {

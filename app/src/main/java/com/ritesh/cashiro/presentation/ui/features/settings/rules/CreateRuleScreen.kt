@@ -2,6 +2,7 @@ package com.ritesh.cashiro.presentation.ui.features.settings.rules
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -9,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,11 +20,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import com.ritesh.cashiro.domain.model.rule.*
 import com.ritesh.cashiro.presentation.ui.components.CustomTitleTopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.ritesh.cashiro.presentation.ui.components.CategorySelectionSheet
 import com.ritesh.cashiro.presentation.ui.features.categories.NavigationContent
 import dev.chrisbanes.haze.HazeState
 import com.ritesh.cashiro.presentation.ui.theme.Dimensions
@@ -37,7 +42,8 @@ import java.util.UUID
 fun CreateRuleScreen(
     onNavigateBack: () -> Unit,
     onSaveRule: (TransactionRule) -> Unit,
-    existingRule: TransactionRule? = null
+    existingRule: TransactionRule? = null,
+    rulesViewModel: RulesViewModel = hiltViewModel()
 ) {
     var ruleName by remember { mutableStateOf(existingRule?.name ?: "") }
     var description by remember { mutableStateOf(existingRule?.description ?: "") }
@@ -66,6 +72,10 @@ fun CreateRuleScreen(
     var actionValue by remember {
         mutableStateOf(existingRule?.actions?.firstOrNull()?.value ?: "")
     }
+
+    var showCategorySheet by remember { mutableStateOf(false) }
+    val categories by rulesViewModel.categories.collectAsState()
+    val allSubcategories by rulesViewModel.allSubcategories.collectAsState(initial = emptyMap())
 
     // Common presets for quick setup
     val commonPresets = listOf(
@@ -141,7 +151,7 @@ fun CreateRuleScreen(
                     .fillMaxSize()
                     .animateContentSize()
                     .hazeSource(state = hazeState)
-                    .imePadding() // Push content up when keyboard appears
+                    .imePadding()
                     .overScrollVertical(),
                 state = lazyListState,
                 contentPadding = PaddingValues(
@@ -346,7 +356,9 @@ fun CreateRuleScreen(
                                         TransactionField.AMOUNT to "Amount",
                                         TransactionField.TYPE to "Transaction Type",
                                         TransactionField.CATEGORY to "Category",
+                                        TransactionField.SUBCATEGORY to "Subcategory",
                                         TransactionField.MERCHANT to "Merchant",
+                                        TransactionField.NARRATION to "Narration",
                                         TransactionField.SMS_TEXT to "SMS Text",
                                         TransactionField.BANK_NAME to "Bank Name"
                                     )
@@ -464,6 +476,10 @@ fun CreateRuleScreen(
                                                     TransactionField.AMOUNT -> "e.g., 200"
                                                     TransactionField.MERCHANT -> "e.g., Swiggy"
                                                     TransactionField.SMS_TEXT -> "e.g., salary"
+                                                    TransactionField.SUBCATEGORY -> "e.g., Rent"
+                                                    TransactionField.CATEGORY -> "e.g., Food"
+                                                    TransactionField.NARRATION -> "e.g., Monthly rent"
+                                                    TransactionField.BANK_NAME -> "e.g., HDFC Bank"
                                                     else -> "Enter value"
                                                 }
                                             )
@@ -650,6 +666,7 @@ fun CreateRuleScreen(
                                     TextField(
                                         value = when (actionField) {
                                             TransactionField.CATEGORY -> "Set Category"
+                                            TransactionField.SUBCATEGORY -> "Set Subcategory"
                                             TransactionField.MERCHANT -> "Set Merchant Name"
                                             TransactionField.TYPE -> "Set Transaction Type"
                                             TransactionField.NARRATION -> "Set Description"
@@ -685,6 +702,7 @@ fun CreateRuleScreen(
                                     ) {
                                         val menuItems = listOf(
                                             TransactionField.CATEGORY to "Set Category",
+                                            TransactionField.SUBCATEGORY to "Set Subcategory",
                                             TransactionField.MERCHANT to "Set Merchant Name",
                                             TransactionField.TYPE to "Set Transaction Type",
                                             TransactionField.NARRATION to "Set Description"
@@ -731,51 +749,84 @@ fun CreateRuleScreen(
                                 // Dynamic value input based on selected action field
                                 when (actionField) {
                                     TransactionField.CATEGORY -> {
-                                        // Category chips and input
-                                        val commonCategories = listOf(
-                                            "Food & Dining", "Transportation", "Shopping",
-                                            "Bills & Utilities", "Entertainment", "Healthcare",
-                                            "Investments", "Miscellaneous"
-                                        )
-
-                                        FlowRow(
-                                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                                            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            commonCategories.forEach { category ->
-                                                FilterChip(
-                                                    selected = actionValue == category,
-                                                    onClick = { actionValue = category },
-                                                    label = {
-                                                        Text(
-                                                            category,
-                                                            style = MaterialTheme.typography.bodySmall
-                                                        )
-                                                    }
+                                        // Category Selection
+                                        ListItem(
+                                            headlineContent = {
+                                                Text(
+                                                    if (actionValue.isBlank()) "Choose Category" else actionValue,
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    color = if (actionValue.isBlank()) 
+                                                        MaterialTheme.colorScheme.onSurfaceVariant 
+                                                    else MaterialTheme.colorScheme.onSurface
                                                 )
-                                            }
-                                        }
-
-                                        TextField(
-                                            value = actionValue,
-                                            onValueChange = { actionValue = it },
-                                            label = { Text("Category Name") },
-                                            placeholder = { Text("e.g., Rent") },
-                                            colors = TextFieldDefaults.colors(
-                                                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                                                focusedIndicatorColor = Color.Transparent,
-                                                unfocusedIndicatorColor = Color.Transparent,
-                                                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                                                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                                    0.7f
+                                            },
+                                            leadingContent = {
+                                                Icon(
+                                                    Icons.Outlined.Category,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary
                                                 )
+                                            },
+                                            trailingContent = {
+                                                Icon(
+                                                    Icons.Default.ChevronRight,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            },
+                                            colors = ListItemDefaults.colors(
+                                                containerColor = MaterialTheme.colorScheme.surface,
                                             ),
-                                            shape = MaterialTheme.shapes.largeIncreased,
-                                            modifier = Modifier.fillMaxWidth(),
-                                            singleLine = true
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(MaterialTheme.shapes.largeIncreased)
+                                                .clickable { showCategorySheet = true }
                                         )
+                                    }
+
+                                    TransactionField.SUBCATEGORY -> {
+                                        // Category Selection (reused for subcategory field too)
+                                        ListItem(
+                                            headlineContent = {
+                                                Text(
+                                                    if (actionValue.isBlank()) "Choose Subcategory" else actionValue,
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    color = if (actionValue.isBlank()) 
+                                                        MaterialTheme.colorScheme.onSurfaceVariant 
+                                                    else MaterialTheme.colorScheme.onSurface
+                                                )
+                                            },
+                                            leadingContent = {
+                                                Icon(
+                                                    Icons.Outlined.Category,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            },
+                                            trailingContent = {
+                                                Icon(
+                                                    Icons.Default.ChevronRight,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            },
+                                            colors = ListItemDefaults.colors(
+                                                containerColor = MaterialTheme.colorScheme.surface,
+                                            ),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(MaterialTheme.shapes.largeIncreased)
+                                                .clickable { showCategorySheet = true }
+                                        )
+
+                                        if (actionValue.isNotBlank()) {
+                                            Text(
+                                                text = "Selected Subcategory: $actionValue",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.padding(start = Spacing.xs)
+                                            )
+                                        }
                                     }
 
                                     TransactionField.TYPE -> {
@@ -939,7 +990,9 @@ fun CreateRuleScreen(
                                                 TransactionField.AMOUNT -> "amount"
                                                 TransactionField.TYPE -> "type"
                                                 TransactionField.CATEGORY -> "category"
+                                                TransactionField.SUBCATEGORY -> "subcategory"
                                                 TransactionField.MERCHANT -> "merchant"
+                                                TransactionField.NARRATION -> "narration"
                                                 TransactionField.SMS_TEXT -> "SMS text"
                                                 TransactionField.BANK_NAME -> "bank"
                                                 else -> "field"
@@ -1043,6 +1096,30 @@ fun CreateRuleScreen(
                     )
                 }
             }
+        }
+    }
+
+    if (showCategorySheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showCategorySheet = false },
+            dragHandle = { BottomSheetDefaults.DragHandle() },
+            containerColor = MaterialTheme.colorScheme.surface,
+        ) {
+            CategorySelectionSheet(
+                categories = categories,
+                subcategoriesMap = allSubcategories,
+                onSelectionComplete = { category, subcategory ->
+                    if (subcategory != null) {
+                        actionField = TransactionField.SUBCATEGORY
+                        actionValue = subcategory.name
+                    } else {
+                        actionField = TransactionField.CATEGORY
+                        actionValue = category.name
+                    }
+                    showCategorySheet = false
+                },
+                onDismiss = { showCategorySheet = false }
+            )
         }
     }
 }

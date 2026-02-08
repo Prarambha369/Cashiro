@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontStyle
@@ -112,7 +113,7 @@ fun CategorySelectionSheet(
         if (filteredCategories.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
-                contentAlignment = androidx.compose.ui.Alignment.Center
+                contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "No categories found",
@@ -154,8 +155,13 @@ fun CategorySelectionSheet(
                             subcategories = displayedSubcategories,
                             onClick = {
                                 if (subs.isNotEmpty()) {
-                                    // Toggle expansion
-                                    expandedStates[animatedCategory.id] = !isExpanded
+                                    if (isExpanded) {
+                                        // If already expanded, select the category itself
+                                        onSelectionComplete(animatedCategory, null)
+                                    } else {
+                                        // Otherwise, expand to show subcategories
+                                        expandedStates[animatedCategory.id] = true
+                                    }
                                 } else {
                                     onSelectionComplete(animatedCategory, null)
                                 }
