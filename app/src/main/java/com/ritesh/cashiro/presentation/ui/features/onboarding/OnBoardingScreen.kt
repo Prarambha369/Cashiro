@@ -31,14 +31,27 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ritesh.cashiro.presentation.ui.theme.Spacing
+import com.ritesh.cashiro.presentation.ui.theme.Dimensions
 import com.ritesh.cashiro.R
 import com.ritesh.cashiro.presentation.ui.features.profile.EditProfileState
 import com.ritesh.cashiro.presentation.ui.features.profile.PresetAvatarSelection
 import com.ritesh.cashiro.presentation.ui.features.profile.ProfileCardPreview
 import com.ritesh.cashiro.presentation.ui.components.ColorPickerContent
 import com.ritesh.cashiro.presentation.effects.overScrollVertical
-import com.ritesh.cashiro.presentation.ui.theme.Dimensions
-import com.ritesh.cashiro.presentation.ui.theme.Spacing
+import com.ritesh.cashiro.presentation.ui.components.SmsParsingProgressIndicator
+import com.ritesh.cashiro.presentation.ui.components.AccountCard
+import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Merge
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.filled.Balance
+import androidx.compose.material.icons.filled.DriveFileRenameOutline
+import androidx.compose.material.icons.filled.Pin
+import androidx.work.WorkInfo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,6 +62,12 @@ fun OnBoardingScreen(
 ) {
     val uiState by onBoardingViewModel.uiState.collectAsStateWithLifecycle()
 
+    LaunchedEffect(uiState.onboardingFinished) {
+        if (uiState.onboardingFinished) {
+            onOnBoardingComplete()
+        }
+    }
+
     val multiplePermissionLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -56,7 +75,7 @@ fun OnBoardingScreen(
             val readSmsGranted = permissions[Manifest.permission.READ_SMS] == true
             if (readSmsGranted) {
                 onBoardingViewModel.onPermissionResult(true)
-                onOnBoardingComplete()
+                onBoardingViewModel.nextStep() // Move to Sync step
             } else {
                 onBoardingViewModel.onPermissionDenied()
             }
@@ -83,11 +102,32 @@ fun OnBoardingScreen(
                             }
                             multiplePermissionLauncher.launch(permissions.toTypedArray())
                         }
+                        4 -> {
+                            if (uiState.scanWorkInfo?.state == WorkInfo.State.SUCCEEDED) {
+                                onBoardingViewModel.nextStep()
+                            } else {
+                                onBoardingViewModel.startSmsScan()
+                            }
+                        }
+                        5 -> {
+                            onBoardingViewModel.finishOnboarding()
+                            onOnBoardingComplete()
+                        }
+                        6 -> {
+                            onBoardingViewModel.saveManualAccount()
+                        }
                     }
                 },
+                isScanning = uiState.isScanning,
+                isScanComplete = uiState.scanWorkInfo?.state == WorkInfo.State.SUCCEEDED,
                 isContinueEnabled =
                     when (uiState.currentStep) {
                         2 -> uiState.profileState.editedUserName.isNotBlank()
+                        4 -> !uiState.isScanning
+                        5 -> uiState.mainAccountKey != null
+                        6 -> uiState.manualAccountName.isNotBlank() && 
+                             uiState.manualAccountBalance.isNotBlank() && 
+                             uiState.manualAccountLast4.length == 4
                         else -> true
                     }
             )
@@ -120,6 +160,28 @@ fun OnBoardingScreen(
                             }
                         )
                     3 -> PermissionsStep(showRationale = uiState.showRationale)
+                    4 -> SyncStep(
+                        isScanning = uiState.isScanning,
+                        workInfo = uiState.scanWorkInfo,
+                        onStartScan = { onBoardingViewModel.startSmsScan() },
+                        onSkip = { onBoardingViewModel.skipSync() }
+                    )
+                    5 -> AccountSetupStep(
+                        accounts = uiState.accounts,
+                        mainAccountKey = uiState.mainAccountKey,
+                        selectedForMerge = uiState.selectedAccountsForMerge,
+                        onSetMain = { b, a -> onBoardingViewModel.setAsMainAccount(b, a) },
+                        onToggleMerge = { onBoardingViewModel.toggleAccountSelectionForMerge(it) },
+                        onMerge = { onBoardingViewModel.mergeSelectedAccounts(it) }
+                    )
+                    6 -> ManualAccountEntryStep(
+                        accountName = uiState.manualAccountName,
+                        balance = uiState.manualAccountBalance,
+                        accountLast4 = uiState.manualAccountLast4,
+                        onUpdateName = { onBoardingViewModel.updateManualAccountName(it) },
+                        onUpdateBalance = { onBoardingViewModel.updateManualAccountBalance(it) },
+                        onUpdateLast4 = { onBoardingViewModel.updateManualAccountLast4(it) }
+                    )
                 }
             }
         }
@@ -325,8 +387,294 @@ fun PermissionsStep(showRationale: Boolean) {
 }
 
 @Composable
+fun SyncStep(
+    isScanning: Boolean,
+    workInfo: WorkInfo?,
+    onStartScan: () -> Unit,
+    onSkip: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(Spacing.xl)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Sync,
+            contentDescription = null,
+            modifier = Modifier.size(120.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.xl))
+
+        Text(
+            text = "Sync Your Accounts",
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.md))
+
+        Text(
+            text = "Let's find your existing accounts and transactions by scanning your SMS messages.",
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.xl))
+
+        if (isScanning || workInfo?.state == WorkInfo.State.SUCCEEDED) {
+            SmsParsingProgressIndicator(
+                workInfo = workInfo,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md)
+            )
+        } else {
+            Button(
+                onClick = onStartScan,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(Dimensions.Radius.md)
+            ) {
+                Text("Scan Messages Now")
+            }
+
+            Spacer(modifier = Modifier.height(Spacing.md))
+
+            TextButton(
+                onClick = onSkip,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Skip for Now")
+            }
+        }
+    }
+}
+
+@Composable
+fun AccountSetupStep(
+    accounts: List<AccountBalanceEntity>,
+    mainAccountKey: String?,
+    selectedForMerge: Set<String>,
+    onSetMain: (String, String) -> Unit,
+    onToggleMerge: (String) -> Unit,
+    onMerge: (AccountBalanceEntity) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(Spacing.lg),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Setup Your Accounts",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.sm))
+
+        Text(
+            text = "We found multiple accounts. Select your main account and merge any duplicates.",
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.lg))
+
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            contentPadding = PaddingValues(bottom = Spacing.xl)
+        ) {
+            items(accounts) { account ->
+                val key = "${account.bankName}_${account.accountLast4}"
+                val isMain = mainAccountKey == key
+                val isSelectedForMerge = selectedForMerge.contains(key)
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(28.dp),
+                    border = if (isMain) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+                    onClick = { onSetMain(account.bankName, account.accountLast4) }
+                ) {
+                    Box {
+                        AccountCard(
+                            account = account,
+                            showMoreOptions = false,
+                            onClick = { onSetMain(account.bankName, account.accountLast4) }
+                        )
+
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(Spacing.sm),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (isMain) {
+                                Badge(containerColor = MaterialTheme.colorScheme.primary) {
+                                    Text("Main", color = MaterialTheme.colorScheme.onPrimary)
+                                }
+                                Spacer(modifier = Modifier.width(Spacing.sm))
+                            }
+
+                            IconButton(onClick = { onToggleMerge(key) }) {
+                                Icon(
+                                    imageVector = if (isSelectedForMerge) Icons.Default.Merge else Icons.Default.Merge,
+                                    contentDescription = "Merge",
+                                    tint = if (isSelectedForMerge) MaterialTheme.colorScheme.primary 
+                                           else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (selectedForMerge.size > 1) {
+                item {
+                    Spacer(modifier = Modifier.height(Spacing.md))
+                    Button(
+                        onClick = { 
+                            // Merge into the first selected account or main account
+                            val targetKey = mainAccountKey ?: selectedForMerge.first()
+                            val targetAccount = accounts.find { "${it.bankName}_${it.accountLast4}" == targetKey }
+                            targetAccount?.let { onMerge(it) }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    ) {
+                        Icon(Icons.Default.Merge, contentDescription = null)
+                        Spacer(modifier = Modifier.width(Spacing.sm))
+                        Text("Merge Selected Accounts")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ManualAccountEntryStep(
+    accountName: String,
+    balance: String,
+    accountLast4: String,
+    onUpdateName: (String) -> Unit,
+    onUpdateBalance: (String) -> Unit,
+    onUpdateLast4: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(Spacing.lg)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Default.AccountBalance,
+            contentDescription = null,
+            modifier = Modifier.size(80.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.lg))
+
+        Text(
+            text = "Add Your Main Account",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.sm))
+
+        Text(
+            text = "Enter your primary account details to get started with tracking.",
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.xl))
+
+        TextField(
+            value = accountName,
+            onValueChange = onUpdateName,
+            label = { Text("Bank Name (e.g., HDFC, SBI)", fontWeight = FontWeight.SemiBold) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(Dimensions.Radius.md),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                    0.7f
+                )
+            ),
+            leadingIcon = { Icon(Icons.Default.DriveFileRenameOutline, contentDescription = null)
+            }
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.md))
+
+        TextField(
+            value = balance,
+            onValueChange = onUpdateBalance,
+            label = { Text("Current Balance") },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(Dimensions.Radius.md),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                    0.7f
+                )
+            ),
+            leadingIcon = { Icon(Icons.Default.Balance, contentDescription = null) },
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.md))
+
+        TextField(
+            value = accountLast4,
+            onValueChange = onUpdateLast4,
+            label = { Text("Last 4 Digits of Account", fontWeight = FontWeight.SemiBold) },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("e.g. 1234") },
+            singleLine = true,
+            shape = RoundedCornerShape(Dimensions.Radius.md),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                    0.7f
+                )
+            ),
+            leadingIcon = { Icon(Icons.Default.Pin, contentDescription = null) }
+        )
+    }
+}
+
+@Composable
 fun OnBoardingBottomBar(
     currentStep: Int,
+    isScanning: Boolean = false,
+    isScanComplete: Boolean = false,
     onBack: () -> Unit,
     onContinue: () -> Unit,
     isContinueEnabled: Boolean
@@ -337,7 +685,7 @@ fun OnBoardingBottomBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (currentStep > 1) {
+            if (currentStep > 1 && currentStep != 4) { // Don't allow back from Sync during/after scan
                 TextButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null)
                     Spacer(Modifier.width(Spacing.sm))
@@ -356,11 +704,14 @@ fun OnBoardingBottomBar(
                 Text(
                     text =
                         when (currentStep) {
-                            1 -> "Get Started"
-                            2 -> "Save & Continue"
-                            3 -> "Enable & Finish"
-                            else -> "Continue"
-                        }
+                             1 -> "Get Started"
+                             2 -> "Save & Continue"
+                             3 -> "Enable Permissions"
+                             4 -> if (isScanning) "Scanning..." else if (isScanComplete) "Continue" else "Scan Now"
+                             5 -> "Finish"
+                             6 -> "Save & Finish"
+                             else -> "Continue"
+                         }
                 )
                 Spacer(Modifier.width(Spacing.sm))
                 Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = null)

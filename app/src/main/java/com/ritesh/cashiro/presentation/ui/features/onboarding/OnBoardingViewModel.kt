@@ -7,13 +7,22 @@ import android.net.Uri
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
+import androidx.work.WorkInfo
+import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
+import com.ritesh.cashiro.data.manager.SmsScanManager
 import com.ritesh.cashiro.data.preferences.UserPreferencesRepository
-import com.ritesh.cashiro.presentation.ui.features.profile.EditProfileState
+import com.ritesh.cashiro.data.repository.AccountBalanceRepository
+import com.ritesh.cashiro.data.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.math.BigDecimal
+import java.time.LocalDateTime
 import javax.inject.Inject
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -21,9 +30,14 @@ import kotlinx.coroutines.launch
 class OnBoardingViewModel
 @Inject
 constructor(
-        @ApplicationContext private val context: Context,
-        private val userPreferencesRepository: UserPreferencesRepository
+    @ApplicationContext private val context: Context,
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val smsScanManager: SmsScanManager,
+    private val accountBalanceRepository: AccountBalanceRepository,
+    private val transactionRepository: TransactionRepository
 ) : ViewModel() {
+
+    private val sharedPrefs = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
 
     private val _uiState = MutableStateFlow(OnBoardingUiState())
     val uiState: StateFlow<OnBoardingUiState> = _uiState.asStateFlow()
@@ -31,6 +45,9 @@ constructor(
     init {
         checkPermissionStatus()
         observeUserPreferences()
+        observeScanWorkInfo()
+        observeAccounts()
+        loadMainAccount()
     }
 
     private fun checkPermissionStatus() {
@@ -138,6 +155,159 @@ constructor(
 
     fun onPermissionDenied() {
         _uiState.update { it.copy(showRationale = true) }
+    }
+
+    private fun observeScanWorkInfo() {
+        smsScanManager.getSmsScanWorkInfo().asFlow()
+            .onEach { workInfos ->
+                val workInfo = workInfos?.firstOrNull()
+                _uiState.update { it.copy(scanWorkInfo = workInfo) }
+                
+                if (workInfo?.state == WorkInfo.State.SUCCEEDED) {
+                    _uiState.update { it.copy(isScanning = false) }
+                    // Check accounts after sync
+                    checkAccountsAfterSync()
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    private fun observeAccounts() {
+        accountBalanceRepository.getAllLatestBalances()
+            .onEach { accounts ->
+                _uiState.update { it.copy(accounts = accounts) }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    private fun loadMainAccount() {
+        val main = sharedPrefs.getString("main_account", null)
+        _uiState.update { it.copy(mainAccountKey = main) }
+    }
+
+    private fun checkAccountsAfterSync() {
+        viewModelScope.launch {
+            val accounts = accountBalanceRepository.getAllLatestBalances().first()
+            if (accounts.size == 1) {
+                // If only one account, set as main and proceed
+                val account = accounts.first()
+                setAsMainAccount(account.bankName, account.accountLast4)
+                finishOnboarding()
+            } else if (accounts.size > 1) {
+                // If multiple accounts, move to next step (Account Setup)
+                nextStep()
+            } else {
+                // If no accounts found, redirect to manual entry (Step 6)
+                _uiState.update { it.copy(currentStep = 6) }
+            }
+        }
+    }
+
+    fun skipSync() {
+        // Move to manual entry (Step 6)
+        _uiState.update { it.copy(currentStep = 6) }
+    }
+
+    fun updateManualAccountName(name: String) {
+        _uiState.update { it.copy(manualAccountName = name) }
+    }
+
+    fun updateManualAccountBalance(balance: String) {
+        if (balance.isEmpty() || balance.matches(Regex("^\\d*\\.?\\d*$"))) {
+            _uiState.update { it.copy(manualAccountBalance = balance) }
+        }
+    }
+
+    fun updateManualAccountLast4(last4: String) {
+        if (last4.length <= 4) {
+            _uiState.update { it.copy(manualAccountLast4 = last4) }
+        }
+    }
+
+    fun saveManualAccount() {
+        val state = _uiState.value
+        if (state.manualAccountName.isBlank() || 
+            state.manualAccountBalance.isBlank() || 
+            state.manualAccountLast4.length != 4) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            
+            val balance = BigDecimal(state.manualAccountBalance)
+            accountBalanceRepository.insertBalance(
+                AccountBalanceEntity(
+                    bankName = state.manualAccountName,
+                    accountLast4 = state.manualAccountLast4,
+                    balance = balance,
+                    timestamp = LocalDateTime.now(),
+                    sourceType = "MANUAL",
+                    iconResId = com.ritesh.cashiro.R.drawable.type_finance_dollar_banknote, // Default icon
+                    color = "#33B5E5"
+                )
+            )
+            
+            setAsMainAccount(state.manualAccountName, state.manualAccountLast4)
+            finishOnboarding()
+            _uiState.update { it.copy(isLoading = false) }
+        }
+    }
+
+    fun startSmsScan() {
+        _uiState.update { it.copy(isScanning = true) }
+        smsScanManager.startSmsLoggingScan()
+    }
+
+    fun setAsMainAccount(bankName: String, accountLast4: String) {
+        val key = "${bankName}_${accountLast4}"
+        sharedPrefs.edit { putString("main_account", key) }
+        _uiState.update { it.copy(mainAccountKey = key) }
+    }
+
+    fun toggleAccountSelectionForMerge(key: String) {
+        _uiState.update { state ->
+            val current = state.selectedAccountsForMerge
+            val new = if (current.contains(key)) current - key else current + key
+            state.copy(selectedAccountsForMerge = new)
+        }
+    }
+
+    fun mergeSelectedAccounts(targetAccount: AccountBalanceEntity) {
+        val selectedKeys = _uiState.value.selectedAccountsForMerge
+        val sourceAccounts = _uiState.value.accounts.filter { 
+            val key = "${it.bankName}_${it.accountLast4}"
+            selectedKeys.contains(key) && key != "${targetAccount.bankName}_${targetAccount.accountLast4}"
+        }
+
+        if (sourceAccounts.isEmpty()) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            
+            // Reassign transactions
+            sourceAccounts.forEach { source ->
+                transactionRepository.updateAccountForTransactions(
+                    oldBankName = source.bankName,
+                    oldAccountNumber = source.accountLast4,
+                    newBankName = targetAccount.bankName,
+                    newAccountNumber = targetAccount.accountLast4
+                )
+            }
+
+            // Delete source accounts
+            sourceAccounts.forEach { source ->
+                accountBalanceRepository.deleteAccount(source.bankName, source.accountLast4)
+            }
+
+            _uiState.update { it.copy(isLoading = false, selectedAccountsForMerge = emptySet()) }
+        }
+    }
+
+    fun finishOnboarding() {
+        // Complete onboarding
+        viewModelScope.launch {
+            userPreferencesRepository.markScanTutorialShown()
+            _uiState.update { it.copy(onboardingFinished = true) }
+        }
     }
 }
 
