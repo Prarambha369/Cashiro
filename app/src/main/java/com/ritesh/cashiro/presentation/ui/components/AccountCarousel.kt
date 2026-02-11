@@ -6,24 +6,32 @@ import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
+import com.ritesh.cashiro.presentation.common.icons.IconProvider
 import com.ritesh.cashiro.utils.formatBalance
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -68,38 +76,33 @@ fun SharedTransitionScope.AccountCarousel(
             )
         }
     } else {
-        // Multiple accounts - show as carousel
-        LazyRow(
+        // Multiple accounts - show as carousel with snapping
+        val pagerState = rememberPagerState(pageCount = { allAccounts.size })
+        
+        HorizontalPager(
+            state = pagerState,
             modifier = modifier.fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            pageSpacing = 16.dp,
             userScrollEnabled = !isTransitioning
-        ) {
-            items(bankAccounts) { account ->
-                AccountCarouselCard(
-                    bankName = account.bankName,
-                    accountLast4 = account.accountLast4,
-                    balance = account.formatBalance(),
-                    subtitle = if (account.isWallet) "Wallet" else "Savings account",
-                    onClick = { onAccountClick(account.bankName, account.accountLast4) },
-                    animatedContentScope = animatedContentScope,
-                    isWallet = account.isWallet,
-                    iconResId = account.iconResId,
-                    color = account.color
-                )
-            }
-            items(creditCards) { card ->
-                AccountCarouselCard(
-                    bankName = card.bankName,
-                    accountLast4 = card.accountLast4,
-                    balance = card.formatBalance(),
-                    subtitle = "Credit Card",
-                    onClick = { onAccountClick(card.bankName, card.accountLast4) },
-                    animatedContentScope = animatedContentScope,
-                    iconResId = card.iconResId,
-                    color = card.color
-                )
-            }
+        ) { page ->
+            val account = allAccounts[page]
+            AccountCarouselCard(
+                bankName = account.bankName,
+                accountLast4 = account.accountLast4,
+                balance = account.formatBalance(),
+                subtitle = when {
+                    account.isWallet -> "Wallet"
+                    creditCards.contains(account) -> "Credit Card"
+                    else -> "Savings account"
+                },
+                onClick = { onAccountClick(account.bankName, account.accountLast4) },
+                animatedContentScope = animatedContentScope,
+                isWallet = account.isWallet,
+                iconResId = account.iconResId,
+                color = account.color,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
@@ -120,10 +123,8 @@ fun SharedTransitionScope.AccountCarouselCard(
 ) {
     Surface(
         modifier = modifier
-            .then(
-                if (modifier == Modifier) Modifier.width(220.dp) else Modifier.fillMaxWidth()
-            )
-            .height(180.dp)
+            .fillMaxWidth()
+            .height(200.dp)
             .clip(RoundedCornerShape(28.dp))
             .clickable(onClick = onClick)
             .then(
@@ -149,51 +150,96 @@ fun SharedTransitionScope.AccountCarouselCard(
         shape = RoundedCornerShape(28.dp),
         border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            BrandIcon(
-                merchantName = bankName,
-                size = 48.dp,
-                showBackground = true,
-                accountIconResId = iconResId,
-                accountColorHex = color
+        Box(modifier = Modifier.fillMaxSize()) {
+            val iconResource = remember(bankName, iconResId) {
+                IconProvider.getIconForTransaction(
+                    merchantName = bankName,
+                    accountIconResId = iconResId
+                )
+            }
+
+            TiledScrollingIconBackground(
+                iconResource = iconResource,
+                opacity = 0.05f,
+                iconSize = 56.dp
             )
 
-            
-            Column {
-                Text(
-                    text = if (isWallet) bankName.uppercase() else "${bankName.uppercase()} ••$accountLast4",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    letterSpacing = 1.sp
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                BrandIcon(
+                    merchantName = bankName,
+                    size = 48.dp,
+                    showBackground = true,
+                    accountIconResId = iconResId,
+                    accountColorHex = color
                 )
-                
-                Spacer(modifier = Modifier.height(6.dp))
-                
-                Text(
-                    text = balance,
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontSize = 26.sp,
-                        fontWeight = FontWeight.ExtraBold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                
-                Spacer(modifier = Modifier.height(6.dp))
-                
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                    fontWeight = FontWeight.SemiBold
-                )
+
+
+                Column {
+                    Text(
+                        text = if (isWallet) bankName.uppercase() else "${bankName.uppercase()} ••$accountLast4",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        letterSpacing = 1.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = balance,
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            // Repositioned "View details" button to bottom right
+            Surface(
+                onClick = onClick,
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(24.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "View details",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        fontWeight = FontWeight.Bold
+                    )
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
             }
         }
     }

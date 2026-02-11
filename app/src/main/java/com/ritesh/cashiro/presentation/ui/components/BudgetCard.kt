@@ -467,7 +467,7 @@ fun SharedTransitionScope.BudgetCardCompact(
         budgetColor = budgetColor,
         modifier = modifier
             .then(sharedModifier)
-            .width(260.dp)
+            .fillMaxWidth()
             .clickable(onClick = onClick)
     ) {
         Column(

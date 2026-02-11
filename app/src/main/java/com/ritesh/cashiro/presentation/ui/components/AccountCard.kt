@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
+import com.ritesh.cashiro.presentation.common.icons.IconProvider
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
 import com.ritesh.cashiro.utils.CurrencyFormatter
 
@@ -80,204 +81,183 @@ fun AccountCard(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Top Section
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 8.dp, top = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = if (account.isCreditCard) "Outstanding" else "Balance",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+        Box(modifier = Modifier.fillMaxWidth()) {
+            val iconResource = remember(account.bankName, account.iconResId) {
+                IconProvider.getIconForTransaction(
+                    merchantName = account.bankName,
+                    accountIconResId = account.iconResId
                 )
-                if (showMoreOptions) {
-                    Box {
-                        IconButton(
-                            onClick = { showMenu = true },
-                            colors = IconButtonDefaults.iconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                contentColor = MaterialTheme.colorScheme.onSurface
-                            ),
-                            shapes = IconButtonDefaults.shapes()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.MoreHoriz,
-                                contentDescription = "More options",
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false },
-                            shape = MaterialTheme.shapes.large,
-                            containerColor = Color.Transparent,
-                            shadowElevation = 0.dp,
-                            modifier = Modifier.padding(8.dp)
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Update Balance") },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.Update,
-                                        contentDescription = null
-                                    )
-                                },
-                                onClick = {
-                                    showMenu = false
-                                    onUpdateBalance()
-                                },
-                                modifier = Modifier
-                                    .shadow(
-                                        elevation = 2.dp,
-                                        shape = RoundedCornerShape(
-                                            topStart = 16.dp,
-                                            topEnd = 16.dp,
-                                            bottomStart = 4.dp,
-                                            bottomEnd = 4.dp
-                                        )
-                                    )
-                                    .background(
-                                        color = MaterialTheme.colorScheme.surfaceContainer,
-                                        shape = RoundedCornerShape(
-                                            topStart = 16.dp,
-                                            topEnd = 16.dp,
-                                            bottomStart = 4.dp,
-                                            bottomEnd = 4.dp
-                                        )
-                                    )
-                            )
+            }
 
-                            Spacer(modifier = Modifier.height(1.5.dp))
-                            DropdownMenuItem(
-                                text = { Text("Edit Details") },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.Edit,
-                                        contentDescription = null
-                                    )
-                                },
-                                onClick = {
-                                    showMenu = false
-                                    onEditAccount()
-                                },
-                                modifier = Modifier
-                                    .shadow(
-                                        elevation = 2.dp,
-                                        shape = RoundedCornerShape(
-                                            topStart = 4.dp,
-                                            topEnd = 4.dp,
-                                            bottomStart = 4.dp,
-                                            bottomEnd = 4.dp
-                                        )
-                                    )
-                                    .background(
-                                        color = MaterialTheme.colorScheme.surfaceContainer,
-                                        shape = RoundedCornerShape(
-                                            topStart = 4.dp,
-                                            topEnd = 4.dp,
-                                            bottomStart = 4.dp,
-                                            bottomEnd = 4.dp
-                                        )
-                                    )
-                            )
+            TiledScrollingIconBackground(
+                iconResource = iconResource,
+                opacity = 0.05f,
+                iconSize = 56.dp
+            )
 
-                            Spacer(modifier = Modifier.height(1.5.dp))
-                            DropdownMenuItem(
-                                text = { Text("History") },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.History,
-                                        contentDescription = null
-                                    )
-                                },
-                                onClick = {
-                                    showMenu = false
-                                    onViewHistory()
-                                },
-                                modifier = Modifier
-                                    .shadow(
-                                        elevation = 2.dp,
-                                        shape = RoundedCornerShape(
-                                            topStart = 4.dp,
-                                            topEnd = 4.dp,
-                                            bottomStart = 4.dp,
-                                            bottomEnd = 4.dp
-                                        )
-                                    )
-                                    .background(
-                                        color = MaterialTheme.colorScheme.surfaceContainer,
-                                        shape = RoundedCornerShape(
-                                            topStart = 4.dp,
-                                            topEnd = 4.dp,
-                                            bottomStart = 4.dp,
-                                            bottomEnd = 4.dp
-                                        )
-                                    )
-                            )
-
-                            Spacer(modifier = Modifier.height(1.5.dp))
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        if (isHidden) "Show"
-                                        else "Hide"
-                                    )
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        if (isHidden)
-                                            Icons.Default
-                                                .Visibility
-                                        else
-                                            Icons.Default
-                                                .VisibilityOff,
-                                        contentDescription = null
-                                    )
-                                },
-                                onClick = {
-                                    showMenu = false
-                                    onToggleVisibility()
-                                },
-                                modifier = Modifier
-                                    .shadow(
-                                        elevation = 2.dp,
-                                        shape = RoundedCornerShape(
-                                            topStart = 4.dp,
-                                            topEnd = 4.dp,
-                                            bottomStart = 4.dp,
-                                            bottomEnd = 4.dp
-                                        )
-                                    )
-                                    .background(
-                                        color = MaterialTheme.colorScheme.surfaceContainer,
-                                        shape = RoundedCornerShape(
-                                            topStart = 4.dp,
-                                            topEnd = 4.dp,
-                                            bottomStart = 4.dp,
-                                            bottomEnd = 4.dp
-                                        )
-                                    )
-                            )
-                            Spacer(modifier = Modifier.height(1.5.dp))
-                            if (!isMain) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Top Section
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 8.dp, top = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (account.isCreditCard) "Outstanding" else "Balance",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (showMoreOptions) {
+                        Box {
+                            IconButton(
+                                onClick = { showMenu = true },
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surface,
+                                    contentColor = MaterialTheme.colorScheme.onSurface
+                                ),
+                                shapes = IconButtonDefaults.shapes()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.MoreHoriz,
+                                    contentDescription = "More options",
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false },
+                                shape = MaterialTheme.shapes.large,
+                                containerColor = Color.Transparent,
+                                shadowElevation = 0.dp,
+                                modifier = Modifier.padding(8.dp)
+                            ) {
                                 DropdownMenuItem(
-                                    text = { Text("Set as Main") },
+                                    text = { Text("Update Balance") },
                                     leadingIcon = {
                                         Icon(
-                                            Icons.Default.Star,
-                                            contentDescription = null,
-                                            tint = Color(0xFFFFD700) // Gold
+                                            Icons.Default.Update,
+                                            contentDescription = null
                                         )
                                     },
                                     onClick = {
                                         showMenu = false
-                                        onSetAsMain()
+                                        onUpdateBalance()
+                                    },
+                                    modifier = Modifier
+                                        .shadow(
+                                            elevation = 2.dp,
+                                            shape = RoundedCornerShape(
+                                                topStart = 16.dp,
+                                                topEnd = 16.dp,
+                                                bottomStart = 4.dp,
+                                                bottomEnd = 4.dp
+                                            )
+                                        )
+                                        .background(
+                                            color = MaterialTheme.colorScheme.surfaceContainer,
+                                            shape = RoundedCornerShape(
+                                                topStart = 16.dp,
+                                                topEnd = 16.dp,
+                                                bottomStart = 4.dp,
+                                                bottomEnd = 4.dp
+                                            )
+                                        )
+                                )
+
+                                Spacer(modifier = Modifier.height(1.5.dp))
+                                DropdownMenuItem(
+                                    text = { Text("Edit Details") },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Edit,
+                                            contentDescription = null
+                                        )
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        onEditAccount()
+                                    },
+                                    modifier = Modifier
+                                        .shadow(
+                                            elevation = 2.dp,
+                                            shape = RoundedCornerShape(
+                                                topStart = 4.dp,
+                                                topEnd = 4.dp,
+                                                bottomStart = 4.dp,
+                                                bottomEnd = 4.dp
+                                            )
+                                        )
+                                        .background(
+                                            color = MaterialTheme.colorScheme.surfaceContainer,
+                                            shape = RoundedCornerShape(
+                                                topStart = 4.dp,
+                                                topEnd = 4.dp,
+                                                bottomStart = 4.dp,
+                                                bottomEnd = 4.dp
+                                            )
+                                        )
+                                )
+
+                                Spacer(modifier = Modifier.height(1.5.dp))
+                                DropdownMenuItem(
+                                    text = { Text("History") },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.History,
+                                            contentDescription = null
+                                        )
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        onViewHistory()
+                                    },
+                                    modifier = Modifier
+                                        .shadow(
+                                            elevation = 2.dp,
+                                            shape = RoundedCornerShape(
+                                                topStart = 4.dp,
+                                                topEnd = 4.dp,
+                                                bottomStart = 4.dp,
+                                                bottomEnd = 4.dp
+                                            )
+                                        )
+                                        .background(
+                                            color = MaterialTheme.colorScheme.surfaceContainer,
+                                            shape = RoundedCornerShape(
+                                                topStart = 4.dp,
+                                                topEnd = 4.dp,
+                                                bottomStart = 4.dp,
+                                                bottomEnd = 4.dp
+                                            )
+                                        )
+                                )
+
+                                Spacer(modifier = Modifier.height(1.5.dp))
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            if (isHidden) "Show"
+                                            else "Hide"
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            if (isHidden)
+                                                Icons.Default
+                                                    .Visibility
+                                            else
+                                                Icons.Default
+                                                    .VisibilityOff,
+                                            contentDescription = null
+                                        )
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        onToggleVisibility()
                                     },
                                     modifier = Modifier
                                         .shadow(
@@ -300,135 +280,177 @@ fun AccountCard(
                                         )
                                 )
                                 Spacer(modifier = Modifier.height(1.5.dp))
+                                if (!isMain) {
+                                    DropdownMenuItem(
+                                        text = { Text("Set as Main") },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.Star,
+                                                contentDescription = null,
+                                                tint = Color(0xFFFFD700) // Gold
+                                            )
+                                        },
+                                        onClick = {
+                                            showMenu = false
+                                            onSetAsMain()
+                                        },
+                                        modifier = Modifier
+                                            .shadow(
+                                                elevation = 2.dp,
+                                                shape = RoundedCornerShape(
+                                                    topStart = 4.dp,
+                                                    topEnd = 4.dp,
+                                                    bottomStart = 4.dp,
+                                                    bottomEnd = 4.dp
+                                                )
+                                            )
+                                            .background(
+                                                color = MaterialTheme.colorScheme.surfaceContainer,
+                                                shape = RoundedCornerShape(
+                                                    topStart = 4.dp,
+                                                    topEnd = 4.dp,
+                                                    bottomStart = 4.dp,
+                                                    bottomEnd = 4.dp
+                                                )
+                                            )
+                                    )
+                                    Spacer(modifier = Modifier.height(1.5.dp))
+                                }
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Delete",
+                                            color = MaterialTheme.colorScheme.onErrorContainer
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onErrorContainer
+                                        )
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        onDeleteAccount()
+                                    },
+                                    modifier = Modifier
+                                        .shadow(
+                                            elevation = 2.dp,
+                                            shape = RoundedCornerShape(
+                                                topStart = 4.dp,
+                                                topEnd = 4.dp,
+                                                bottomStart = 16.dp,
+                                                bottomEnd = 16.dp
+                                            )
+                                        )
+                                        .background(
+                                            color = MaterialTheme.colorScheme.errorContainer,
+                                            shape = RoundedCornerShape(
+                                                topStart = 4.dp,
+                                                topEnd = 4.dp,
+                                                bottomStart = 16.dp,
+                                                bottomEnd = 16.dp
+                                            )
+                                        )
+                                )
                             }
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        "Delete",
-                                        color = MaterialTheme.colorScheme.onErrorContainer
-                                    )
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onErrorContainer
-                                    )
-                                },
-                                onClick = {
-                                    showMenu = false
-                                    onDeleteAccount()
-                                },
-                                modifier = Modifier
-                                    .shadow(
-                                        elevation = 2.dp,
-                                        shape = RoundedCornerShape(
-                                            topStart = 4.dp,
-                                            topEnd = 4.dp,
-                                            bottomStart = 16.dp,
-                                            bottomEnd = 16.dp
-                                        )
-                                    )
-                                    .background(
-                                        color = MaterialTheme.colorScheme.errorContainer,
-                                        shape = RoundedCornerShape(
-                                            topStart = 4.dp,
-                                            topEnd = 4.dp,
-                                            bottomStart = 16.dp,
-                                            bottomEnd = 16.dp
-                                        )
-                                    )
-                            )
                         }
                     }
                 }
-            }
 
-            // Balance
-            Text(
-                text = CurrencyFormatter.formatCurrency(
-                    account.balance,
-                    account.currency
-                ),
-                style = MaterialTheme.typography.displaySmall.copy(
-                    fontSize = 40.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
+                // Balance
+                Text(
+                    text = CurrencyFormatter.formatCurrency(
+                        account.balance,
+                        account.currency
+                    ),
+                    style = MaterialTheme.typography.displaySmall.copy(
+                        fontSize = 40.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
 
-            // Bottom Section (Bank Info)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.surfaceContainerLow,
-                                MaterialTheme.colorScheme.surfaceContainerLow
+                // Bottom Section (Bank Info)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.surfaceContainerLow,
+                                    MaterialTheme.colorScheme.surfaceContainerLow
+                                )
                             )
                         )
-                    )
-                    .padding(16.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(16.dp)
                 ) {
-                    Column {
-                        Text(
-                            text = account.bankName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = if (account.isWallet) "wallet"
-                            else "**** **** **** ${account.accountLast4}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.6f)
-                        )
-                    }
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (isMain) {
-                            Surface(
-                                shape = RoundedCornerShape(Spacing.xxl),
-                                color = Color(0xFFFFD700).copy(alpha = 0.15f),
-                                border = BorderStroke(1.dp, Color(0xFFFFD700).copy(alpha = 0.3f))
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Star,
-                                        contentDescription = null,
-                                        tint = Color(0xFFFFD700),
-                                        modifier = Modifier.size(12.dp)
+                        Column {
+                            Text(
+                                text = account.bankName,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = if (account.isWallet) "wallet"
+                                else "**** **** **** ${account.accountLast4}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.6f)
+                            )
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                        ) {
+                            if (isMain) {
+                                Surface(
+                                    shape = RoundedCornerShape(Spacing.xxl),
+                                    color = Color(0xFFFFD700).copy(alpha = 0.15f),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        Color(0xFFFFD700).copy(alpha = 0.3f)
                                     )
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(
+                                            horizontal = 6.dp,
+                                            vertical = 2.dp
+                                        ),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Star,
+                                            contentDescription = null,
+                                            tint = Color(0xFFFFD700),
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                    }
                                 }
                             }
+
+                            BrandIcon(
+                                merchantName = account.bankName,
+                                size = 48.dp,
+                                showBackground = true,
+                                accountIconResId = account.iconResId,
+                                accountColorHex = account.color
+                            )
                         }
-
-                        BrandIcon(
-                            merchantName = account.bankName,
-                            size = 48.dp,
-                            showBackground = true,
-                            accountIconResId = account.iconResId,
-                            accountColorHex = account.color
-                        )
                     }
-                }
 
+                }
+                // Extra content (e.g., Credit Card stats, Linked Cards)
+                content()
             }
-            // Extra content (e.g., Credit Card stats, Linked Cards)
-            content()
         }
     }
 }

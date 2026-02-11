@@ -1,8 +1,8 @@
 package com.ritesh.cashiro.presentation.ui.components
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -11,11 +11,6 @@ import com.ritesh.cashiro.data.repository.BudgetWithSpending
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
-import com.ritesh.cashiro.presentation.effects.overScrollVertical
-import com.ritesh.cashiro.presentation.effects.rememberOverscrollFlingBehavior
 
 /**
  * Carousel component for displaying multiple budgets.
@@ -33,7 +28,6 @@ fun SharedTransitionScope.BudgetCarousel(
     val isTransitioning = animatedVisibilityScope?.transition?.let { 
         it.currentState != it.targetState 
     } ?: false
-    val lazyListState = rememberLazyListState()
 
 
     if (budgets.isEmpty()) return
@@ -55,27 +49,24 @@ fun SharedTransitionScope.BudgetCarousel(
             )
         }
     } else {
-        // Multiple budgets - show as carousel
-        LazyRow(
-            state = lazyListState,
-            modifier = modifier.fillMaxWidth().overScrollVertical(),
-            flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
+        // Multiple budgets - show as carousel with snapping
+        val pagerState = rememberPagerState(pageCount = { budgets.size })
+        
+        HorizontalPager(
+            state = pagerState,
+            modifier = modifier.fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            pageSpacing = 12.dp,
             userScrollEnabled = !isTransitioning
-        ) {
-            items(
-                items = budgets,
-                key = { it.budget.id }
-            ) { budgetWithSpending ->
-                BudgetCardCompact(
-                    budgetWithSpending = budgetWithSpending,
-                    onClick = { onBudgetClick(budgetWithSpending.budget.id) },
-                    modifier = Modifier,
-                    animatedVisibilityScope = animatedVisibilityScope,
-                    sharedElementKey = "budget_card_${budgetWithSpending.budget.id}"
-                )
-            }
+        ) { page ->
+            val budgetWithSpending = budgets[page]
+            BudgetCardCompact(
+                budgetWithSpending = budgetWithSpending,
+                onClick = { onBudgetClick(budgetWithSpending.budget.id) },
+                modifier = Modifier.fillMaxWidth(),
+                animatedVisibilityScope = animatedVisibilityScope,
+                sharedElementKey = "budget_card_${budgetWithSpending.budget.id}"
+            )
         }
     }
 }
