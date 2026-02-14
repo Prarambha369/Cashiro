@@ -305,6 +305,7 @@ fun SpendingBarChart(
 
 @Composable
 fun CategoryPieChart(
+    modifier: Modifier = Modifier,
     categories: List<CategoryData>,
     currency: String
 ) {
@@ -334,7 +335,7 @@ fun CategoryPieChart(
     var chartData by remember { mutableStateOf(pieData) }
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(200.dp)
             .padding(Spacing.sm),

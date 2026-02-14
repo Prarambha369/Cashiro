@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.BottomSheetDefaults
@@ -48,6 +50,7 @@ import com.ritesh.cashiro.presentation.effects.overScrollVertical
 import com.ritesh.cashiro.presentation.ui.components.BudgetCard
 import com.ritesh.cashiro.presentation.ui.components.CustomTitleTopAppBar
 import com.ritesh.cashiro.presentation.ui.components.ListItemPosition
+import com.ritesh.cashiro.presentation.ui.components.SectionHeader
 import com.ritesh.cashiro.presentation.ui.components.TransactionItem
 import com.ritesh.cashiro.presentation.ui.components.toShape
 import com.ritesh.cashiro.presentation.ui.features.analytics.CategoryData
@@ -248,7 +251,8 @@ fun SharedTransitionScope.BudgetDetailScreen(
 
                             CategoryPieChart(
                                 categories = pieChartData,
-                                currency = budgetWithSpending.budget.currency
+                                currency = budgetWithSpending.budget.currency,
+                                modifier = Modifier.padding(end = Spacing.sm)
                             )
                             Spacer(modifier = Modifier.height(Spacing.xl))
                         }
@@ -256,10 +260,8 @@ fun SharedTransitionScope.BudgetDetailScreen(
 
                     // Transactions List
                     item {
-                        Text(
-                            text = "Transactions",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
+                        SectionHeader(
+                            title = "Transactions",
                             modifier = Modifier.padding(horizontal = Spacing.lg)
                         )
                         Spacer(modifier = Modifier.height(Spacing.sm))
@@ -270,14 +272,27 @@ fun SharedTransitionScope.BudgetDetailScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = Spacing.xl),
+                                    .padding(vertical = Spacing.lg),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = "No transactions found for this budget",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+
+                                    ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(48.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.height(Spacing.md))
+                                    Text(
+                                        text = "No transactions yet",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     } else {

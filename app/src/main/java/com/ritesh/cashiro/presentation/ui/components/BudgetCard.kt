@@ -7,13 +7,20 @@ import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.rounded.Api
+import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.PieChart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,17 +32,20 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ritesh.cashiro.data.repository.BudgetWithSpending
-import com.ritesh.cashiro.utils.CurrencyFormatter
 import androidx.core.graphics.toColorInt
+import com.ritesh.cashiro.data.repository.BudgetWithSpending
+import com.ritesh.cashiro.presentation.ui.theme.Spacing
+import com.ritesh.cashiro.utils.CurrencyFormatter
+import java.math.BigDecimal
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SharedTransitionScope.BudgetCard(
     modifier: Modifier = Modifier,
@@ -73,8 +83,7 @@ fun SharedTransitionScope.BudgetCard(
         else -> budgetColor
     }
     
-    val progressBackgroundColor = progressColor.copy(alpha = 0.15f)
-    
+    val progressBackgroundColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
     
     val sharedModifier = if (animatedVisibilityScope != null && sharedElementKey != null) {
         Modifier.sharedBounds(
@@ -104,222 +113,158 @@ fun SharedTransitionScope.BudgetCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 12.dp)
         ) {
-            // Header row
+
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(top = 24.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Budget icon
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(progressColor.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.PieChart,
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp),
-                            tint = progressColor
-                        )
-                    }
-                    
-                    Column {
-                        Text(
-                            text = budget.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "${budgetWithSpending.daysRemaining} days remaining",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+                // Status Dot
+                Icon(
+                    imageVector = Icons.Rounded.Api,
+                    contentDescription = null,
+                    tint = progressColor,
+                    modifier = Modifier.size(16.dp)
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
                 
-                // Edit button
-                IconButton(
-                    onClick = onEditClick,
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                // Budget Name
+                Text(
+                    text = budget.name.uppercase(),
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        letterSpacing = 2.sp,
+                        fontWeight = FontWeight.Bold
                     ),
-                    modifier = Modifier.size(40.dp)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                
+                // History Icon
+                IconButton(
+                    onClick = {/* Todo */},
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(0.2f),
+                        contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    ),
+                    shapes =  IconButtonDefaults.shapes(),
+                    modifier = Modifier.size(22.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.MoreHoriz,
-                        contentDescription = "Edit budget",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        imageVector = Icons.Rounded.History,
+                        contentDescription = "More options",
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }
             
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        shape = RoundedCornerShape(
-                            topStart = 20.dp,
-                            topEnd = 20.dp,
-                            bottomStart = 28.dp,
-                            bottomEnd = 28.dp)
-                    )
-                    .padding(horizontal = 24.dp, vertical = 12.dp)
+            Spacer(modifier = Modifier.height(Spacing.sm))
+            
+            // Main Content Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Spending amounts
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Bottom
-                    ) {
-                        Column {
-                            Text(
-                                text = "Spent",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = CurrencyFormatter.formatCurrency(
-                                    budgetWithSpending.currentSpending,
-                                    budget.currency
-                                ),
-                                style = MaterialTheme.typography.headlineMedium.copy(
-                                    fontSize = 26.sp,
-                                    fontWeight = FontWeight.ExtraBold
-                                ),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = "of ${
-                                    CurrencyFormatter.formatCurrency(
-                                        budget.amount,
-                                        budget.currency
-                                    )
-                                }",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
+                Column {
+                    Text(
+                        text = "DAILY BUDGET LEFT",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            letterSpacing = 0.5.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                    
+                    val dailyBudgetLeft = if (budgetWithSpending.isOverBudget || budgetWithSpending.daysRemaining <= 0) {
+                         BigDecimal.ZERO 
+                    } else {
+                        budgetWithSpending.recommendedDailySpending
                     }
+                    
+                    Text(
+                        text = CurrencyFormatter.formatCurrency(
+                            dailyBudgetLeft,
+                            budget.currency
+                        ),
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Progress bar
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(progressBackgroundColor)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .fillMaxWidth(animatedProgressState.coerceIn(0f, 1f))
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(progressColor)
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = "SPEND / LIMIT",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            letterSpacing = 0.5.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                    
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                         Text(
+                            text = CurrencyFormatter.formatCurrency(
+                                budgetWithSpending.currentSpending,
+                                budget.currency
+                            ).replace(".00", ""), // Simplified display
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Stats row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        // Remaining
-                        Column {
-                            Text(
-                                text = "Remaining",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = if (budgetWithSpending.isOverBudget) {
-                                    "-${
-                                        CurrencyFormatter.formatCurrency(
-                                            budgetWithSpending.remaining.abs(),
-                                            budget.currency
-                                        )
-                                    }"
-                                } else {
-                                    CurrencyFormatter.formatCurrency(
-                                        budgetWithSpending.remaining,
-                                        budget.currency
-                                    )
-                                },
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (budgetWithSpending.isOverBudget) {
-                                    MaterialTheme.colorScheme.error
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
-                                }
-                            )
-                        }
-
-                        // Daily average
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = "Per day avg",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = CurrencyFormatter.formatCurrency(
-                                    budgetWithSpending.spendingPerDay,
-                                    budget.currency
-                                ),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-
-                        // Recommended daily
-                        if (!budgetWithSpending.isOverBudget && budgetWithSpending.daysRemaining > 0) {
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = "Can spend/day",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = CurrencyFormatter.formatCurrency(
-                                        budgetWithSpending.recommendedDailySpending,
-                                        budget.currency
-                                    ),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = progressColor
-                                )
-                            }
-                        }
+                        
+                        Text(
+                            text = " / ",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
+                        
+                        Text(
+                            text = CurrencyFormatter.formatCurrency(
+                                budget.amount,
+                                budget.currency
+                            ).replace(".00", ""), // Simplified display
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
                     }
                 }
             }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Progress Bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(progressBackgroundColor)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(animatedProgressState.coerceIn(0f, 1f))
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(progressColor)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = "${budgetWithSpending.daysRemaining} Days remaining",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
         }
     }
 }
@@ -331,32 +276,89 @@ internal fun BudgetAnimatedGradientMeshCard(
     content: @Composable () -> Unit
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "BudgetGradient")
+    
+    // Animate color pulsing
     val animatedColor by infiniteTransition.animateColor(
-        initialValue = budgetColor.copy(alpha = 0.6f),
-        targetValue = Color.White.copy(alpha = 0.4f),
+        initialValue = budgetColor.copy(alpha = 0.15f),
+        targetValue = budgetColor.copy(alpha = 0.05f),
         animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
+            animation = tween(4000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ), label = "PrimaryColor"
     )
-    val reverseAnimatedColor by infiniteTransition.animateColor(
-        initialValue = Color.White.copy(alpha = 0.4f),
-        targetValue = budgetColor.copy(alpha = 0.6f),
+    
+    val animatedSecondaryColor by infiniteTransition.animateColor(
+        initialValue = budgetColor.copy(alpha = 0.05f),
+        targetValue = budgetColor.copy(alpha = 0.15f),
         animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
+            animation = tween(5000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ), label = "SecondaryColor"
     )
 
-    val surfaceColor = MaterialTheme.colorScheme.surfaceContainerLow
+    // Animation 1: Top-Left to Center-Right
+    val offsetX1 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 0.8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(12000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = "offsetX1"
+    )
+    val offsetY1 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 0.6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(15000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = "offsetY1"
+    )
+
+    // Animation 2: Bottom-Right to Center-Left
+    val offsetX2 by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(18000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = "offsetX2"
+    )
+    val offsetY2 by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(14000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = "offsetY2"
+    )
+    
+    // Animation 3: Top-Right pulsing
+    val offsetX3 by infiniteTransition.animateFloat(
+        initialValue = 0.8f,
+        targetValue = 0.6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(8000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = "offsetX3"
+    )
+    val Scale3 by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 0.7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(6000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = "Scale3"
+    )
+
+    val cardBackgroundColor = MaterialTheme.colorScheme.surfaceContainerLow
 
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(28.dp)),
-        shape = RoundedCornerShape(28.dp),
-        border = BorderStroke(1.dp, animatedColor.copy(alpha = 0.1f)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            .clip(RoundedCornerShape(24.dp)),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
+        border = BorderStroke(1.dp, budgetColor.copy(0.1f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
@@ -367,44 +369,34 @@ internal fun BudgetAnimatedGradientMeshCard(
             ) {
                 val canvasWidth = size.width
                 val canvasHeight = size.height
-
-                val gradientBrush = Brush.linearGradient(
-                    colors = listOf(reverseAnimatedColor, animatedColor, surfaceColor.copy(alpha = 0.5f)),
-                    start = Offset(0f, 0f),
-                    end = Offset(canvasWidth, canvasHeight),
-                    tileMode = TileMode.Mirror
+                
+                // Blob 1
+                drawCircle(
+                    color = animatedColor,
+                    center = Offset(x = canvasWidth * offsetX1, y = canvasHeight * offsetY1),
+                    radius = canvasWidth * 0.5f
                 )
-
-                drawRect(
-                    brush = gradientBrush,
-                    topLeft = Offset(0f, 0f),
-                    size = size
+                
+                // Blob 2
+                drawCircle(
+                    color = animatedSecondaryColor,
+                    center = Offset(x = canvasWidth * offsetX2, y = canvasHeight * offsetY2),
+                    radius = canvasWidth * 0.5f
+                )
+                
+                 // Blob 3
+                drawCircle(
+                    color = animatedColor.copy(alpha = animatedColor.alpha * 0.8f),
+                    center = Offset(x = canvasWidth * offsetX3, y = canvasHeight * 0.2f),
+                    radius = canvasWidth * Scale3
                 )
             }
-
-            // Soft overlay to ensure readability
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                surfaceColor.copy(alpha = 0.2f),
-                                surfaceColor.copy(alpha = 0.6f),
-                                surfaceColor
-                            )
-                        )
-                    )
-            )
 
             content()
         }
     }
 }
 
-/**
- * Compact version of BudgetCard for carousel display.
- */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun SharedTransitionScope.BudgetCardCompact(
@@ -414,197 +406,12 @@ fun SharedTransitionScope.BudgetCardCompact(
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
     sharedElementKey: String? = null
 ) {
-    val budget = budgetWithSpending.budget
-    
-    // Animate the progress
-    var animatedProgress by remember { mutableFloatStateOf(0f) }
-    val targetProgress = budgetWithSpending.percentUsed
-    val animatedProgressState by animateFloatAsState(
-        targetValue = animatedProgress,
-        animationSpec = tween(durationMillis = 800),
-        label = "progressAnimation"
-    )
-    
-    LaunchedEffect(targetProgress) {
-        animatedProgress = targetProgress
-    }
-    
-    // Determine colors based on spending status
-    val budgetColor = try {
-        Color(budget.color.toColorInt())
-    } catch (e: Exception) {
-        MaterialTheme.colorScheme.primary
-    }
-
-    val progressColor = when {
-        budgetWithSpending.isOverBudget -> MaterialTheme.colorScheme.error
-        budgetWithSpending.percentUsed > 0.8f -> MaterialTheme.colorScheme.tertiary
-        else -> budgetColor
-    }
-    
-    val progressBackgroundColor = progressColor.copy(alpha = 0.15f)
-    
-    val sharedModifier = if (animatedVisibilityScope != null && sharedElementKey != null) {
-        Modifier.sharedBounds(
-            rememberSharedContentState(key = sharedElementKey),
-            animatedVisibilityScope = animatedVisibilityScope,
-            boundsTransform = { _, _ ->
-                spring(
-                    stiffness = Spring.StiffnessLow,
-                    dampingRatio = Spring.DampingRatioNoBouncy
-                )
-            },
-            resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(
-                contentScale = ContentScale.Fit,
-                alignment = Alignment.TopCenter
-            )
-        )
-    } else {
-        Modifier
-    }
-
-    BudgetAnimatedGradientMeshCard(
-        budgetColor = budgetColor,
-        modifier = modifier
-            .then(sharedModifier)
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(top = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(progressColor.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.PieChart,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                        tint = progressColor
-                    )
-                }
-                
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = budget.name,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = "${budgetWithSpending.daysRemaining} days left",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        shape = RoundedCornerShape(
-                            topStart = 18.dp,
-                            topEnd = 18.dp,
-                            bottomStart = 28.dp,
-                            bottomEnd = 28.dp)
-                    )
-                    .padding(horizontal = 24.dp, vertical = 12.dp)
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Amounts
-                    Text(
-                        text = CurrencyFormatter.formatCurrency(
-                            budgetWithSpending.currentSpending,
-                            budget.currency
-                        ),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                    Text(
-                        text = "of ${
-                            CurrencyFormatter.formatCurrency(
-                                budget.amount,
-                                budget.currency
-                            )
-                        }",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Progress bar
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(progressBackgroundColor)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .fillMaxWidth(animatedProgressState.coerceIn(0f, 1f))
-                                .clip(RoundedCornerShape(3.dp))
-                                .background(progressColor)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Remaining
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Remaining",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = if (budgetWithSpending.isOverBudget) {
-                                "-${
-                                    CurrencyFormatter.formatCurrency(
-                                        budgetWithSpending.remaining.abs(),
-                                        budget.currency
-                                    )
-                                }"
-                            } else {
-                                CurrencyFormatter.formatCurrency(
-                                    budgetWithSpending.remaining,
-                                    budget.currency
-                                )
-                            },
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (budgetWithSpending.isOverBudget) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                progressColor
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
+   BudgetCard(
+       budgetWithSpending = budgetWithSpending,
+       onClick = onClick,
+       onEditClick = {}, // Edit not typically exposed on compact view directly primarily
+       modifier = modifier.width(300.dp), // Fixed width for carousel
+       animatedVisibilityScope = animatedVisibilityScope,
+       sharedElementKey = sharedElementKey
+   )
 }

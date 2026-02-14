@@ -41,6 +41,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Image
@@ -539,14 +540,27 @@ fun SharedTransitionScope.HomeScreen(
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(Dimensions.Padding.empty),
+                                        .padding(Dimensions.Padding.card),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = "No transactions yet",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(48.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Spacer(modifier = Modifier.height(Spacing.md))
+                                        Text(
+                                            text = "No transactions yet",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                             } else {
                                 uiState.recentTransactions.forEachIndexed { index, transaction ->
@@ -579,7 +593,7 @@ fun SharedTransitionScope.HomeScreen(
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         TextButton(
                             onClick = onNavigateToTransactions,
-                            modifier = Modifier
+                            modifier = Modifier.height(24.dp)
                                 .then(
                                     if (animatedContentScope != null) {
                                         Modifier.sharedBounds(
@@ -608,6 +622,7 @@ fun SharedTransitionScope.HomeScreen(
                             Text(
                                 text = "View All",
                                 style = MaterialTheme.typography.bodySmall,
+                                lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
                                 modifier = Modifier.padding(horizontal = Spacing.md)
                             )
                         }
