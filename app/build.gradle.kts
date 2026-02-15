@@ -259,4 +259,7 @@ dependencies {
 
     // Compose Charts
     implementation(libs.compose.charts)
+
+    // Reorderable
+    implementation(libs.reorderable)
 }

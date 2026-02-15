@@ -3,6 +3,7 @@ package com.ritesh.cashiro.presentation.ui.features.budgets
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -272,6 +273,11 @@ fun SharedTransitionScope.BudgetDetailScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .padding(Spacing.md)
+                                    .background(
+                                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                                        shape = MaterialTheme.shapes.large
+                                    )
                                     .padding(vertical = Spacing.lg),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -283,14 +289,14 @@ fun SharedTransitionScope.BudgetDetailScreen(
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
                                         contentDescription = null,
-                                        modifier = Modifier.size(48.dp),
+                                        modifier = Modifier.size(56.dp),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Spacer(modifier = Modifier.height(Spacing.md))
                                     Text(
                                         text = "No transactions yet",
                                         style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
                                     )
                                 }
                             }

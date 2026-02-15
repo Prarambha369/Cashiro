@@ -36,7 +36,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,6 +48,7 @@ import androidx.compose.material.icons.outlined.MarkChatUnread
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -57,7 +57,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -66,7 +65,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -105,6 +103,7 @@ import com.ritesh.cashiro.R
 import com.ritesh.cashiro.data.database.entity.CategoryEntity
 import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
 import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
+import com.ritesh.cashiro.data.preferences.HomeWidget
 import com.ritesh.cashiro.presentation.effects.overScrollVertical
 import com.ritesh.cashiro.presentation.effects.rememberOverscrollFlingBehavior
 import com.ritesh.cashiro.presentation.navigation.AccountDetail
@@ -119,6 +118,7 @@ import com.ritesh.cashiro.presentation.ui.components.CustomTitleTopAppBar
 import com.ritesh.cashiro.presentation.ui.components.GreetingCard
 import com.ritesh.cashiro.presentation.ui.components.ListItem
 import com.ritesh.cashiro.presentation.ui.components.ListItemPosition
+import com.ritesh.cashiro.presentation.ui.components.PreferenceSwitch
 import com.ritesh.cashiro.presentation.ui.components.SectionHeader
 import com.ritesh.cashiro.presentation.ui.components.SubscriptionIconsStack
 import com.ritesh.cashiro.presentation.ui.components.TransactionItem
@@ -157,10 +157,9 @@ fun SharedTransitionScope.HomeScreen(
 
     val uiState by homeViewModel.uiState.collectAsState()
     val deletedTransaction by homeViewModel.deletedTransaction.collectAsState()
-    val smsScanWorkInfo by homeViewModel.smsScanWorkInfo.collectAsState()
     val categoriesMap by homeViewModel.categoriesMap.collectAsStateWithLifecycle()
     val subcategoriesMap by homeViewModel.subcategoriesMap.collectAsStateWithLifecycle()
-    val themeUiState by themeViewModel.themeUiState.collectAsStateWithLifecycle()
+    val homeWidgets by homeViewModel.homeWidgets.collectAsStateWithLifecycle()
     val activity = LocalActivity.current
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -181,6 +180,7 @@ fun SharedTransitionScope.HomeScreen(
     val scope = rememberCoroutineScope()
 
     var showMoreBottomSheet by remember { mutableStateOf(false) }
+    var showEditWidgetsSheet by remember { mutableStateOf(false) }
 
     // Haptic feedback
     val view = LocalView.current
@@ -205,8 +205,7 @@ fun SharedTransitionScope.HomeScreen(
         }
     }
 
-    // Refresh hidden accounts whenever this screen becomes visible
-    // This ensures changes from ManageAccountsScreen are reflected immediately
+    // ensures changes from ManageAccountsScreen are reflected immediately
     DisposableEffect(Unit) {
         homeViewModel.refreshHiddenAccounts()
         onDispose {}
@@ -384,278 +383,285 @@ fun SharedTransitionScope.HomeScreen(
                         top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
                         bottom = 0.dp
                     ),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
-                // Transaction Summary Cards
-                item {
-                    NetworthSummaryCards(
-                        uiState = uiState,
-                        onCurrencySelected = {
-                            homeViewModel.selectCurrency(it)
-                        },
-                    )
-                }
-                item{
-                    Spacer(Modifier.height(Spacing.md))
-                }
-
-                if (uiState.creditCards.isNotEmpty() ||
-                    uiState.accountBalances.isNotEmpty()
-                ) {
-                    item {
-                        AccountCarousel(
-                            creditCards = uiState.creditCards,
-                            bankAccounts = uiState.accountBalances,
-                            onAccountClick = { bankName, accountLast4 ->
-                                     navController.safeNavigate(
-                                         AccountDetail(
-                                             bankName = bankName,
-                                             accountLast4 = accountLast4
-                                         )
-                                     )
-                            },
-                            animatedContentScope = animatedContentScope
-                        )
-                    }
-                }
-
-                // Upcoming Subscriptions Alert
-                if (uiState.upcomingSubscriptions.isNotEmpty()) {
-                    item{
-                        Spacer(Modifier.height(Spacing.md))
-                    }
-
-                    item {
-                        val cardModifier = Modifier.padding(
-                            start = Dimensions.Padding.content,
-                            end = Dimensions.Padding.content,
-                        )
-                        
-                        if (animatedContentScope != null) {
-                            UpcomingSubscriptionsCard(
-                                subscriptions = uiState.upcomingSubscriptions,
-                                totalAmount = uiState.upcomingSubscriptionsTotal,
-                                currency = uiState.upcomingSubscriptionsCurrency,
-                                categoriesMap = categoriesMap,
-                                subcategoriesMap = subcategoriesMap,
-                                onClick = onNavigateToSubscriptions,
-                                modifier = cardModifier.sharedBounds(
-                                    rememberSharedContentState(key = "upcoming_subscriptions_card"),
-                                    animatedVisibilityScope = animatedContentScope,
-                                    boundsTransform = { _, _ ->
-                                        spring(
-                                            stiffness = Spring.StiffnessLow,
-                                            dampingRatio = Spring.DampingRatioNoBouncy
-                                        )
-                                    },
-                                    resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(
-                                        contentScale = ContentScale.Fit,
-                                        alignment = Alignment.Center
+                homeWidgets.forEach { widgetModel ->
+                    if (widgetModel.isVisible) {
+                        when (widgetModel.widget) {
+                            HomeWidget.NETWORTH_SUMMARY -> {
+                                item(key = "net_worth") {
+                                    NetworthSummaryCards(
+                                        uiState = uiState,
+                                        onCurrencySelected = {
+                                            homeViewModel.selectCurrency(it)
+                                        },
                                     )
-                                )
-                                    .skipToLookaheadSize()
-                            )
-                        } else {
-                            UpcomingSubscriptionsCard(
-                                subscriptions = uiState.upcomingSubscriptions,
-                                totalAmount = uiState.upcomingSubscriptionsTotal,
-                                currency = uiState.upcomingSubscriptionsCurrency,
-                                categoriesMap = categoriesMap,
-                                subcategoriesMap = subcategoriesMap,
-                                onClick = onNavigateToSubscriptions,
-                                modifier = cardModifier
-                            )
-                        }
-                    }
-                }
-                item{
-                    Spacer(Modifier.height(Spacing.md))
-                }
-
-                // Recent Transactions Section
-                item {
-                    Surface(
-                        modifier = Modifier.padding(horizontal = Spacing.md).fillMaxWidth(),
-                        contentColor = Color.Transparent,
-                        shape = RoundedCornerShape(Spacing.lg),
-                    ) {
-                        Column{
-                            SectionHeader(
-                                title = "Recent",
-                                action = {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        // Search button
-                                        TextButton(
-                                            onClick = onNavigateToTransactionsWithSearch,
-                                            modifier = Modifier.then(
-                                                if (animatedContentScope != null) {
-                                                    Modifier.sharedBounds(
-                                                        rememberSharedContentState(key = "transactions_search"),
-                                                        animatedVisibilityScope = animatedContentScope,
-                                                        boundsTransform = { _, _ ->
-                                                            spring(
-                                                                stiffness = Spring.StiffnessLow,
-                                                                dampingRatio = Spring.DampingRatioNoBouncy
-                                                            )
-                                                        },
-                                                        resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(
-                                                            contentScale = ContentScale.None,
-                                                            alignment = Alignment.Center
-                                                        )
-                                                    )
-                                                        .skipToLookaheadSize()
-                                                } else Modifier
-                                            )
-                                        ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically){
-                                                Icon(
-                                                    imageVector = Icons.Default.Search,
-                                                    contentDescription = "Search transactions",
-                                                    modifier = Modifier.size(Dimensions.Icon.small),
-                                                    tint = MaterialTheme.colorScheme.primary
-                                                )
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Text("Search")
-                                            }
-
-                                        }
-                                    }
-                                },
-                                modifier = Modifier.padding(
-                                    start = 16.dp,
-                                    end = 8.dp,
-                                )
-                            )
-
-                            if (uiState.isLoading) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(Dimensions.Component.minTouchTarget * 2),
-                                    contentAlignment = Alignment.Center
-                                ) { CircularProgressIndicator() }
-                            } else if (uiState.recentTransactions.isEmpty()) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(Dimensions.Padding.card),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(48.dp),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        Spacer(modifier = Modifier.height(Spacing.md))
-                                        Text(
-                                            text = "No transactions yet",
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                            }
+                            HomeWidget.BUDGET_CAROUSEL -> {
+                                if (uiState.activeBudgets.isNotEmpty()) {
+                                    item(key = "budget_carousel") {
+                                        var lastBudgetClickTime by remember { mutableLongStateOf(0L) }
+                                        BudgetCarousel(
+                                            budgets = uiState.activeBudgets,
+                                            onBudgetClick = {
+                                                val currentTime = System.currentTimeMillis()
+                                                if (currentTime - lastBudgetClickTime > 500) {
+                                                    lastBudgetClickTime = currentTime
+                                                    onNavigateToBudgets(it)
+                                                }
+                                            },
+                                            onEditClick = {
+                                                val currentTime = System.currentTimeMillis()
+                                                if (currentTime - lastBudgetClickTime > 500) {
+                                                    lastBudgetClickTime = currentTime
+                                                    onNavigateToBudgets(it)
+                                                }
+                                            },
+                                            animatedVisibilityScope = animatedContentScope
                                         )
                                     }
                                 }
-                            } else {
-                                uiState.recentTransactions.forEachIndexed { index, transaction ->
-                                    val categoryEntity = categoriesMap[transaction.category]
-                                    val subcategoryEntity = if (categoryEntity != null && transaction.subcategory != null) {
-                                        subcategoriesMap[transaction.subcategory]
-                                    } else null
-                                    val position = ListItemPosition.from(index, uiState.recentTransactions.size)
+                            }
+                            HomeWidget.ACCOUNT_CAROUSEL -> {
+                                if (uiState.creditCards.isNotEmpty() ||
+                                    uiState.accountBalances.isNotEmpty()
+                                ) {
+                                    item(key = "account_carousel") {
+                                        AccountCarousel(
+                                            creditCards = uiState.creditCards,
+                                            bankAccounts = uiState.accountBalances,
+                                            onAccountClick = { bankName, accountLast4 ->
+                                                navController.safeNavigate(
+                                                    AccountDetail(
+                                                        bankName = bankName,
+                                                        accountLast4 = accountLast4
+                                                    )
+                                                )
+                                            },
+                                            animatedContentScope = animatedContentScope
+                                        )
+                                    }
+                                }
+                            }
+                            HomeWidget.UPCOMING_SUBSCRIPTIONS -> {
+                                if (uiState.upcomingSubscriptions.isNotEmpty()) {
+                                    item(key = "upcoming_subscriptions") {
+                                        val cardModifier = Modifier.padding(
+                                            start = Dimensions.Padding.content,
+                                            end = Dimensions.Padding.content,
+                                        )
 
-                                    TransactionItem(
-                                        transaction = transaction,
-                                        categoryEntity = categoryEntity,
-                                        subcategoryEntity = subcategoryEntity,
-                                        onClick = {
-                                             onTransactionClick(transaction.id, "transaction_${transaction.id}")
-                                        },
-                                        shape = position.toShape(),
-                                        modifier = Modifier.fillMaxWidth(),
-                                        animatedContentScope = animatedContentScope,
-                                        sharedElementKey = "transaction_${transaction.id}"
-                                    )
+                                        if (animatedContentScope != null) {
+                                            UpcomingSubscriptionsCard(
+                                                subscriptions = uiState.upcomingSubscriptions,
+                                                totalAmount = uiState.upcomingSubscriptionsTotal,
+                                                currency = uiState.upcomingSubscriptionsCurrency,
+                                                categoriesMap = categoriesMap,
+                                                subcategoriesMap = subcategoriesMap,
+                                                onClick = onNavigateToSubscriptions,
+                                                modifier = cardModifier.sharedBounds(
+                                                    rememberSharedContentState(key = "upcoming_subscriptions_card"),
+                                                    animatedVisibilityScope = animatedContentScope,
+                                                    boundsTransform = { _, _ ->
+                                                        spring(
+                                                            stiffness = Spring.StiffnessLow,
+                                                            dampingRatio = Spring.DampingRatioNoBouncy
+                                                        )
+                                                    },
+                                                    resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(
+                                                        contentScale = ContentScale.Fit,
+                                                        alignment = Alignment.Center
+                                                    )
+                                                )
+                                                    .skipToLookaheadSize()
+                                            )
+                                        } else {
+                                            UpcomingSubscriptionsCard(
+                                                subscriptions = uiState.upcomingSubscriptions,
+                                                totalAmount = uiState.upcomingSubscriptionsTotal,
+                                                currency = uiState.upcomingSubscriptionsCurrency,
+                                                categoriesMap = categoriesMap,
+                                                subcategoriesMap = subcategoriesMap,
+                                                onClick = onNavigateToSubscriptions,
+                                                modifier = cardModifier
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            HomeWidget.RECENT_TRANSACTIONS -> {
+                                item(key = "recent_transactions") {
+                                    Column {
+                                        Surface(
+                                            modifier = Modifier.padding(horizontal = Spacing.md).fillMaxWidth(),
+                                            contentColor = Color.Transparent,
+                                            shape = RoundedCornerShape(Spacing.lg),
+                                        ) {
+                                            Column {
+                                                SectionHeader(
+                                                    title = "Recent",
+                                                    action = {
+                                                        Row(
+                                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                            verticalAlignment = Alignment.CenterVertically
+                                                        ) {
+                                                            // Search button
+                                                            TextButton(
+                                                                onClick = onNavigateToTransactionsWithSearch,
+                                                                modifier = Modifier.then(
+                                                                    if (animatedContentScope != null) {
+                                                                        Modifier.sharedBounds(
+                                                                            rememberSharedContentState(key = "transactions_search"),
+                                                                            animatedVisibilityScope = animatedContentScope,
+                                                                            boundsTransform = { _, _ ->
+                                                                                spring(
+                                                                                    stiffness = Spring.StiffnessLow,
+                                                                                    dampingRatio = Spring.DampingRatioNoBouncy
+                                                                                )
+                                                                            },
+                                                                            resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(
+                                                                                contentScale = ContentScale.None,
+                                                                                alignment = Alignment.Center
+                                                                            )
+                                                                        )
+                                                                            .skipToLookaheadSize()
+                                                                    } else Modifier
+                                                                )
+                                                            ) {
+                                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                                    Icon(
+                                                                        imageVector = Icons.Default.Search,
+                                                                        contentDescription = "Search transactions",
+                                                                        modifier = Modifier.size(Dimensions.Icon.small),
+                                                                        tint = MaterialTheme.colorScheme.primary
+                                                                    )
+                                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                                    Text("Search")
+                                                                }
+
+                                                            }
+                                                        }
+                                                    },
+                                                    modifier = Modifier.padding(
+                                                        start = 16.dp,
+                                                        end = 8.dp,
+                                                    )
+                                                )
+
+                                                if (uiState.isLoading) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .height(Dimensions.Component.minTouchTarget * 2),
+                                                        contentAlignment = Alignment.Center
+                                                    ) { CircularProgressIndicator() }
+                                                } else if (uiState.recentTransactions.isEmpty()) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(Dimensions.Padding.card),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Column(
+                                                            modifier = Modifier.fillMaxWidth(),
+                                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                                            ) {
+                                                            Icon(
+                                                                imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
+                                                                contentDescription = null,
+                                                                modifier = Modifier.size(48.dp),
+                                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                            )
+                                                            Spacer(modifier = Modifier.height(Spacing.md))
+                                                            Text(
+                                                                text = "No transactions yet",
+                                                                style = MaterialTheme.typography.bodyLarge,
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                            )
+                                                        }
+                                                    }
+                                                } else {
+                                                    uiState.recentTransactions.forEachIndexed { index, transaction ->
+                                                        val categoryEntity = categoriesMap[transaction.category]
+                                                        val subcategoryEntity =
+                                                            if (categoryEntity != null && transaction.subcategory != null) {
+                                                                subcategoriesMap[transaction.subcategory]
+                                                            } else null
+                                                        val position = ListItemPosition.from(
+                                                            index,
+                                                            uiState.recentTransactions.size
+                                                        )
+
+                                                        TransactionItem(
+                                                            transaction = transaction,
+                                                            categoryEntity = categoryEntity,
+                                                            subcategoryEntity = subcategoryEntity,
+                                                            onClick = {
+                                                                onTransactionClick(
+                                                                    transaction.id,
+                                                                    "transaction_${transaction.id}"
+                                                                )
+                                                            },
+                                                            shape = position.toShape(),
+                                                            modifier = Modifier.fillMaxWidth(),
+                                                            animatedContentScope = animatedContentScope,
+                                                            sharedElementKey = "transaction_${transaction.id}"
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(Spacing.sm))
+                                        Box(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            TextButton(
+                                                onClick = onNavigateToTransactions,
+                                                modifier = Modifier.height(26.dp)
+                                                    .then(
+                                                        if (animatedContentScope != null) {
+                                                            Modifier.sharedBounds(
+                                                                rememberSharedContentState(key = "transactions_screen"),
+                                                                animatedVisibilityScope = animatedContentScope,
+                                                                boundsTransform = { _, _ ->
+                                                                    spring(
+                                                                        stiffness = Spring.StiffnessLow,
+                                                                        dampingRatio = Spring.DampingRatioNoBouncy
+                                                                    )
+                                                                },
+                                                                resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(
+                                                                    contentScale = ContentScale.None,
+                                                                    alignment = Alignment.Center
+                                                                )
+                                                            )
+                                                                .skipToLookaheadSize()
+                                                        } else Modifier
+                                                    ),
+                                                colors = ButtonDefaults.textButtonColors(
+                                                    contentColor = MaterialTheme.colorScheme.primary,
+                                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                                                ),
+                                                contentPadding = PaddingValues(0.dp)
+                                            ) {
+                                                Text(
+                                                    text = "View All",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
+                                                    modifier = Modifier.padding(horizontal = Spacing.md)
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
-                item { Spacer(modifier = Modifier.height(Spacing.xs)) }
-                // View All button
+
                 item{
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        TextButton(
-                            onClick = onNavigateToTransactions,
-                            modifier = Modifier.height(24.dp)
-                                .then(
-                                    if (animatedContentScope != null) {
-                                        Modifier.sharedBounds(
-                                            rememberSharedContentState(key = "transactions_screen"),
-                                            animatedVisibilityScope = animatedContentScope,
-                                            boundsTransform = { _, _ ->
-                                                spring(
-                                                    stiffness = Spring.StiffnessLow,
-                                                    dampingRatio = Spring.DampingRatioNoBouncy
-                                                )
-                                            },
-                                            resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(
-                                                contentScale = ContentScale.None,
-                                                alignment = Alignment.Center
-                                            )
-                                        )
-                                            .skipToLookaheadSize()
-                                    } else Modifier
-                                ),
-                            colors = ButtonDefaults.textButtonColors(
-                                contentColor = MaterialTheme.colorScheme.primary,
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                            ),
-                            contentPadding = PaddingValues(0.dp)
-                        ) {
-                            Text(
-                                text = "View All",
-                                style = MaterialTheme.typography.bodySmall,
-                                lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
-                                modifier = Modifier.padding(horizontal = Spacing.md)
-                            )
-                        }
-                    }
-                }
-                item { Spacer(modifier = Modifier.height(Spacing.md)) }
-                // Budgets Carousel
-                if (uiState.activeBudgets.isNotEmpty()) {
-                    item {
-                        var lastBudgetClickTime by remember { mutableLongStateOf(0L) }
-                        BudgetCarousel(
-                            budgets = uiState.activeBudgets,
-                            onBudgetClick = {
-                                val currentTime = System.currentTimeMillis()
-                                if (currentTime - lastBudgetClickTime > 500) {
-                                    lastBudgetClickTime = currentTime
-                                    onNavigateToBudgets(it)
-                                }
-                            },
-                            onEditClick = {
-                                val currentTime = System.currentTimeMillis()
-                                if (currentTime - lastBudgetClickTime > 500) {
-                                    lastBudgetClickTime = currentTime
-                                    onNavigateToBudgets(it)
-                                }
-                            },
-                            modifier = Modifier.padding(bottom = Spacing.md),
-                            animatedVisibilityScope = animatedContentScope
-                        )
-                    }
-                }
-                item{
-                    Spacer(Modifier.height(200.dp))
+                    Spacer(Modifier.height(200.dp)) //Extra space for better scroll
                 }
             }
 
@@ -682,6 +688,23 @@ fun SharedTransitionScope.HomeScreen(
                         )
 
 
+
+                        // Edit Widgets Option
+                        ListItem(
+                            headline = { Text("Edit Widgets") },
+                            leading = {
+                                Icon(
+                                    imageVector = Icons.Outlined.Widgets,
+                                    contentDescription = null,
+                                )
+                            },
+                            onClick = {
+                                showMoreBottomSheet = false
+                                showEditWidgetsSheet = true
+                            },
+                            shape = ListItemPosition.Top.toShape()
+                        )
+
                         // Settings Option
                         ListItem(
                             headline = { Text("Settings") },
@@ -695,7 +718,7 @@ fun SharedTransitionScope.HomeScreen(
                                 showMoreBottomSheet = false
                                 onNavigateToSettings()
                             },
-                            shape = ListItemPosition.Top.toShape()
+                            shape = ListItemPosition.Middle.toShape()
                         )
 
                         // Ask AI Option
@@ -744,21 +767,17 @@ fun SharedTransitionScope.HomeScreen(
                         )
 
                         // Banner Image Toggle
-                        ListItem(
-                            headline = { Text("Show Banner Image") },
-                            leading = {
+                        PreferenceSwitch(
+                            title = "Show Banner Image",
+                            leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Outlined.Image,
                                     contentDescription = null,
                                 )
                             },
-                            trailing = {
-                                Switch(
-                                    checked = uiState.showBannerImage,
-                                    onCheckedChange = { homeViewModel.toggleBannerImage() }
-                                )
-                            },
-                            shape = ListItemPosition.Bottom.toShape()
+                            checked = uiState.showBannerImage,
+                            onCheckedChange = { homeViewModel.toggleBannerImage() },
+                            isLast = true
                         )
                     }
                 }
@@ -774,6 +793,17 @@ fun SharedTransitionScope.HomeScreen(
                     lastMonthExpenses = uiState.lastMonthExpenses,
                     lastMonthTotal = uiState.lastMonthTotal,
                     onDismiss = { homeViewModel.hideBreakdownDialog() }
+                )
+            }
+
+            // Edit Widgets Sheet
+            if (showEditWidgetsSheet) {
+                EditWidgetsSheet(
+                    onDismissRequest = { showEditWidgetsSheet = false },
+                    sheetState = rememberModalBottomSheetState(),
+                    widgets = homeWidgets,
+                    onToggleVisibility = homeViewModel::toggleHomeWidgetVisibility,
+                    onReorder = homeViewModel::updateWidgetsOrder
                 )
             }
         }
@@ -1006,37 +1036,6 @@ private fun NetworthSummaryCards(
     uiState: HomeUiState,
     onCurrencySelected: (String) -> Unit = {},
 ) {
-    val now = LocalDate.now()
-    val lastMonth = now.minusMonths(1)
-    val periodLabel = "vs ${
-        lastMonth.month.name.lowercase().replaceFirstChar { it.uppercase() }
-    } 1-${now.dayOfMonth}"
-
-    val expenseChange = uiState.currentMonthExpenses - uiState.lastMonthExpenses
-
-    val comparisonMessage = when {
-        uiState.currentMonthExpenses == BigDecimal.ZERO && uiState.lastMonthExpenses == BigDecimal.ZERO -> {
-            "No transactions yet"
-        }
-        expenseChange > BigDecimal.ZERO -> {
-            "${CurrencyFormatter.formatCurrency(expenseChange.abs(), uiState.selectedCurrency)} more $periodLabel"
-        }
-        expenseChange < BigDecimal.ZERO -> {
-            "${CurrencyFormatter.formatCurrency(expenseChange.abs(), uiState.selectedCurrency)} less $periodLabel"
-        }
-        uiState.monthlyChange > BigDecimal.ZERO && uiState.currentMonthTotal > BigDecimal.ZERO -> {
-            "Saved ${
-                CurrencyFormatter.formatCurrency(
-                    uiState.monthlyChange.abs(),
-                    uiState.selectedCurrency
-                )
-            } more $periodLabel"
-        }
-        else -> {
-            "Same as last period"
-        }
-    }
-
     var showCurrencySheet by remember { mutableStateOf(false) }
 
     if (showCurrencySheet) {

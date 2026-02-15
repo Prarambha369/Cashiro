@@ -1,54 +1,52 @@
 package com.ritesh.cashiro.presentation.ui.features.home
 
 import android.content.Context
-import android.net.Uri
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.ui.graphics.Color
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
 import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import androidx.work.workDataOf
-import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
-import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
-import com.ritesh.cashiro.data.database.entity.TransactionEntity
-import com.ritesh.cashiro.data.manager.InAppUpdateManager
-import com.ritesh.cashiro.data.manager.InAppReviewManager
 import com.ritesh.cashiro.data.currency.CurrencyConversionService
+import com.ritesh.cashiro.data.database.entity.TransactionEntity
+import com.ritesh.cashiro.data.database.entity.TransactionType
+import com.ritesh.cashiro.data.manager.InAppReviewManager
+import com.ritesh.cashiro.data.manager.InAppUpdateManager
+import com.ritesh.cashiro.data.preferences.HomeWidget
+import com.ritesh.cashiro.data.preferences.UserPreferencesRepository
 import com.ritesh.cashiro.data.repository.AccountBalanceRepository
-import com.ritesh.cashiro.data.repository.LlmRepository
+import com.ritesh.cashiro.data.repository.BudgetRepository
 import com.ritesh.cashiro.data.repository.CategoryRepository
-import com.ritesh.cashiro.data.repository.SubscriptionRepository
+import com.ritesh.cashiro.data.repository.LlmRepository
 import com.ritesh.cashiro.data.repository.SubcategoryRepository
+import com.ritesh.cashiro.data.repository.SubscriptionRepository
 import com.ritesh.cashiro.data.repository.TransactionRepository
 import com.ritesh.cashiro.data.repository.UnrecognizedSmsRepository
-import com.ritesh.cashiro.data.repository.BudgetRepository
-import com.ritesh.cashiro.data.repository.BudgetWithSpending
-import com.ritesh.cashiro.data.preferences.UserPreferencesRepository
+import com.ritesh.cashiro.presentation.ui.components.BalancePoint
 import com.ritesh.cashiro.worker.OptimizedSmsReaderWorker
-import androidx.compose.ui.graphics.Color
-import java.time.LocalDateTime
-import java.time.YearMonth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
-import javax.inject.Inject
-import androidx.core.net.toUri
-import com.ritesh.cashiro.data.database.entity.TransactionType
-import kotlinx.coroutines.CoroutineScope
 import java.time.LocalDate
-import java.util.TreeMap
+import java.time.LocalDateTime
+import java.time.YearMonth
+import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -77,6 +75,9 @@ class HomeViewModel @Inject constructor(
     // SMS scanning work progress tracking
     private val _smsScanWorkInfo = MutableStateFlow<WorkInfo?>(null)
     val smsScanWorkInfo: StateFlow<WorkInfo?> = _smsScanWorkInfo.asStateFlow()
+
+    private val _homeWidgets = MutableStateFlow<List<HomeWidgetUiModel>>(emptyList())
+    val homeWidgets: StateFlow<List<HomeWidgetUiModel>> = _homeWidgets.asStateFlow()
 
     val categoriesMap = categoryRepository.getAllCategories()
         .map { cats -> cats.associateBy { it.name } }
@@ -113,6 +114,39 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             unrecognizedSmsRepository.getUnreportedCount().collect { count ->
                 _uiState.value = _uiState.value.copy(unreadUpdatesCount = count)
+            }
+        }
+
+        viewModelScope.launch {
+            combine(
+                userPreferencesRepository.homeWidgetsOrder,
+                userPreferencesRepository.hiddenHomeWidgets
+            ) { order, hidden ->
+                val allWidgets = HomeWidget.entries.toMutableList()
+                
+                // Construct the final list based on saved order
+                val orderedWidgets = mutableListOf<HomeWidgetUiModel>()
+                
+                // Net Worth (Always first)
+                orderedWidgets.add(HomeWidgetUiModel(HomeWidget.NETWORTH_SUMMARY, true))
+                
+                //ordered widgets
+                order.forEach { widget ->
+                     if (widget != HomeWidget.NETWORTH_SUMMARY) { // Prevent duplicates just in case
+                         orderedWidgets.add(HomeWidgetUiModel(widget, !hidden.contains(widget)))
+                         allWidgets.remove(widget)
+                     }
+                }
+                allWidgets.remove(HomeWidget.NETWORTH_SUMMARY)
+
+                // any remaining widgets (newly added ones in enum)
+                allWidgets.sortedBy { it.defaultOrder }.forEach { widget ->
+                    orderedWidgets.add(HomeWidgetUiModel(widget, !hidden.contains(widget)))
+                }
+                
+                orderedWidgets
+            }.collect { widgets ->
+                _homeWidgets.value = widgets
             }
         }
     }
@@ -312,7 +346,7 @@ class HomeViewModel @Inject constructor(
                     }
                     .toSortedMap()
                     .map { (date, total) ->
-                        com.ritesh.cashiro.presentation.ui.components.BalancePoint(
+                        BalancePoint(
                             timestamp = date.atStartOfDay(),
                             balance = total,
                             currency = selectedCurrency
@@ -532,11 +566,6 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
-
-    fun showBreakdownDialog() {
-        _uiState.value = _uiState.value.copy(showBreakdownDialog = true)
-    }
-
     fun hideBreakdownDialog() {
         _uiState.value = _uiState.value.copy(showBreakdownDialog = false)
     }
@@ -701,6 +730,29 @@ class HomeViewModel @Inject constructor(
     fun toggleBannerImage() {
         viewModelScope.launch {
             userPreferencesRepository.updateShowBannerImage(!_uiState.value.showBannerImage)
+        }
+    }
+
+    fun toggleHomeWidgetVisibility(widget: HomeWidget, visible: Boolean) {
+        viewModelScope.launch {
+            val currentHidden = userPreferencesRepository.hiddenHomeWidgets.first().toMutableSet()
+            if (visible) {
+                currentHidden.remove(widget)
+            } else {
+                currentHidden.add(widget)
+            }
+            userPreferencesRepository.updateHiddenHomeWidgets(currentHidden)
+        }
+    }
+
+    private var saveOrderJob: kotlinx.coroutines.Job? = null
+
+    fun updateWidgetsOrder(widgets: List<HomeWidget>) {
+        saveOrderJob?.cancel()
+        saveOrderJob = viewModelScope.launch {
+            // Debounce writes to avoid rapid DataStore updates and UI jank
+            kotlinx.coroutines.delay(500)
+            userPreferencesRepository.updateHomeWidgetsOrder(widgets)
         }
     }
 

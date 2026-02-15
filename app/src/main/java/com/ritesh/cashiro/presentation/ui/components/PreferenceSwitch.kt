@@ -19,7 +19,7 @@ import com.ritesh.cashiro.presentation.effects.BlurredAnimatedVisibility
 fun PreferenceSwitch(
     visible: Boolean = true,
     title: String,
-    subtitle: String,
+    subtitle: String = "",
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     leadingIcon: @Composable () -> Unit = {},
@@ -35,7 +35,7 @@ fun PreferenceSwitch(
     ) {
         ListItem(
             headline = { Text(title) },
-            supporting = { Text(subtitle) },
+            supporting = { if (subtitle.isNotEmpty())Text(subtitle) },
             leading = {
                 leadingIcon()
             },

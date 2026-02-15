@@ -332,7 +332,7 @@ fun CategoryPieChart(
         }
     }
 
-    var chartData by remember { mutableStateOf(pieData) }
+    var chartData by remember(pieData) { mutableStateOf(pieData) }
 
     Row(
         modifier = modifier

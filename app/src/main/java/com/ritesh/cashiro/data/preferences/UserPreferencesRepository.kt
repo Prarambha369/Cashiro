@@ -65,6 +65,10 @@ constructor(@ApplicationContext private val context: Context) {
         val SHOW_BANNER_IMAGE = booleanPreferencesKey("show_banner_image")
         val NAVIGATION_BAR_STYLE = stringPreferencesKey("navigation_bar_style")
         val APP_FONT = stringPreferencesKey("app_font")
+        
+        // Home Widget Preferences
+        val HOME_WIDGETS_ORDER = stringPreferencesKey("home_widgets_order")
+        val HIDDEN_HOME_WIDGETS = androidx.datastore.preferences.core.stringSetPreferencesKey("hidden_home_widgets")
     }
 
     val userPreferences: Flow<UserPreferences> =
@@ -508,6 +512,38 @@ constructor(@ApplicationContext private val context: Context) {
     suspend fun updateAppFont(font: AppFont) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.APP_FONT] = font.name
+        }
+    }
+
+    // Home Widget Preferences
+    val homeWidgetsOrder: Flow<List<HomeWidget>> =
+        context.dataStore.data.map { preferences ->
+            val orderString = preferences[PreferencesKeys.HOME_WIDGETS_ORDER]
+            if (orderString != null) {
+                orderString.split(",")
+                    .mapNotNull { HomeWidget.fromName(it) }
+            } else {
+                emptyList() // Empty list means use default order logic in ViewModel
+            }
+        }
+
+    val hiddenHomeWidgets: Flow<Set<HomeWidget>> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.HIDDEN_HOME_WIDGETS]
+                ?.mapNotNull { HomeWidget.fromName(it) }
+                ?.toSet()
+                ?: emptySet()
+        }
+
+    suspend fun updateHomeWidgetsOrder(order: List<HomeWidget>) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.HOME_WIDGETS_ORDER] = order.joinToString(",") { it.name }
+        }
+    }
+
+    suspend fun updateHiddenHomeWidgets(hidden: Set<HomeWidget>) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.HIDDEN_HOME_WIDGETS] = hidden.map { it.name }.toSet()
         }
     }
 }
