@@ -167,7 +167,13 @@ data class ThemePreferences(
     val navigationBarStyle: String? = null,
 
     @SerializedName("app_font")
-    val appFont: String? = null
+    val appFont: String? = null,
+
+    @SerializedName("theme_style")
+    val themeStyle: String? = null,
+
+    @SerializedName("accent_color")
+    val accentColor: String? = null
 )
 
 /**

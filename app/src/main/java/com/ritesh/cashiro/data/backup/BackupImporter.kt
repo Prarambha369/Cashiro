@@ -10,6 +10,8 @@ import com.ritesh.cashiro.data.database.entity.*
 import com.ritesh.cashiro.data.preferences.UserPreferencesRepository
 import com.ritesh.cashiro.data.preferences.NavigationBarStyle
 import com.ritesh.cashiro.data.preferences.AppFont
+import com.ritesh.cashiro.data.preferences.ThemeStyle
+import com.ritesh.cashiro.data.preferences.AccentColor
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -457,6 +459,24 @@ class BackupImporter @Inject constructor(
                 userPreferencesRepository.updateAppFont(font)
             } catch (e: Exception) {
                 // Ignore invalid font
+            }
+        }
+
+        preferences.theme.themeStyle?.let { styleName ->
+            try {
+                val style = ThemeStyle.valueOf(styleName)
+                userPreferencesRepository.updateThemeStyle(style)
+            } catch (e: Exception) {
+                // Ignore invalid style
+            }
+        }
+
+        preferences.theme.accentColor?.let { colorName ->
+            try {
+                val color = AccentColor.valueOf(colorName)
+                userPreferencesRepository.updateAccentColor(color)
+            } catch (e: Exception) {
+                // Ignore invalid color
             }
         }
 
