@@ -72,12 +72,29 @@ class BudgetViewModel @Inject constructor(
         }
     }
 
-    fun selectBudget(budgetId: Long) {
+    fun selectBudget(budgetId: Long, startDate: String? = null, endDate: String? = null) {
         selectedBudgetCollectionJob?.cancel()
         selectedBudgetCollectionJob = viewModelScope.launch {
             budgetRepository.getAllBudgetsWithSpending().collect { allBudgets ->
-                val budgetWithSpending = allBudgets.find { it.budget.id == budgetId }
-                if (budgetWithSpending != null) {
+                val found = allBudgets.find { it.budget.id == budgetId }
+                if (found != null) {
+                    var budgetWithSpending = found
+                    
+                    // If custom dates provided, recalculate spending for that period
+                    if (startDate != null && endDate != null) {
+                        try {
+                            val start = LocalDateTime.parse(startDate)
+                            val end = LocalDateTime.parse(endDate)
+                            val customBudget = budgetWithSpending.budget.copy(
+                                startDate = start,
+                                endDate = end
+                            )
+                            budgetWithSpending = budgetRepository.getBudgetWithSpending(customBudget)
+                        } catch (e: Exception) {
+                            // Fallback to normal if parsing fails
+                        }
+                    }
+
                     val categoryLimitsWithSpending = budgetWithSpending.categoryLimits.map { limit ->
                         CategoryLimitWithSpending(
                             limit = limit,
@@ -98,8 +115,19 @@ class BudgetViewModel @Inject constructor(
         transactionCollectionJob?.cancel()
         viewModelScope.launch {
             val budget = budgetRepository.getBudgetById(budgetId) ?: return@launch
+            
+            // Override dates if provided
+            val collectionBudget = if (startDate != null && endDate != null) {
+                try {
+                    budget.copy(
+                        startDate = LocalDateTime.parse(startDate),
+                        endDate = LocalDateTime.parse(endDate)
+                    )
+                } catch (e: Exception) { budget }
+            } else budget
+
             transactionCollectionJob = viewModelScope.launch {
-                budgetRepository.getTransactionsForBudget(budget).collect { transactions ->
+                budgetRepository.getTransactionsForBudget(collectionBudget).collect { transactions ->
                     _uiState.update { it.copy(selectedBudgetTransactions = transactions) }
                 }
             }

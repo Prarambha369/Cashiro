@@ -78,6 +78,7 @@ import kotlinx.coroutines.launch
 fun SharedTransitionScope.BudgetsScreen(
     onNavigateBack: () -> Unit,
     onBudgetClick: (Long, String?) -> Unit,
+    onHistoryClick: (Long) -> Unit = {},
     budgetViewModel: BudgetViewModel = hiltViewModel(),
     categoriesViewModel: CategoriesViewModel = hiltViewModel(),
     animatedContentScope: AnimatedContentScope? = null,
@@ -326,6 +327,7 @@ fun SharedTransitionScope.BudgetsScreen(
                             }
                         },
                         onBudgetClick = onBudgetClick,
+                        onHistoryClick = onHistoryClick,
                         animatedContentScope = animatedContentScope,
                         sharedElementPrefix = sharedElementPrefix
                     )
@@ -341,6 +343,7 @@ private fun SharedTransitionScope.BudgetsList(
     budgets: List<BudgetWithSpending>,
     onEditClick: (Long) -> Unit,
     onBudgetClick: (Long, String?) -> Unit,
+    onHistoryClick: (Long) -> Unit = {},
     paddingValues: PaddingValues,
     lazyListState: LazyListState,
     animatedContentScope: AnimatedContentScope? = null,
@@ -368,7 +371,7 @@ private fun SharedTransitionScope.BudgetsList(
             BudgetCard(
                 budgetWithSpending = budgetWithSpending,
                 onClick = { onBudgetClick(budgetWithSpending.budget.id, "budget_card_${budgetWithSpending.budget.id}") },
-                onEditClick = { onEditClick(budgetWithSpending.budget.id) },
+                onHistoryClick = onHistoryClick,
                 animatedVisibilityScope = animatedContentScope,
                 sharedElementKey = if (sharedElementPrefix != null) null else "budget_card_${budgetWithSpending.budget.id}"
             )

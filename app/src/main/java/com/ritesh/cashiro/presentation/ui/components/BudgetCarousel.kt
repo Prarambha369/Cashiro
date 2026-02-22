@@ -22,6 +22,7 @@ fun SharedTransitionScope.BudgetCarousel(
     budgets: List<BudgetWithSpending>,
     onBudgetClick: (Long) -> Unit,
     onEditClick: (Long) -> Unit,
+    onHistoryClick: (Long) -> Unit = {},
     modifier: Modifier = Modifier,
     animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
@@ -42,7 +43,7 @@ fun SharedTransitionScope.BudgetCarousel(
             BudgetCard(
                 budgetWithSpending = budgets.first(),
                 onClick = { onBudgetClick(budgets.first().budget.id) },
-                onEditClick = { onEditClick(budgets.first().budget.id) },
+                onHistoryClick = onHistoryClick,
                 modifier = Modifier.fillMaxWidth(),
                 animatedVisibilityScope = animatedVisibilityScope,
                 sharedElementKey = "budget_card_${budgets.first().budget.id}"
@@ -63,6 +64,7 @@ fun SharedTransitionScope.BudgetCarousel(
             BudgetCardCompact(
                 budgetWithSpending = budgetWithSpending,
                 onClick = { onBudgetClick(budgetWithSpending.budget.id) },
+                onHistoryClick = onHistoryClick,
                 modifier = Modifier.fillMaxWidth(),
                 animatedVisibilityScope = animatedVisibilityScope,
                 sharedElementKey = "budget_card_${budgetWithSpending.budget.id}"

@@ -4,9 +4,11 @@ import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,9 +17,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import java.time.format.DateTimeFormatter
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,12 +46,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ritesh.cashiro.presentation.effects.overScrollVertical
+import com.ritesh.cashiro.presentation.effects.rememberOverscrollFlingBehavior
 import com.ritesh.cashiro.presentation.ui.components.BudgetCard
 import com.ritesh.cashiro.presentation.ui.components.CustomTitleTopAppBar
+import com.ritesh.cashiro.presentation.ui.components.DashedLine
 import com.ritesh.cashiro.presentation.ui.components.ListItemPosition
 import com.ritesh.cashiro.presentation.ui.components.SectionHeader
 import com.ritesh.cashiro.presentation.ui.components.TransactionItem
@@ -65,7 +74,10 @@ import dev.chrisbanes.haze.hazeSource
 @Composable
 fun SharedTransitionScope.BudgetDetailScreen(
     budgetId: Long,
+    startDate: String? = null,
+    endDate: String? = null,
     onNavigateBack: () -> Unit,
+    onNavigateToHistory: (Long) -> Unit = {},
     onTransactionClick: (Long, String?) -> Unit,
     budgetViewModel: BudgetViewModel = hiltViewModel(),
     categoriesViewModel: CategoriesViewModel = hiltViewModel(),
@@ -82,8 +94,8 @@ fun SharedTransitionScope.BudgetDetailScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Load budget data
-    LaunchedEffect(budgetId) {
-        budgetViewModel.selectBudget(budgetId)
+    LaunchedEffect(budgetId, startDate, endDate) {
+        budgetViewModel.selectBudget(budgetId, startDate, endDate)
     }
 
     // Clean up when leaving the screen
@@ -157,6 +169,7 @@ fun SharedTransitionScope.BudgetDetailScreen(
     val hazeState = remember { HazeState() }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val lazyListState = rememberLazyListState()
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -172,25 +185,29 @@ fun SharedTransitionScope.BudgetDetailScreen(
                     NavigationContent { onNavigateBack() }
                 },
                 actionContent = {
-                    IconButton(
-                        onClick = {
-                            budgetWithSpending?.budget?.let {
-                                budgetViewModel.initEditBudget(it)
-                                showEditSheet = true
-                            }
-                        },
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                            contentColor = MaterialTheme.colorScheme.onBackground
-                        ),
-                        shapes =  IconButtonDefaults.shapes(),
-                        modifier = Modifier.padding(end = 16.dp)
+                    Row(
+                        modifier = Modifier.padding(end = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Edit,
-                            contentDescription = "Edit Budget",
-                            modifier = Modifier.size(18.dp)
-                        )
+                        IconButton(
+                            onClick = {
+                                budgetWithSpending?.budget?.let {
+                                    budgetViewModel.initEditBudget(it)
+                                    showEditSheet = true
+                                }
+                            },
+                            colors = IconButtonDefaults.iconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                contentColor = MaterialTheme.colorScheme.onBackground
+                            ),
+                            shapes = IconButtonDefaults.shapes()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Edit,
+                                contentDescription = "Edit Budget",
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             )
@@ -207,6 +224,8 @@ fun SharedTransitionScope.BudgetDetailScreen(
                 }
             } else {
                 LazyColumn(
+                    state = lazyListState,
+                    flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
                     modifier = Modifier.fillMaxSize().overScrollVertical(),
                     contentPadding = PaddingValues(
                         top = paddingValues.calculateTopPadding() + Spacing.md,
@@ -217,16 +236,50 @@ fun SharedTransitionScope.BudgetDetailScreen(
                     item {
                         Box(modifier = Modifier.padding(horizontal = Spacing.md)) {
                             BudgetCard(
+                                onHistoryClick = onNavigateToHistory,
                                 budgetWithSpending = budgetWithSpending,
-                                onEditClick = {
-                                    budgetViewModel.initEditBudget(budgetWithSpending.budget)
-                                    showEditSheet = true
-                                },
                                 animatedVisibilityScope = animatedContentScope,
                                 sharedElementKey = sharedElementKey
                             )
                         }
-                        Spacer(modifier = Modifier.height(Spacing.lg))
+
+                        // Budget Period Text
+                        val startDate = budgetWithSpending.budget.startDate
+                        val endDate = budgetWithSpending.budget.endDate
+                        val periodText = remember(startDate, endDate) {
+                            val periodFormatter = DateTimeFormatter.ofPattern("MMM d")
+                            if (startDate.year == endDate.year) {
+                                "${startDate.format(periodFormatter)} - ${endDate.format(periodFormatter)}, ${startDate.year}"
+                            } else {
+                                val fullFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
+                                "${startDate.format(fullFormatter)} - ${endDate.format(fullFormatter)}"
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.xs, vertical = Spacing.sm),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            verticalAlignment = Alignment.CenterVertically
+                        ){
+                            DashedLine(
+                                modifier = Modifier.weight(1f),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                            )
+
+                            Text(
+                                text = periodText,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(0.7f),
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
+                            )
+
+                            DashedLine(
+                                modifier = Modifier.weight(1f),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(Spacing.md))
                     }
 
                     // Category Breakdown (Pie Chart)

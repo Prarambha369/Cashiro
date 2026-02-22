@@ -44,11 +44,19 @@ import androidx.core.net.toUri
 import com.ritesh.cashiro.data.repository.TransactionRepository
 import com.ritesh.cashiro.data.repository.AccountBalanceRepository
 import com.ritesh.cashiro.data.repository.CardRepository
+import com.ritesh.cashiro.data.repository.BudgetRepository
 import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
 import com.ritesh.cashiro.data.database.entity.CardEntity
 import com.ritesh.cashiro.data.database.entity.CardType
+import com.ritesh.cashiro.data.database.entity.BudgetEntity
+import com.ritesh.cashiro.data.database.entity.BudgetPeriod
+import com.ritesh.cashiro.data.database.entity.BudgetTrackType
+import com.ritesh.cashiro.data.database.entity.BudgetType
+import com.ritesh.cashiro.data.database.entity.TransactionEntity
+import com.ritesh.cashiro.data.database.entity.TransactionType
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import java.util.UUID
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -59,6 +67,7 @@ class SettingsViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val cardRepository: CardRepository,
+    private val budgetRepository: BudgetRepository,
     private val backupExporter: BackupExporter,
     private val backupImporter: BackupImporter
 ) : ViewModel() {
@@ -750,10 +759,135 @@ class SettingsViewModel @Inject constructor(
                     )
                 )
 
+                // --- SEED BUDGETS & TRANSACTIONS FOR HISTORY ---
+                val foodCategory = "Food & Drinks"
+                val entertainmentCategory = "Entertainment"
+
+                // 1. Monthly Food Budget (Active in current month, but history goes back)
+                val foodBudgetStart = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0)
+                val foodBudgetId = budgetRepository.insertBudget(
+                    BudgetEntity(
+                        name = "Monthly Food",
+                        amount = BigDecimal(15000),
+                        year = foodBudgetStart.year,
+                        month = foodBudgetStart.monthValue,
+                        startDate = foodBudgetStart,
+                        endDate = foodBudgetStart.plusMonths(1).minusSeconds(1),
+                        periodType = BudgetPeriod.MONTHLY,
+                        trackType = BudgetTrackType.ALL_TRANSACTIONS,
+                        budgetType = BudgetType.EXPENSE,
+                        createdAt = now.minusMonths(3).withDayOfMonth(1), // History from 3 months ago
+                        color = "#FF9800" // Orange
+                    )
+                )
+
+                // Seed transactions for Monthly Food (Last 4 months inclusive)
+                for (monthOffset in 0..3) {
+                    val monthDate = now.minusMonths(monthOffset.toLong())
+                    val baseAmount = when(monthOffset) {
+                        0 -> 8000 // Current month (ongoing)
+                        1 -> 16500 // Last month (over budget)
+                        2 -> 14000 // 2 months ago (within budget)
+                        3 -> 12000 // 3 months ago (within budget)
+                        else -> 10000
+                    }
+                    
+                    // Split into few transactions per month
+                    for (i in 1..4) {
+                        transactionRepository.insertTransaction(
+                            TransactionEntity(
+                                amount = BigDecimal(baseAmount / 4),
+                                merchantName = "Groceries $i",
+                                category = foodCategory,
+                                transactionType = TransactionType.EXPENSE,
+                                dateTime = monthDate.withDayOfMonth(i * 5).withHour(12),
+                                transactionHash = UUID.randomUUID().toString(),
+                                currency = "INR",
+                                bankName = "HDFC Bank",
+                                accountNumber = hdfcLast4
+                            )
+                        )
+                    }
+                }
+
+                // 2. Weekly Entertainment Budget (Active this week, history goes back)
+                val weeklyStart = now.with(java.time.DayOfWeek.MONDAY).withHour(0).withMinute(0).withSecond(0).withNano(0)
+                budgetRepository.insertBudget(
+                    BudgetEntity(
+                        name = "Weekly Fun",
+                        amount = BigDecimal(2000),
+                        year = weeklyStart.year,
+                        month = weeklyStart.monthValue,
+                        startDate = weeklyStart,
+                        endDate = weeklyStart.plusWeeks(1).minusSeconds(1),
+                        periodType = BudgetPeriod.WEEKLY,
+                        trackType = BudgetTrackType.ALL_TRANSACTIONS,
+                        budgetType = BudgetType.EXPENSE,
+                        createdAt = now.minusWeeks(4), // History from 4 weeks ago
+                        color = "#9C27B0" // Purple
+                    )
+                )
+
+                // Seed transactions for Weekly Fun (Last 5 weeks inclusive)
+                for (weekOffset in 0..4) {
+                    val weekDate = now.minusWeeks(weekOffset.toLong())
+                    val amount = when(weekOffset) {
+                        0 -> 1200 // Current week
+                        1 -> 2500 // Last week (over)
+                        2 -> 1800 // 2 weeks ago
+                        3 -> 2100 // 3 weeks ago (over)
+                        4 -> 1500 // 4 weeks ago
+                        else -> 1000
+                    }
+
+                    transactionRepository.insertTransaction(
+                        TransactionEntity(
+                            amount = BigDecimal(amount),
+                            merchantName = "Movie/Games",
+                            category = entertainmentCategory,
+                            transactionType = TransactionType.EXPENSE,
+                            dateTime = weekDate.withHour(20),
+                            transactionHash = UUID.randomUUID().toString(),
+                            currency = "INR"
+                        )
+                    )
+                }
+
+                 // 3. Savings Budget: New Car Fund
+                 val savingsStart = now.withDayOfMonth(1).withHour(0).withMinute(0)
+                 budgetRepository.insertBudget(
+                    BudgetEntity(
+                        name = "New Car Fund",
+                        amount = BigDecimal(500000),
+                        year = savingsStart.year,
+                        month = savingsStart.monthValue,
+                        startDate = savingsStart,
+                        endDate = savingsStart.plusYears(2), // 2 year goal
+                        periodType = BudgetPeriod.CUSTOM,
+                        trackType = BudgetTrackType.ALL_TRANSACTIONS,
+                        budgetType = BudgetType.SAVINGS,
+                        createdAt = now,
+                        color = "#4CAF50" // Green
+                    )
+                 )
+
+                 // Add some savings (Income transactions)
+                 transactionRepository.insertTransaction(
+                     TransactionEntity(
+                         amount = BigDecimal(50000),
+                         merchantName = "Monthly Savings",
+                         category = "Investment",
+                         transactionType = TransactionType.INCOME,
+                         dateTime = now,
+                         transactionHash = UUID.randomUUID().toString(),
+                         currency = "INR"
+                     )
+                 )
+
                 _uiState.update {
                     it.copy(
                         isSeeding = false,
-                        seedMessage = "Sample data seeded successfully"
+                        seedMessage = "Sample data (including history) seeded successfully"
                     )
                 }
                 delay(3000)

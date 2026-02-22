@@ -221,7 +221,14 @@ data class Transactions(
 
 @Serializable data class Budgets(val sharedElementPrefix: Long? = null)
 
-@Serializable data class BudgetDetail(val budgetId: Long, val sharedElementKey: String? = null)
+@Serializable data class BudgetDetail(
+    val budgetId: Long, 
+    val sharedElementKey: String? = null,
+    val startDate: String? = null,
+    val endDate: String? = null
+)
+
+@Serializable data class BudgetHistory(val budgetId: Long)
 
 @Serializable object DeveloperOptions
 

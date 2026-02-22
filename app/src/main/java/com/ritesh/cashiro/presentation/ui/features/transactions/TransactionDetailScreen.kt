@@ -158,6 +158,7 @@ import com.ritesh.cashiro.presentation.ui.theme.Dimensions
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
 import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
 import com.ritesh.cashiro.presentation.ui.components.AccountSelectionSheet
+import com.ritesh.cashiro.presentation.ui.components.DashedLine
 import com.ritesh.cashiro.presentation.ui.components.DatePicker
 import com.ritesh.cashiro.presentation.ui.components.DeleteMultipleTransactionsDialog
 import com.ritesh.cashiro.presentation.ui.components.DeleteTransactionDialog
@@ -2538,27 +2539,6 @@ private fun ReceiptInfoRow(
     }
 }
 
-@Composable
-private fun DashedLine(
-    modifier: Modifier = Modifier,
-    color: Color = Color.Gray,
-    dashWidth: Float = 10f,
-    gapWidth: Float = 10f
-) {
-    Canvas(modifier = modifier.height(2.dp)) {
-        val width = size.width
-        var x = 0f
-        while (x < width) {
-            drawLine(
-                color = color,
-                start = Offset(x, 0f),
-                end = Offset(x + dashWidth, 0f),
-                strokeWidth = 2f
-            )
-            x += dashWidth + gapWidth
-        }
-    }
-}
 
 private class ReceiptShape(
     private val cutoutRadius: Float,

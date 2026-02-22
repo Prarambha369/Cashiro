@@ -9,6 +9,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -52,11 +53,12 @@ fun SharedTransitionScope.BudgetCard(
     modifier: Modifier = Modifier,
     budgetWithSpending: BudgetWithSpending,
     onClick: () -> Unit = {},
-    onEditClick: () -> Unit,
+    onHistoryClick: (Long) -> Unit = {},
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
     sharedElementKey: String? = null
 ) {
     val budget = budgetWithSpending.budget
+    val isSavings = budget.budgetType == com.ritesh.cashiro.data.database.entity.BudgetType.SAVINGS
     
     // Animate the progress
     var animatedProgress by remember { mutableFloatStateOf(0f) }
@@ -79,6 +81,9 @@ fun SharedTransitionScope.BudgetCard(
     }
 
     val progressColor = when {
+        isSavings -> {
+            if (budgetWithSpending.isOverBudget) budgetColor else budgetColor.copy(alpha = 0.8f)
+        }
         budgetWithSpending.isOverBudget -> MaterialTheme.colorScheme.error
         budgetWithSpending.percentUsed > 0.8f -> MaterialTheme.colorScheme.tertiary
         else -> budgetColor
@@ -149,7 +154,7 @@ fun SharedTransitionScope.BudgetCard(
                 
                 // History Icon
                 IconButton(
-                    onClick = {/* Todo */},
+                    onClick = { onHistoryClick(budget.id) },
                     colors = IconButtonDefaults.iconButtonColors(
                         containerColor = MaterialTheme.colorScheme.surface.copy(0.2f),
                         contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
@@ -175,12 +180,15 @@ fun SharedTransitionScope.BudgetCard(
             ) {
                 Column {
                     Text(
-                        text = "DAILY BUDGET LEFT",
+                        text = if (isSavings) "DAILY GOAL REMAINING" else "DAILY BUDGET LEFT",
                         style = MaterialTheme.typography.labelSmall.copy(
                             letterSpacing = 0.5.sp,
                             fontWeight = FontWeight.Medium
                         ),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.basicMarquee()
                     )
                     
                     val dailyBudgetLeft = if (budgetWithSpending.isOverBudget || budgetWithSpending.daysRemaining <= 0) {
@@ -197,18 +205,24 @@ fun SharedTransitionScope.BudgetCard(
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.basicMarquee()
                     )
                 }
 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "SPEND / LIMIT",
+                        text = if (isSavings) "SAVED / GOAL" else "SPEND / LIMIT",
                         style = MaterialTheme.typography.labelSmall.copy(
                             letterSpacing = 0.5.sp,
                             fontWeight = FontWeight.Medium
                         ),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.basicMarquee()
                     )
                     
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -220,7 +234,10 @@ fun SharedTransitionScope.BudgetCard(
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold
                             ),
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface,
+                             maxLines = 1,
+                             overflow = TextOverflow.Ellipsis,
+                             modifier = Modifier.basicMarquee()
                         )
                         
                         Text(
@@ -237,7 +254,10 @@ fun SharedTransitionScope.BudgetCard(
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold
                             ),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.basicMarquee()
                         )
                     }
                 }
@@ -407,6 +427,7 @@ internal fun BudgetAnimatedGradientMeshCard(
 fun SharedTransitionScope.BudgetCardCompact(
     budgetWithSpending: BudgetWithSpending,
     onClick: () -> Unit,
+    onHistoryClick: (Long) -> Unit = {},
     modifier: Modifier = Modifier,
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
     sharedElementKey: String? = null
@@ -414,7 +435,7 @@ fun SharedTransitionScope.BudgetCardCompact(
    BudgetCard(
        budgetWithSpending = budgetWithSpending,
        onClick = onClick,
-       onEditClick = {}, // Edit not typically exposed on compact view directly primarily
+       onHistoryClick = onHistoryClick,
        modifier = modifier.width(300.dp), // Fixed width for carousel
        animatedVisibilityScope = animatedVisibilityScope,
        sharedElementKey = sharedElementKey

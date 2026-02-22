@@ -67,6 +67,7 @@ import com.ritesh.cashiro.presentation.ui.features.add.AddScreen
 import com.ritesh.cashiro.presentation.ui.features.analytics.AnalyticsScreen
 import com.ritesh.cashiro.presentation.ui.features.budgets.BudgetsScreen
 import com.ritesh.cashiro.presentation.ui.features.budgets.BudgetDetailScreen
+import com.ritesh.cashiro.presentation.ui.features.budgets.BudgetHistoryScreen
 import com.ritesh.cashiro.presentation.ui.features.categories.CategoriesScreen
 import com.ritesh.cashiro.presentation.ui.features.chat.ChatScreen
 import com.ritesh.cashiro.presentation.ui.features.home.HomeScreen
@@ -212,6 +213,9 @@ fun CashiroNavHost(
                             } else {
                                 navController.safeNavigate(Budgets())
                             }
+                        },
+                        onNavigateToBudgetHistory = { id ->
+                            navController.safeNavigate(BudgetHistory(id))
                         },
                         onTransactionClick = { transactionId, key ->
                             navController.safeNavigate(TransactionDetail(transactionId, key))
@@ -538,6 +542,9 @@ fun CashiroNavHost(
                         onBudgetClick = { id, key ->
                             navController.safeNavigate(BudgetDetail(budgetId = id, sharedElementKey = key))
                         },
+                        onHistoryClick = { id ->
+                            navController.safeNavigate(BudgetHistory(id))
+                        },
                         animatedContentScope = this@composable,
                         sharedElementPrefix = budgets.sharedElementPrefix,
                         blurEffects = themeUiState.blurEffects
@@ -553,13 +560,36 @@ fun CashiroNavHost(
                     val budgetDetail = backStackEntry.toRoute<BudgetDetail>()
                     BudgetDetailScreen(
                         budgetId = budgetDetail.budgetId,
+                        startDate = budgetDetail.startDate,
+                        endDate = budgetDetail.endDate,
                         onNavigateBack = { navController.safePopBackStack() },
+                        onNavigateToHistory = { id -> navController.safeNavigate(BudgetHistory(id)) },
                         onTransactionClick = { transactionId, key ->
                             navController.safeNavigate(TransactionDetail(transactionId, key))
                         },
                         animatedContentScope = this@composable,
                         sharedElementKey = budgetDetail.sharedElementKey,
                         blurEffects = themeUiState.blurEffects
+                    )
+                }
+
+                composable<BudgetHistory>(
+                    enterTransition = CashiroTransitions.horizontalSlideEnter,
+                    exitTransition = CashiroTransitions.horizontalSlideExit,
+                    popEnterTransition = CashiroTransitions.horizontalSlidePopEnter,
+                    popExitTransition = CashiroTransitions.horizontalSlidePopExit
+                ) { backStackEntry ->
+                    val budgetHistory = backStackEntry.toRoute<BudgetHistory>()
+                    BudgetHistoryScreen(
+                        budgetId = budgetHistory.budgetId,
+                        onNavigateBack = { navController.safePopBackStack() },
+                        onNavigateToDetail = { id, start, end ->
+                            navController.safeNavigate(BudgetDetail(
+                                budgetId = id,
+                                startDate = start?.toString(),
+                                endDate = end?.toString()
+                            ))
+                        }
                     )
                 }
             }

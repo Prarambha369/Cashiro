@@ -164,6 +164,7 @@ fun SharedTransitionScope.HomeScreen(
     onNavigateToTransactionsWithSearch: () -> Unit = {},
     onNavigateToSubscriptions: () -> Unit = {},
     onNavigateToBudgets: (Long?) -> Unit = {},
+    onNavigateToBudgetHistory: (Long) -> Unit = {},
     onTransactionClick: (Long, String) -> Unit = { _, _ -> },
     onFullResyncClick: () -> Unit = {},
     animatedContentScope: AnimatedContentScope? = null,
@@ -459,6 +460,7 @@ fun SharedTransitionScope.HomeScreen(
                                                     onNavigateToBudgets(it)
                                                 }
                                             },
+                                            onHistoryClick = onNavigateToBudgetHistory,
                                             animatedVisibilityScope = animatedContentScope,
                                         )
                                     }
