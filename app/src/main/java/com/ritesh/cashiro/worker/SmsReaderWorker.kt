@@ -293,6 +293,19 @@ class SmsReaderWorker @AssistedInject constructor(
                         // Apply rule engine to the transaction
                         // Optimize by getting rules specific to this transaction type
                         val activeRules = ruleRepository.getActiveRulesByType(entityWithMapping.transactionType)
+
+                        // Check if this transaction should be blocked
+                        val blockingRule = ruleEngine.shouldBlockTransaction(
+                            entityWithMapping,
+                            sms.body,
+                            activeRules
+                        )
+
+                        if (blockingRule != null) {
+                            Log.d(TAG, "Transaction blocked by rule: ${blockingRule.name}")
+                            continue  // Don't save the transaction
+                        }
+
                         val (entityWithRules, ruleApplications) = ruleEngine.evaluateRules(
                             entityWithMapping,
                             sms.body,
@@ -333,8 +346,11 @@ class SmsReaderWorker @AssistedInject constructor(
 
                                 // Save rule applications if any rules were applied
                                 if (ruleApplications.isNotEmpty()) {
-                                    ruleRepository.saveRuleApplications(ruleApplications)
-                                    Log.d(TAG, "Saved ${ruleApplications.size} rule applications for transaction: ${finalEntity.id}")
+                                    val applicationsWithId = ruleApplications.map { 
+                                        it.copy(transactionId = rowId.toString())
+                                    }
+                                    ruleRepository.saveRuleApplications(applicationsWithId)
+                                    Log.d(TAG, "Saved ${ruleApplications.size} rule applications for transaction: $rowId")
                                 }
                                 
                                 // Only save balance/credit limit information for NEW transactions (not duplicates)

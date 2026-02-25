@@ -1,11 +1,30 @@
 package com.ritesh.cashiro.presentation.ui.features.settings.dataprivacy
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.util.Log
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ritesh.cashiro.data.backup.*
+import com.ritesh.cashiro.data.backup.BackupConfiguration
+import com.ritesh.cashiro.data.backup.BackupExporter
+import com.ritesh.cashiro.data.backup.BackupImporter
+import com.ritesh.cashiro.data.backup.ExportResult
+import com.ritesh.cashiro.data.backup.ImportResult
+import com.ritesh.cashiro.data.backup.ImportStrategy
+import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
+import com.ritesh.cashiro.data.database.entity.TransactionEntity
+import com.ritesh.cashiro.data.database.entity.TransactionType
+import com.ritesh.cashiro.data.parser.pdf.GPayPdfParser
+import com.ritesh.cashiro.data.parser.pdf.PhonePePdfParser
+import com.ritesh.cashiro.data.repository.AccountBalanceRepository
+import com.ritesh.cashiro.data.repository.TransactionRepository
+import com.ritesh.cashiro.domain.repository.RuleRepository
+import com.ritesh.cashiro.domain.service.RuleEngine
+import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
+import com.tom_roush.pdfbox.pdmodel.PDDocument
+import com.tom_roush.pdfbox.text.PDFTextStripper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,16 +32,22 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
-import androidx.core.content.FileProvider
-import android.content.Intent
 import java.io.File
+import java.security.MessageDigest
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+import javax.inject.Inject
 
 @HiltViewModel
 class DataPrivacyViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val backupExporter: BackupExporter,
-    private val backupImporter: BackupImporter
+    private val backupImporter: BackupImporter,
+    private val transactionRepository: TransactionRepository,
+    private val accountBalanceRepository: AccountBalanceRepository,
+    private val ruleRepository: RuleRepository,
+    private val ruleEngine: RuleEngine
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DataPrivacyUiState())
@@ -118,8 +143,190 @@ class DataPrivacyViewModel @Inject constructor(
         }
     }
     
+    //Parse the PDF and emit analysis result
+    fun analyzePdfStatement(uri: Uri) {
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isPdfProcessing = true, pdfAnalysisResult = null, pdfProcessingError = null) }
+
+                PDFBoxResourceLoader.init(context)
+                val text = context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    PDDocument.load(inputStream).use { document ->
+                        PDFTextStripper().getText(document)
+                    }
+                } ?: throw Exception("Failed to open PDF")
+
+                Log.d("DataPrivacyViewModel", "Extracted Text (first 500 chars): ${text.take(500)}")
+
+                val parsers = listOf(GPayPdfParser(), PhonePePdfParser())
+                var parsedTransactions = emptyList<com.ritesh.parser.core.ParsedTransaction>()
+
+                for (parser in parsers) {
+                    if (parser.canHandle(text)) {
+                        val result = parser.parse(text)
+                        if (result.isNotEmpty()) {
+                            parsedTransactions = result
+                            break
+                        }
+                    }
+                }
+
+                if (parsedTransactions.isEmpty()) {
+                    throw Exception("No transactions found in this PDF. Please ensure you are importing a supported GPay or PhonePe statement.")
+                }
+
+                // Collect distinct account last-4 values from all transactions.
+                val distinctLast4s = parsedTransactions.mapNotNull { it.accountLast4 }.distinct()
+
+                // For each distinct account, look up whether it exists in the app.
+                val accountMatches = distinctLast4s.map { last4 ->
+                    val existing = accountBalanceRepository.getAccountByLast4(last4)
+                    PdfAccountMatch(
+                        last4 = last4,
+                        bankNameInPdf = parsedTransactions.firstOrNull { it.accountLast4 == last4 }?.bankName ?: "PhonePe",
+                        existingAccount = existing
+                    )
+                }
+
+                _uiState.update {
+                    it.copy(
+                        isPdfProcessing = false,
+                        pdfAnalysisResult = PdfAnalysisResult(
+                            pendingTransactions = parsedTransactions,
+                            transactionCount = parsedTransactions.size,
+                            accountMatches = accountMatches
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("DataPrivacyViewModel", "Error analyzing PDF", e)
+                _uiState.update { it.copy(isPdfProcessing = false, pdfProcessingError = e.message) }
+            }
+        }
+    }
+
+
+    fun confirmPdfImport(decisions: Map<String, AccountImportDecision>) {
+        val analysis = _uiState.value.pdfAnalysisResult ?: return
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isPdfProcessing = true) }
+
+                // Resolve/create account for each last4 based on user's decision.
+                val resolvedAccounts = mutableMapOf<String, Pair<String, String>>() // last4 → (bankName, last4)
+
+                var newAccountsCreated = false
+                for (match in analysis.accountMatches) {
+                    val decision = decisions[match.last4] ?: AccountImportDecision.MERGE_WITH_EXISTING
+                    val accountPair: Pair<String, String> = if (decision == AccountImportDecision.MERGE_WITH_EXISTING && match.existingAccount != null) {
+                        match.existingAccount.bankName to match.last4
+                    } else {
+                        // Create a new "PhonePe" account for this last4.
+                        val newAccount = AccountBalanceEntity(
+                            bankName = match.bankNameInPdf,
+                            accountLast4 = match.last4,
+                            balance = java.math.BigDecimal.ZERO,
+                            timestamp = LocalDateTime.now(),
+                            sourceType = "PDF_IMPORT"
+                        )
+                        // Only insert if not already existing for that last4+bank combo.
+                        val existing = accountBalanceRepository.getLatestBalance(match.bankNameInPdf, match.last4)
+                        if (existing == null) {
+                            accountBalanceRepository.insertBalance(newAccount)
+                            newAccountsCreated = true
+                        }
+                        match.bankNameInPdf to match.last4
+                    }
+                    resolvedAccounts[match.last4] = accountPair
+                }
+
+                var importedCount = 0
+                analysis.pendingTransactions.forEach { parsed ->
+                    val hash = generateHash(parsed.smsBody, parsed.amount.toString(), parsed.timestamp)
+                    if (transactionRepository.getTransactionByHash(hash) == null) {
+                        val resolved = parsed.accountLast4?.let { resolvedAccounts[it] }
+                        val transaction = TransactionEntity(
+                            amount = parsed.amount,
+                            merchantName = parsed.merchant ?: "Unknown",
+                            category = "Miscellaneous",
+                            transactionType = when (parsed.type) {
+                                com.ritesh.parser.core.TransactionType.INCOME -> TransactionType.INCOME
+                                else -> TransactionType.EXPENSE
+                            },
+                            dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(parsed.timestamp), ZoneId.systemDefault()),
+                            smsBody = parsed.smsBody,
+                            bankName = resolved?.first ?: parsed.bankName,
+                            accountNumber = resolved?.second ?: parsed.accountLast4,
+                            transactionHash = hash,
+                            currency = parsed.currency
+                        )
+
+                        // Apply rules to the transaction
+                        val activeRules = ruleRepository.getActiveRulesByType(transaction.transactionType)
+
+                        // Check if this transaction should be blocked
+                        val blockingRule = ruleEngine.shouldBlockTransaction(
+                            transaction,
+                            transaction.smsBody,
+                            activeRules
+                        )
+
+                        if (blockingRule != null) {
+                            Log.d("DataPrivacyViewModel", "Transaction blocked by rule: ${blockingRule.name}")
+                            return@forEach
+                        }
+
+                        // Apply non-blocking rules
+                        val (entityWithRules, ruleApplications) = ruleEngine.evaluateRules(
+                            transaction,
+                            transaction.smsBody,
+                            activeRules
+                        )
+
+                        val rowId = transactionRepository.insertTransaction(entityWithRules)
+                        if (rowId != -1L) {
+                            if (ruleApplications.isNotEmpty()) {
+                                // Update transactionId in ruleApplications before saving
+                                val applicationsWithId = ruleApplications.map { 
+                                    it.copy(transactionId = rowId.toString())
+                                }
+                                ruleRepository.saveRuleApplications(applicationsWithId)
+                                Log.d("DataPrivacyViewModel", "Applied ${ruleApplications.size} rules to transaction")
+                            }
+                            importedCount++
+                        }
+                    }
+                }
+
+                _uiState.update {
+                    it.copy(
+                        isPdfProcessing = false,
+                        pdfAnalysisResult = null,
+                        importExportMessage = "Successfully imported $importedCount transactions from PDF!",
+                        hasNewAccountsCreated = newAccountsCreated
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("DataPrivacyViewModel", "Error committing PDF import", e)
+                _uiState.update { it.copy(isPdfProcessing = false, pdfProcessingError = e.message) }
+            }
+        }
+    }
+
+    // Dismiss the PDF import dialog without saving.
+    fun dismissPdfImport() {
+        _uiState.update { it.copy(isPdfProcessing = false, pdfAnalysisResult = null, pdfProcessingError = null) }
+    }
+
+    private fun generateHash(message: String, amount: String, timestamp: Long): String {
+        val input = "$message$amount$timestamp"
+        return MessageDigest.getInstance("MD5")
+            .digest(input.toByteArray())
+            .joinToString("") { "%02x".format(it) }
+    }
+
     fun clearImportExportMessage() {
-        _uiState.update { it.copy(importExportMessage = null) }
+        _uiState.update { it.copy(importExportMessage = null, hasNewAccountsCreated = false) }
     }
     
     fun clearExportedFile() {

@@ -15,7 +15,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -44,7 +43,6 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.CalendarToday
@@ -63,13 +61,11 @@ import androidx.compose.material.icons.filled.SubdirectoryArrowRight
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -109,7 +105,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -135,34 +130,34 @@ import androidx.core.graphics.toColorInt
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
 import com.ritesh.cashiro.data.database.entity.CategoryEntity
 import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
 import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionType
+import com.ritesh.cashiro.data.service.AttachmentService
 import com.ritesh.cashiro.presentation.common.icons.BrandIcons
 import com.ritesh.cashiro.presentation.common.icons.CategoryMapping
 import com.ritesh.cashiro.presentation.effects.BlurredAnimatedVisibility
 import com.ritesh.cashiro.presentation.effects.overScrollVertical
+import com.ritesh.cashiro.presentation.ui.components.AccountSelectionSheet
+import com.ritesh.cashiro.presentation.ui.components.AttachmentSection
 import com.ritesh.cashiro.presentation.ui.components.BrandIcon
 import com.ritesh.cashiro.presentation.ui.components.CashiroCard
 import com.ritesh.cashiro.presentation.ui.components.CategoryIcon
 import com.ritesh.cashiro.presentation.ui.components.CategorySelectionSheet
-import com.ritesh.cashiro.presentation.ui.components.AttachmentSection
-import com.ritesh.cashiro.data.service.AttachmentService
 import com.ritesh.cashiro.presentation.ui.components.CustomTitleTopAppBar
+import com.ritesh.cashiro.presentation.ui.components.DashedLine
+import com.ritesh.cashiro.presentation.ui.components.DatePicker
+import com.ritesh.cashiro.presentation.ui.components.DeleteTransactionDialog
+import com.ritesh.cashiro.presentation.ui.components.LoadingCircle
 import com.ritesh.cashiro.presentation.ui.components.PreferenceSwitch
+import com.ritesh.cashiro.presentation.ui.components.TimePicker
 import com.ritesh.cashiro.presentation.ui.features.accounts.NumberPad
 import com.ritesh.cashiro.presentation.ui.features.add.AmountInput
 import com.ritesh.cashiro.presentation.ui.theme.Dimensions
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
-import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
-import com.ritesh.cashiro.presentation.ui.components.AccountSelectionSheet
-import com.ritesh.cashiro.presentation.ui.components.DashedLine
-import com.ritesh.cashiro.presentation.ui.components.DatePicker
-import com.ritesh.cashiro.presentation.ui.components.DeleteMultipleTransactionsDialog
-import com.ritesh.cashiro.presentation.ui.components.DeleteTransactionDialog
-import com.ritesh.cashiro.presentation.ui.components.TimePicker
 import com.ritesh.cashiro.utils.CurrencyFormatter
 import com.ritesh.cashiro.utils.formatAmount
 import dev.chrisbanes.haze.HazeState
@@ -606,9 +601,8 @@ private fun TransactionSaveContent(
         contentPadding = PaddingValues(vertical = Spacing.md)
     ) {
         if (isSaving) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(Dimensions.Icon.small),
-                strokeWidth = 2.dp
+            LoadingCircle(
+                modifier = Modifier.size(Dimensions.Icon.small)
             )
         } else {
             Text(

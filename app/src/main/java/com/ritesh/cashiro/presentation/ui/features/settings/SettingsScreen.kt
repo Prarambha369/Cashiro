@@ -69,6 +69,7 @@ import com.ritesh.cashiro.presentation.ui.components.CustomTitleTopAppBar
 import com.ritesh.cashiro.presentation.ui.components.DeleteAIModelDialog
 import com.ritesh.cashiro.presentation.ui.components.ListItem
 import com.ritesh.cashiro.presentation.ui.components.ListItemPosition
+import com.ritesh.cashiro.presentation.ui.components.LoadingCircularProgress
 import com.ritesh.cashiro.presentation.ui.components.SectionHeader
 import com.ritesh.cashiro.presentation.ui.components.toShape
 import com.ritesh.cashiro.presentation.ui.features.categories.NavigationContent
@@ -647,10 +648,9 @@ fun SettingsScreen(
                                 )
                             }
                             DownloadState.DOWNLOADING -> {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    strokeWidth = 2.dp,
-                                    progress = { downloadProgress / 100f }
+                                LoadingCircularProgress(
+                                    modifier = Modifier.size(32.dp),
+                                    progress = downloadProgress / 100f
                                 )
                             }
                             DownloadState.PAUSED, DownloadState.FAILED -> {

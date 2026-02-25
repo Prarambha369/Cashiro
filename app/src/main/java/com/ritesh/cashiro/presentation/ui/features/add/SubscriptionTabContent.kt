@@ -74,6 +74,7 @@ import com.ritesh.cashiro.presentation.ui.components.AttachmentSection
 import com.ritesh.cashiro.presentation.ui.components.BrandIcon
 import com.ritesh.cashiro.presentation.ui.components.CategorySelectionSheet
 import com.ritesh.cashiro.presentation.ui.components.DatePicker
+import com.ritesh.cashiro.presentation.ui.components.LoadingCircle
 import com.ritesh.cashiro.presentation.ui.features.accounts.NumberPad
 import com.ritesh.cashiro.presentation.ui.theme.Dimensions
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
@@ -635,7 +636,7 @@ fun SubscriptionTabContent(
                 enabled = uiState.isValid && !uiState.isLoading,
             ) {
                 if (uiState.isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    LoadingCircle(modifier = Modifier.size(16.dp))
                 } else {
                     Icon(Icons.Default.Done, contentDescription = null)
                     Spacer(Modifier.width(Spacing.sm))

@@ -54,6 +54,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -98,6 +99,7 @@ import com.ritesh.cashiro.presentation.ui.components.CustomTitleTopAppBar
 import com.ritesh.cashiro.presentation.ui.components.DateRangePickerDialog
 import com.ritesh.cashiro.presentation.ui.components.DeleteMultipleTransactionsDialog
 import com.ritesh.cashiro.presentation.ui.components.ListItemPosition
+import com.ritesh.cashiro.presentation.ui.components.LoadingCircle
 import com.ritesh.cashiro.presentation.ui.components.SearchBarBox
 import com.ritesh.cashiro.presentation.ui.components.SectionHeader
 import com.ritesh.cashiro.presentation.ui.components.TransactionItem
@@ -384,7 +386,18 @@ fun SharedTransitionScope.TransactionsScreen(
                 }
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                snackbar = {
+                    Snackbar(
+                        snackbarData = it,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = MaterialTheme.shapes.large,
+                    )
+                }
+            ) },
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -665,7 +678,7 @@ fun SharedTransitionScope.TransactionsScreen(
                             .padding(Dimensions.Padding.content),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator()
+                        LoadingCircle()
                     }
                 }
                 uiState.transactions.isEmpty() -> {

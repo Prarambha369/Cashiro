@@ -13,9 +13,11 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import com.ritesh.cashiro.presentation.ui.components.CategoryIcon
@@ -79,10 +81,12 @@ fun AnalyticsSummaryCard(
                             fontSize = 32.sp,
                             fontWeight = FontWeight.Bold
                         ),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.basicMarquee()
                     )
                 }
-
                 // Transaction Count Box
                 Box(
                     modifier = Modifier
@@ -90,6 +94,7 @@ fun AnalyticsSummaryCard(
                             color = MaterialTheme.colorScheme.tertiaryContainer,
                             shape = RoundedCornerShape(Spacing.sm))
                         .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .align(Alignment.Bottom)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,

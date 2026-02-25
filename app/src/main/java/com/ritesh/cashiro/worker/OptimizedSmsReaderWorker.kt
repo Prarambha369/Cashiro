@@ -1102,10 +1102,13 @@ private suspend fun saveParsedTransaction(
 
             // Save rule applications if any rules were applied
             if (ruleApplications.isNotEmpty()) {
-                ruleRepository.saveRuleApplications(ruleApplications)
+                val applicationsWithId = ruleApplications.map { 
+                    it.copy(transactionId = rowId.toString())
+                }
+                ruleRepository.saveRuleApplications(applicationsWithId)
                 Log.d(
                     TAG,
-                    "Saved ${ruleApplications.size} rule applications for transaction: ${finalEntity.id}"
+                    "Saved ${ruleApplications.size} rule applications for transaction: $rowId"
                 )
             }
 
