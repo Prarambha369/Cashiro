@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.LoadingIndicator
@@ -27,4 +28,12 @@ fun LoadingCircle(modifier: Modifier = Modifier.fillMaxSize()) {
 fun LoadingLine(modifier: Modifier = Modifier.fillMaxWidth(), progress: Float? = null) {
     if (progress != null) LinearWavyProgressIndicator(modifier = modifier, progress = { progress })
     else LinearWavyProgressIndicator(modifier = modifier)
+}
+
+@SuppressLint("ModifierParameter")
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun LoadingCircularProgress(modifier: Modifier = Modifier.fillMaxWidth(), progress: Float? = null) {
+    if (progress != null) CircularWavyProgressIndicator(modifier = modifier, progress = { progress })
+    else CircularWavyProgressIndicator(modifier = modifier)
 }

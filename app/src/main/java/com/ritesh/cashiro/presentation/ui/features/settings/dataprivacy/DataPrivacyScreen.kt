@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -22,8 +23,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material.icons.rounded.PictureAsPdf
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -34,8 +37,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -69,12 +74,13 @@ import com.ritesh.cashiro.presentation.ui.theme.Dimensions
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
 import com.ritesh.cashiro.presentation.ui.theme.green_dark
 import com.ritesh.cashiro.presentation.ui.theme.green_light
+import com.ritesh.cashiro.presentation.ui.theme.orange_dark
+import com.ritesh.cashiro.presentation.ui.theme.orange_light
 import com.ritesh.cashiro.presentation.ui.theme.yellow_dark
 import com.ritesh.cashiro.presentation.ui.theme.yellow_light
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeEffectScope
-import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
@@ -86,6 +92,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun DataPrivacyScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToAccounts: () -> Unit,
     viewModel: DataPrivacyViewModel = hiltViewModel(),
     appLockViewModel: AppLockViewModel = hiltViewModel(),
     blurEffects: Boolean
@@ -107,13 +114,18 @@ fun DataPrivacyScreen(
         contract = ActivityResultContracts.CreateDocument("application/zip"),
         onResult = { uri -> 
             uri?.let { viewModel.saveBackupToFile(it) }
-            if (uri == null) viewModel.clearExportedFile() // Clear if cancelled
+            if (uri == null) viewModel.clearExportedFile() // Clear if canceled
         }
     )
 
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri -> uri?.let { viewModel.importBackup(it) } }
+    )
+
+    val pdfImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri -> uri?.let { viewModel.analyzePdfStatement(it) } }
     )
 
     // Handle export completion
@@ -127,7 +139,14 @@ fun DataPrivacyScreen(
     LaunchedEffect(uiState.importExportMessage) {
         uiState.importExportMessage?.let { message ->
             scope.launch {
-                snackbarHostState.showSnackbar(message)
+                val result = snackbarHostState.showSnackbar(
+                    message = message,
+                    actionLabel = if (uiState.hasNewAccountsCreated) "Review" else null,
+                    withDismissAction = true
+                )
+                if (result == SnackbarResult.ActionPerformed) {
+                    onNavigateToAccounts()
+                }
                 viewModel.clearImportExportMessage()
             }
         }
@@ -145,7 +164,18 @@ fun DataPrivacyScreen(
                 navigationContent = { NavigationContent { onNavigateBack() } }
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                snackbar = {
+                    Snackbar(
+                        snackbarData = it,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = MaterialTheme.shapes.large,
+                    )
+                }
+            ) }
     ) { paddingValues ->
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -295,13 +325,80 @@ fun DataPrivacyScreen(
                             )
                         },
                         onClick = { importLauncher.launch("*/*") },
+                        shape = ListItemPosition.Middle.toShape(),
+                        padding = PaddingValues(0.dp)
+                    )
+
+                    // Import PDF Statement
+                    ListItem(
+                        headline = { Text("Import PDF Statement") },
+                        supporting = { Text("Scan GPay or PhonePe PDF statements") },
+                        leading = {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(orange_light, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.PictureAsPdf,
+                                    contentDescription = null,
+                                    tint = orange_dark
+                                )
+                            }
+                        },
+                        trailing = {
+                            Icon(
+                                Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        onClick = { pdfImportLauncher.launch("application/pdf") },
                         shape = ListItemPosition.Bottom.toShape(),
                         padding = PaddingValues(0.dp)
                     )
+
+                    // PDF Support Warning
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = Spacing.sm),
+                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
+                        shape = MaterialTheme.shapes.large,
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(Spacing.md),
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                            ) {
+                                Text(
+                                    text = "Only PDFs from GPay and PhonePe are currently supported.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "Balance chart won't add any bank balance information from PDFs as it isn't available in the statement data.",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onErrorContainer.copy(0.8f)
+                                )
+                            }
+                        }
+                    }
                 }
                 
                 // Add bottom spacing
-                androidx.compose.foundation.layout.Spacer(modifier = Modifier.size(Spacing.xl))
+                Spacer(modifier = Modifier.size(Spacing.xl))
             }
         }
     }
@@ -396,6 +493,28 @@ fun DataPrivacyScreen(
                     ) else Modifier
                 ),
             shape = RoundedCornerShape(16.dp),
+        )
+    }
+
+    // PDF Processing / Error dialog
+    if (uiState.isPdfProcessing || uiState.pdfProcessingError != null) {
+        PdfProcessingDialog(
+            isVisible = uiState.isPdfProcessing,
+            error = uiState.pdfProcessingError,
+            onDismissError = { viewModel.dismissPdfImport() },
+            blurEffects = blurEffects,
+            hazeState = hazeState
+        )
+    }
+
+    // PDF Bank Confirmation dialog
+    uiState.pdfAnalysisResult?.let { result ->
+        PdfImportConfirmationDialog(
+            analysisResult = result,
+            onConfirm = { decisions -> viewModel.confirmPdfImport(decisions) },
+            onCancel = { viewModel.dismissPdfImport() },
+            blurEffects = blurEffects,
+            hazeState = hazeState
         )
     }
 }

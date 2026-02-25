@@ -60,6 +60,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -122,6 +123,7 @@ import com.ritesh.cashiro.presentation.ui.components.GreetingCard
 import com.ritesh.cashiro.presentation.ui.components.HeatmapWidget
 import com.ritesh.cashiro.presentation.ui.components.ListItem
 import com.ritesh.cashiro.presentation.ui.components.ListItemPosition
+import com.ritesh.cashiro.presentation.ui.components.LoadingCircle
 import com.ritesh.cashiro.presentation.ui.components.PreferenceSwitch
 import com.ritesh.cashiro.presentation.ui.components.SectionHeader
 import com.ritesh.cashiro.presentation.ui.components.SubscriptionIconsStack
@@ -351,7 +353,20 @@ fun SharedTransitionScope.HomeScreen(
                 }
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                snackbar = {
+                    Snackbar(
+                        snackbarData = it,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = MaterialTheme.shapes.large,
+                    )
+                }
+            )
+        }
+
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
             Box(
@@ -626,7 +641,7 @@ fun SharedTransitionScope.HomeScreen(
                                                             .fillMaxWidth()
                                                             .height(Dimensions.Component.minTouchTarget * 2),
                                                         contentAlignment = Alignment.Center
-                                                    ) { CircularProgressIndicator() }
+                                                    ) { LoadingCircle() }
                                                 } else if (uiState.recentTransactions.isEmpty()) {
                                                     Box(
                                                         modifier = Modifier

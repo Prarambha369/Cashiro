@@ -8,6 +8,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -61,7 +62,7 @@ fun SharedTransitionScope.AccountCarousel(
     } ?: false
 
     if (totalAccounts == 1) {
-        // Single account - show single wide card
+        // Single account
         Box(
             modifier = modifier
                 .fillMaxWidth()
@@ -142,7 +143,11 @@ fun SharedTransitionScope.AccountCarouselCard(
         modifier = modifier
             .fillMaxWidth()
             .height(200.dp)
-            .clickable(onClick = onClick)
+            .clickable(
+                onClick = onClick,
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            )
             .then(
                 if (animatedContentScope != null) {
                     Modifier.sharedBounds(
@@ -260,7 +265,7 @@ fun SharedTransitionScope.AccountCarouselCard(
                 }
             }
 
-            // Repositioned "View details" button to bottom right
+
             Surface(
                 onClick = onClick,
                 shape = RoundedCornerShape(12.dp),

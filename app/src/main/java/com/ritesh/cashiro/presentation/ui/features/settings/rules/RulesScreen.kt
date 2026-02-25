@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -60,6 +59,7 @@ import com.ritesh.cashiro.presentation.effects.overScrollVertical
 import com.ritesh.cashiro.presentation.effects.rememberOverscrollFlingBehavior
 import com.ritesh.cashiro.presentation.ui.components.CashiroCard
 import com.ritesh.cashiro.presentation.ui.components.CustomTitleTopAppBar
+import com.ritesh.cashiro.presentation.ui.components.LoadingCircle
 import com.ritesh.cashiro.presentation.ui.components.RulesBatchApplyDialog
 import com.ritesh.cashiro.presentation.ui.components.RulesDeleteDialog
 import com.ritesh.cashiro.presentation.ui.components.RulesResetDialog
@@ -151,7 +151,7 @@ fun RulesScreen(
                     .padding(bottom = paddingValues.calculateBottomPadding()),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                LoadingCircle()
             }
         } else {
             val lazyListState = rememberLazyListState()

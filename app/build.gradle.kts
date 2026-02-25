@@ -262,4 +262,7 @@ dependencies {
 
     // Reorderable
     implementation(libs.reorderable)
+
+    // PDF Box for Android
+    implementation(libs.pdfbox.android)
 }

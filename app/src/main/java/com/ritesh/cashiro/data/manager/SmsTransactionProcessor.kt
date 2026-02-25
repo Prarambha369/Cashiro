@@ -172,7 +172,10 @@ class SmsTransactionProcessor @Inject constructor(
 
                 // Save rule applications if any rules were applied
                 if (ruleApplications.isNotEmpty()) {
-                    ruleRepository.saveRuleApplications(ruleApplications)
+                    val applicationsWithId = ruleApplications.map { 
+                        it.copy(transactionId = rowId.toString())
+                    }
+                    ruleRepository.saveRuleApplications(applicationsWithId)
                 }
 
                 // Process balance updates

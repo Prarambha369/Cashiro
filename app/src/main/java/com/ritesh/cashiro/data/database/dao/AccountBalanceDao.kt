@@ -159,4 +159,13 @@ interface AccountBalanceDao {
 
     @Query("UPDATE account_balances SET bank_name = :newBankName WHERE bank_name = :oldBankName AND account_last4 = :accountLast4")
     suspend fun updateAccountBankName(oldBankName: String, accountLast4: String, newBankName: String): Int
+
+    /** Finds the latest account record for a given last-4 digits, regardless of bank name. */
+    @Query("""
+        SELECT * FROM account_balances
+        WHERE account_last4 = :accountLast4
+        ORDER BY timestamp DESC
+        LIMIT 1
+    """)
+    suspend fun getAccountByLast4(accountLast4: String): AccountBalanceEntity?
 }

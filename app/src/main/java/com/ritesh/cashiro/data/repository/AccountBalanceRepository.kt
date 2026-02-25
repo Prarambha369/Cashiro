@@ -61,10 +61,7 @@ class AccountBalanceRepository @Inject constructor(
     suspend fun deleteBalance(balance: AccountBalanceEntity) {
         accountBalanceDao.deleteBalance(balance)
     }
-    
-    /**
-     * Inserts a balance record from a transaction if it has balance information
-     */
+
     suspend fun insertBalanceFromTransaction(
         bankName: String?,
         accountLast4: String?,
@@ -91,10 +88,7 @@ class AccountBalanceRepository @Inject constructor(
             insertBalance(balanceEntity)
         }
     }
-    
-    /**
-     * Inserts a balance update from a balance notification SMS
-     */
+
     suspend fun insertBalanceUpdate(
         bankName: String,
         accountLast4: String,
@@ -149,5 +143,9 @@ class AccountBalanceRepository @Inject constructor(
 
     suspend fun deleteAllBalances() {
         accountBalanceDao.deleteAllBalances()
+    }
+
+    suspend fun getAccountByLast4(accountLast4: String): AccountBalanceEntity? {
+        return accountBalanceDao.getAccountByLast4(accountLast4)
     }
 }
