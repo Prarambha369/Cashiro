@@ -1,6 +1,7 @@
 <a name="top"></a>
 [![Cashiro Banner](banner.png)](https://github.com/sarim2000/pennywiseai-tracker)
-[![GitHub stars](https://img.shields.io/github/stars/sarim2000/pennywiseai-tracker?style=social)](https://github.com/sarim2000/pennywiseai-tracker)
+
+[//]: # ([![GitHub stars]&#40;https://img.shields.io/github/stars/sarim2000/pennywiseai-tracker?style=social&#41;]&#40;https://github.com/sarim2000/pennywiseai-tracker&#41;)
 [![License](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE)
 [![Android](https://img.shields.io/badge/Android-8.0+-3DDC84)](https://developer.android.com/about/versions/oreo)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF)](https://kotlinlang.org/)
@@ -57,9 +58,11 @@ For Android users worldwide who want comprehensive financial tracking — automa
 ## Why Cashiro
 
 - **🤖 Smart SMS Parsing** - Automatically extracts transaction details from 40+ banks across 5 countries
+- **🗂️ Smart PDF Parsing** - Automatically extracts transaction details from GPay and PhonePe PDF UPI Statements.
 - **💰 Smart Budgeting** - Set and track monthly budgets with visual progress indicators
 - **👛 Cash Wallet** - Dedicated default wallet for tracking cash expenses
-- **📂 Custom Categories** - Create and manage custom categories and subcategories
+- **🏦 Advance Account Management** - Create Custom account for manual tracking
+- **📂 Advanced Categories** - Create and manage custom categories and subcategories
 - **📈 Advanced Visualizations** - Interactive animated Line, Bar, and Heatmap graphs
 - **👤 User Profiles** - Support for personal user profiles
 - **🔔 Smart Notifications** - Alerts and reminders for important financial events
@@ -67,7 +70,7 @@ For Android users worldwide who want comprehensive financial tracking — automa
 - **📊 Clear Insights** - Analytics and charts to instantly see where money goes
 - **🔄 Subscription Tracking** - Detects and monitors recurring payments
 - **💬 On-device AI Assistant** - Ask questions like "What did I spend on food last month?" locally
-- **📤 Data Export** - Export as CSV or PDF for taxes or records
+- **📤 Data Export** - Export as CSV for taxes or records
 
 ## Supported Banks & Countries
 
@@ -123,19 +126,37 @@ All processing happens on your device using MediaPipe's LLM. Your financial data
 <td><img src="screenshots/home.png" width="160"/></td>
 <td><img src="screenshots/analytics.png" width="160"/></td>
 <td><img src="screenshots/chat.png" width="160"/></td>
-<td><img src="screenshots/subscription.png" width="160"/></td>
-<td><img src="screenshots/transactions.png" width="160"/></td>
-<td><img src="screenshots/account_detail.png" width="160"/></td>
 <td><img src="screenshots/settings.png" width="160"/></td>
 </tr>
 <tr>
 <td align="center">Home</td>
 <td align="center">Analytics</td>
 <td align="center">AI Chat</td>
+<td align="center">Settings</td>
+</tr>
+<tr>
+<td><img src="screenshots/subscriptions.png" width="160"/></td>
+<td><img src="screenshots/transactions.png" width="160"/></td>
+<td><img src="screenshots/account_detail.png" width="160"/></td>
+<td><img src="screenshots/categories.png" width="160"></td>
+</tr>
+<tr>
 <td align="center">Subscriptions</td>
 <td align="center">Transactions</td>
 <td align="center">Account Details</td>
-<td align="center">Settings</td>
+<td align="center">Categories</td>
+</tr>
+<tr>
+<td><img src="screenshots/budgets.png" width="160"/></td>
+<td><img src="screenshots/budget_details.png" width="160"/></td>
+<td><img src="screenshots/budget_history.png" width="160"/></td>
+<td><img src="screenshots/profile.png" width="160"></td>
+</tr>
+<tr>
+<td align="center">Budgets</td>
+<td align="center">Budget Details</td>
+<td align="center">Budget History</td>
+<td align="center">Profile</td>
 </tr>
 </table>
 

@@ -3,7 +3,7 @@ name: Bug report
 about: Report a bug or issue with Cashiro
 title: '[BUG] '
 labels: bug
-assignees: 'sarim2000'
+assignees: 'ritesh-kanwar'
 
 ---
 

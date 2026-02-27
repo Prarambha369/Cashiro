@@ -1,9 +1,9 @@
 ---
 name: Feature request
-about: Suggest an idea for PennyWise
+about: Suggest an idea for Cashiro
 title: '[FEATURE] '
 labels: enhancement
-assignees: 'sarim2000'
+assignees: 'ritesh-kanwar'
 
 ---
 
