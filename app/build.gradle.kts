@@ -42,21 +42,19 @@ android {
     }
 
     signingConfigs {
-        // Only create signing config for non-F-Droid builds
-        if (!gradle.startParameter.taskNames.any { it.contains("fdroid", ignoreCase = true) }) {
-            val localPropertiesFile = rootProject.file("local.properties")
-            if (localPropertiesFile.exists()) {
-                create("release") {
-                    val localProperties = Properties()
-                    localProperties.load(localPropertiesFile.inputStream())
-                    
-                    val keystorePath = localProperties.getProperty("RELEASE_STORE_FILE", "")
-                    if (keystorePath.isNotEmpty()) {
-                        storeFile = file(keystorePath)
-                        storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD", "")
-                        keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS", "")
-                        keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD", "")
-                    }
+        // Create signing config if keys are provided in local.properties
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            create("release") {
+                val localProperties = Properties()
+                localProperties.load(localPropertiesFile.inputStream())
+                
+                val keystorePath = localProperties.getProperty("RELEASE_STORE_FILE", "")
+                if (keystorePath.isNotEmpty()) {
+                    storeFile = file(keystorePath)
+                    storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD", "")
+                    keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS", "")
+                    keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD", "")
                 }
             }
         }
@@ -81,15 +79,13 @@ android {
 
     splits {
         abi {
-            // Disable splits for F-Droid builds and bundle builds
+            // Disable splits for bundle builds (AABs)
             //noinspection WrongGradleMethod
             val runTasks = gradle.startParameter.taskNames.map { it.lowercase() }
             //noinspection WrongGradleMethod
             val isBundleBuild = runTasks.any { it.contains("bundle") }   // e.g., :app:bundleRelease
-            //noinspection WrongGradleMethod
-            val isFdroidBuild = runTasks.any { it.contains("fdroid") }
 
-            isEnable = !(isBundleBuild || isFdroidBuild)
+            isEnable = !isBundleBuild
 
             reset()
             include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
@@ -106,18 +102,13 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
-
-            // Only apply signing config to standard flavor
-            for (flavor in productFlavors) {
-                if (flavor.name == "standard") {
-                    // Check if release signing config exists
-                    val releaseSigningConfig = signingConfigs.findByName("release")
-                    // Only use release signing if keystore is configured
-                    if (releaseSigningConfig != null && releaseSigningConfig.storeFile != null) {
-                        signingConfig = releaseSigningConfig
-                    }
-                }
+            // Check if release signing config exists
+            val releaseSigningConfig = signingConfigs.findByName("release")
+            // Use release signing if configured, otherwise fallback to debug so it builds
+            if (releaseSigningConfig != null && releaseSigningConfig.storeFile != null) {
+                signingConfig = releaseSigningConfig
+            } else {
+                signingConfig = signingConfigs.getByName("debug")
             }
             
             // Include debug symbols for native crashes

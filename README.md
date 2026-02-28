@@ -18,7 +18,7 @@
 
 ## Cashiro — Free & Open‑Source, private SMS‑powered expense tracker
 
-Cashiro is a comprehensive financial tracking manager based on [PennyWise AI v2.15.42](https://github.com/sarim2000/pennywiseai-tracker) that Turn bank SMS into a clean, searchable money timeline with on-device AI assistance. 100% private, no cloud processing.
+Cashiro is a comprehensive financial tracking manager that Turn bank SMS and PDF Statements into a clean, searchable money timeline with on-device AI assistance. 100% private, no cloud processing.
 
 
 [//]: # ()
@@ -265,6 +265,8 @@ Special thanks to the following projects and resources:
 - **[Microsoft Fluent Emojis](https://github.com/microsoft/fluentui-emoji)** - Beautiful emojis used for category icons.
 - **[Haze](https://chrisbanes.github.io/haze/latest/)** - Applied for stunning blur effects.
 - **[Compose Charts](https://github.com/ehsannarmani/ComposeCharts)** - Used for creating animated charts and graphs.
+- **[Reorderable](https://github.com/Calvin-LL/Reorderable)** - Used for re-ordering widgets.
+- **[Peeps Ui8](https://peeps.ui8.net/)** - Used for Built-in User Avatars.
 
 ## License
 

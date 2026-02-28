@@ -237,9 +237,18 @@ jobs:
             ./gradlew assembleStandardRelease
           fi
           
-          # Build F-Droid flavor (unsigned for IzzyOnDroid)
-          echo "Building F-Droid release APK..."
-          ./gradlew assembleFdroidRelease
+          # Build F-Droid flavor
+          if [ -f "app/release.keystore" ] && [ -n "$KEYSTORE_PASSWORD" ]; then
+            echo "Building signed F-Droid release APK..."
+            ./gradlew assembleFdroidRelease \
+              -Pandroid.injected.signing.store.file=${{ github.workspace }}/app/release.keystore \
+              -Pandroid.injected.signing.store.password=$KEYSTORE_PASSWORD \
+              -Pandroid.injected.signing.key.alias=$KEY_ALIAS \
+              -Pandroid.injected.signing.key.password=$KEY_PASSWORD
+          else
+            echo "Building unsigned F-Droid release APK..."
+            ./gradlew assembleFdroidRelease
+          fi
       
       - name: Rename APKs
         if: ${{ !inputs.dry_run }}
@@ -268,8 +277,11 @@ jobs:
             fi
           done
           
-          # Rename F-Droid APK
-          if [ -f "$FDROID_PATH/app-fdroid-release-unsigned.apk" ]; then
+          # Rename F-Droid APKs
+          if [ -f "$FDROID_PATH/app-fdroid-release.apk" ]; then
+            mv "$FDROID_PATH/app-fdroid-release.apk" \
+               "$FDROID_PATH/Cashiro-fdroid-v${VERSION}.apk"
+          elif [ -f "$FDROID_PATH/app-fdroid-release-unsigned.apk" ]; then
             mv "$FDROID_PATH/app-fdroid-release-unsigned.apk" \
                "$FDROID_PATH/Cashiro-fdroid-v${VERSION}.apk"
           fi
@@ -294,13 +306,15 @@ jobs:
             fi
           done
           
-          # SHA256 for F-Droid APK
+          # SHA256 for all F-Droid APKs
           cd ../../fdroid/release/
-          if [ -f "Cashiro-fdroid-v${VERSION}.apk" ]; then
-            sha256sum "Cashiro-fdroid-v${VERSION}.apk" > "Cashiro-fdroid-v${VERSION}.apk.sha256"
-            echo "F-Droid APK SHA256:"
-            cat "Cashiro-fdroid-v${VERSION}.apk.sha256"
-          fi
+          for apk in Cashiro-fdroid-v${VERSION}*.apk; do
+            if [ -f "$apk" ]; then
+              sha256sum "$apk" > "${apk}.sha256"
+              echo "SHA256 for $apk:"
+              cat "${apk}.sha256"
+            fi
+          done
       
       - name: Commit version bump and push
         if: ${{ !inputs.dry_run && github.event_name != 'push' }}
