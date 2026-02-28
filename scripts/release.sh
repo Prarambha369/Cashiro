@@ -316,14 +316,23 @@ for arch in armeabi-v7a arm64-v8a x86 x86_64; do
     fi
 done
 
-# Rename F-Droid APKs
-if [ -f "$FDROID_PATH/app-fdroid-release.apk" ]; then
-    mv "$FDROID_PATH/app-fdroid-release.apk" \
-       "$FDROID_PATH/Cashiro-fdroid-v${NEXT_VERSION}.apk"
-elif [ -f "$FDROID_PATH/app-fdroid-release-unsigned.apk" ]; then
-    mv "$FDROID_PATH/app-fdroid-release-unsigned.apk" \
-       "$FDROID_PATH/Cashiro-fdroid-v${NEXT_VERSION}.apk"
+if [ -f "$FDROID_PATH/app-fdroid-universal-release.apk" ]; then
+    mv "$FDROID_PATH/app-fdroid-universal-release.apk" \
+       "$FDROID_PATH/Cashiro-fdroid-v${NEXT_VERSION}-universal.apk"
+elif [ -f "$FDROID_PATH/app-fdroid-universal-release-unsigned.apk" ]; then
+    mv "$FDROID_PATH/app-fdroid-universal-release-unsigned.apk" \
+       "$FDROID_PATH/Cashiro-fdroid-v${NEXT_VERSION}-universal.apk"
 fi
+
+for arch in armeabi-v7a arm64-v8a; do
+    if [ -f "$FDROID_PATH/app-fdroid-${arch}-release.apk" ]; then
+        mv "$FDROID_PATH/app-fdroid-${arch}-release.apk" \
+           "$FDROID_PATH/Cashiro-fdroid-v${NEXT_VERSION}-${arch}.apk"
+    elif [ -f "$FDROID_PATH/app-fdroid-${arch}-release-unsigned.apk" ]; then
+        mv "$FDROID_PATH/app-fdroid-${arch}-release-unsigned.apk" \
+           "$FDROID_PATH/Cashiro-fdroid-v${NEXT_VERSION}-${arch}.apk"
+    fi
+done
 
 echo -e "${GREEN}✅ APKs renamed${NC}"
 
@@ -386,9 +395,12 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
             "$STANDARD_PATH/Cashiro-v${NEXT_VERSION}-universal.apk.sha256" \
             "$STANDARD_PATH/Cashiro-v${NEXT_VERSION}-arm64-v8a.apk" \
             "$STANDARD_PATH/Cashiro-v${NEXT_VERSION}-arm64-v8a.apk.sha256" \
-            "$STANDARD_PATH/Cashiro-v${NEXT_VERSION}-armeabi-v7a.apk" \
-            "$STANDARD_PATH/Cashiro-v${NEXT_VERSION}-armeabi-v7a.apk.sha256" \
-            "$FDROID_PATH/Cashiro-fdroid-v${NEXT_VERSION}.apk"
+            "$FDROID_PATH/Cashiro-fdroid-v${NEXT_VERSION}-universal.apk" \
+            "$FDROID_PATH/Cashiro-fdroid-v${NEXT_VERSION}-universal.apk.sha256" \
+            "$FDROID_PATH/Cashiro-fdroid-v${NEXT_VERSION}-arm64-v8a.apk" \
+            "$FDROID_PATH/Cashiro-fdroid-v${NEXT_VERSION}-arm64-v8a.apk.sha256" \
+            "$FDROID_PATH/Cashiro-fdroid-v${NEXT_VERSION}-armeabi-v7a.apk" \
+            "$FDROID_PATH/Cashiro-fdroid-v${NEXT_VERSION}-armeabi-v7a.apk.sha256"
         echo -e "${GREEN}✅ GitHub release created${NC}"
     else
         echo -e "${YELLOW}gh CLI not found. Create release manually at:${NC}"
