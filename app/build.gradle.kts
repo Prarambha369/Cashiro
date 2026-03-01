@@ -42,13 +42,17 @@ android {
     }
 
     signingConfigs {
-        // Create signing config if keys are provided in local.properties
-        val localPropertiesFile = rootProject.file("local.properties")
-        if (localPropertiesFile.exists()) {
-            create("release") {
+        // Always create "release" signing config so it can be configured via project properties in CI
+        create("release") {
+            enableV1Signing = true
+            enableV2Signing = true
+
+            // Load from local.properties 
+            val localPropertiesFile = rootProject.file("local.properties")
+            if (localPropertiesFile.exists()) {
                 val localProperties = Properties()
                 localProperties.load(localPropertiesFile.inputStream())
-                
+
                 val keystorePath = localProperties.getProperty("RELEASE_STORE_FILE", "")
                 if (keystorePath.isNotEmpty()) {
                     storeFile = file(keystorePath)
@@ -105,12 +109,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Check if release signing config exists
-            val releaseSigningConfig = signingConfigs.findByName("release")
-            // Use release signing if configured
-            if (releaseSigningConfig != null && releaseSigningConfig.storeFile != null) {
-                signingConfig = releaseSigningConfig
-            }
+            // Always use release signing config; properties are injected via project properties in CI
+            signingConfig = signingConfigs.getByName("release")
             
             // Include debug symbols for native crashes
             ndk {
