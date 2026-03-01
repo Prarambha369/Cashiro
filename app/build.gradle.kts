@@ -107,11 +107,9 @@ android {
             )
             // Check if release signing config exists
             val releaseSigningConfig = signingConfigs.findByName("release")
-            // Use release signing if configured, otherwise fallback to debug so it builds
+            // Use release signing if configured
             if (releaseSigningConfig != null && releaseSigningConfig.storeFile != null) {
                 signingConfig = releaseSigningConfig
-            } else {
-                signingConfig = signingConfigs.getByName("debug")
             }
             
             // Include debug symbols for native crashes
