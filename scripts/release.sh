@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Local release script that replicates .github/workflows/release.yml
-# Usage: ./scripts/release.sh [patch|minor|major] [--dry-run]
+# Usage: ./scripts/release.sh [--dry-run]
+# Before running, manually set the desired versionName and versionCode in app/build.gradle.kts
 
 set -e
 
@@ -21,7 +22,6 @@ cleanup_on_exit() {
     if [ "$CHANGES_MADE" = true ]; then
         echo ""
         echo -e "${YELLOW}⚠️  Script interrupted. Reverting changes...${NC}"
-        git checkout -- app/build.gradle.kts 2>/dev/null || true
         if [ -n "$CHANGELOG_FILE" ] && [ -f "$CHANGELOG_FILE" ]; then
             rm -f "$CHANGELOG_FILE"
         fi
@@ -36,37 +36,18 @@ cleanup_on_exit() {
 trap cleanup_on_exit EXIT INT TERM
 
 # Parse arguments
-VERSION_BUMP=${1:-patch}
 DRY_RUN=""
-if [ "$2" = "--dry-run" ]; then
+if [ "$1" = "--dry-run" ]; then
     DRY_RUN="true"
     echo -e "${YELLOW}🔍 DRY RUN MODE${NC}"
 fi
 
-echo -e "${GREEN}🚀 Starting release (${VERSION_BUMP} bump)${NC}"
+echo -e "${GREEN}🚀 Starting release${NC}"
 
-# 1. Get current version
-CURRENT_VERSION=$(grep "versionName = " app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
-CURRENT_CODE=$(grep "versionCode = " app/build.gradle.kts | sed 's/[^0-9]*//g')
-echo "Current version: $CURRENT_VERSION (code: $CURRENT_CODE)"
-
-# 2. Calculate next version
-IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
-
-if [ "$VERSION_BUMP" = "major" ]; then
-    MAJOR=$((MAJOR + 1))
-    MINOR=0
-    PATCH=0
-elif [ "$VERSION_BUMP" = "minor" ]; then
-    MINOR=$((MINOR + 1))
-    PATCH=0
-elif [ "$VERSION_BUMP" = "patch" ]; then
-    PATCH=$((PATCH + 1))
-fi
-
-NEXT_VERSION="$MAJOR.$MINOR.$PATCH"
-NEXT_CODE=$((CURRENT_CODE + 1))
-echo "Next version: $NEXT_VERSION (code: $NEXT_CODE)"
+# 1. Read current version from build.gradle.kts (set it manually before running this script)
+NEXT_VERSION=$(grep "versionName = " app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
+NEXT_CODE=$(grep "versionCode = " app/build.gradle.kts | sed 's/[^0-9]*//g')
+echo "Release version: $NEXT_VERSION (code: $NEXT_CODE)"
 
 # 3. Check if tag exists
 TAG_NAME="v$NEXT_VERSION"
@@ -164,28 +145,18 @@ fi
 if [ "$DRY_RUN" = "true" ]; then
     echo -e "${YELLOW}🔍 DRY RUN SUMMARY${NC}"
     echo "=================="
-    echo "Current version: $CURRENT_VERSION"
-    echo "Next version: $NEXT_VERSION"
-    echo "Version code: $NEXT_CODE"
+    echo "Version: $NEXT_VERSION (code: $NEXT_CODE)"
     echo ""
     echo "📝 Release Notes:"
     cat RELEASE_NOTES.md
     exit 0
 fi
 
-# 5. Update version (versionName and versionCode)
-# Use sed -i '' for macOS, sed -i for Linux
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    sed -i '' "s/versionName = \".*\"/versionName = \"$NEXT_VERSION\"/" app/build.gradle.kts
-    sed -i '' "s/versionCode = .*/versionCode = $NEXT_CODE/" app/build.gradle.kts
-else
-    sed -i "s/versionName = \".*\"/versionName = \"$NEXT_VERSION\"/" app/build.gradle.kts
-    sed -i "s/versionCode = .*/versionCode = $NEXT_CODE/" app/build.gradle.kts
-fi
-CHANGES_MADE=true  # Mark that we've made changes
-echo -e "${GREEN}✅ Version updated: $NEXT_VERSION (code: $NEXT_CODE)${NC}"
+# 5. Version is already set in build.gradle.kts — no automatic bump
+echo -e "${GREEN}✅ Using version: $NEXT_VERSION (code: $NEXT_CODE) from build.gradle.kts${NC}"
 
-# 5a. Update fastlane changelog
+# 5a. Create fastlane changelog
+CHANGES_MADE=true  # Mark that we've made changes (changelog file)
 CHANGELOG_FILE="$CHANGELOG_DIR/${NEXT_CODE}.txt"
 
 # Try to use Claude for Play Store changelog if available and already used for main release notes
@@ -260,9 +231,6 @@ revert_changes() {
     echo -e "${RED}❌ Build failed! Reverting changes...${NC}"
 
     CHANGES_MADE=false  # Reset flag so cleanup_on_exit doesn't run again
-
-    # Revert build.gradle.kts
-    git checkout -- app/build.gradle.kts
 
     # Remove fastlane changelog files
     if [ -f "$CHANGELOG_FILE" ]; then
@@ -362,14 +330,7 @@ cd "$ORIGINAL_DIR"
 
 echo -e "${GREEN}✅ SHA256 calculated${NC}"
 
-# 9. Commit and tag
-if [ -f "app/build.gradle.kts" ]; then
-    git add app/build.gradle.kts
-else
-    echo -e "${RED}Error: app/build.gradle.kts not found${NC}"
-    exit 1
-fi
-
+# 9. Commit and tag (only changelog files; build.gradle.kts was pre-set and should already be committed)
 if [ -f "$CHANGELOG_FILE" ]; then
     git add "$CHANGELOG_FILE"
 fi
@@ -378,7 +339,7 @@ if [ -f "$CHANGELOG_DIR/default.txt" ]; then
     git add "$CHANGELOG_DIR/default.txt"
 fi
 
-git commit -m "chore(release): bump version to $NEXT_VERSION [skip ci]"
+git commit -m "chore(release): prepare release $NEXT_VERSION [skip ci]" --allow-empty
 git tag -a "v$NEXT_VERSION" -m "Release v$NEXT_VERSION"
 CHANGES_MADE=false  # Changes are now committed, no need to revert
 echo -e "${GREEN}✅ Commit and tag created${NC}"
