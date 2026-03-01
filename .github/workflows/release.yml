@@ -6,16 +6,6 @@ on:
       - 'v*'
   workflow_dispatch:  # Manual trigger from GitHub UI
     inputs:
-      version_bump:
-        description: 'Version bump type'
-        required: true
-        type: choice
-        default: 'patch'
-        options:
-          - patch  # 2.1.7 → 2.1.8
-          - minor  # 2.1.7 → 2.2.0
-          - major  # 2.1.7 → 3.0.0
-          - auto   # Let semantic-release decide (once all commits are conventional)
       dry_run:
         description: 'Dry run (no release, just preview)'
         required: false
@@ -91,65 +81,23 @@ jobs:
           echo "code=$CURRENT_CODE" >> $GITHUB_OUTPUT
           echo "Current version: $CURRENT_VERSION (code: $CURRENT_CODE)"
       
-      - name: Calculate next version
+      - name: Parse release version
         id: next_version
         run: |
-          CURRENT="${{ steps.current_version.outputs.version }}"
           if [ "${{ github.event_name }}" = "push" ]; then
-            # Tag-based release
-            NEXT_VERSION="${{ github.ref_name }}"
-            NEXT_VERSION="${NEXT_VERSION#v}"
-            # Keep existing code or increment? For tag push, we usually trust the file or increment.
-            # But the tag already exists, so we should probably match the file.
-            NEXT_CODE="${{ steps.current_version.outputs.code }}"
+            # Tag-based release: use the tag name
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#v}"
+            CODE="${{ steps.current_version.outputs.code }}"
           else
-            # Manual trigger: Calculate next version based on bump type
-            BUMP_TYPE="${{ inputs.version_bump }}"
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-            
-            if [ "$BUMP_TYPE" = "major" ]; then
-              MAJOR=$((MAJOR + 1))
-              MINOR=0
-              PATCH=0
-            elif [ "$BUMP_TYPE" = "minor" ]; then
-              MINOR=$((MINOR + 1))
-              PATCH=0
-            elif [ "$BUMP_TYPE" = "patch" ]; then
-              PATCH=$((PATCH + 1))
-            elif [ "$BUMP_TYPE" = "auto" ]; then
-              # Auto mode: check commit messages
-              echo "Auto mode: Analyzing commits since last tag..."
-              LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-              
-              if [ -z "$LAST_TAG" ]; then
-                echo "No previous tags found, defaulting to patch"
-                PATCH=$((PATCH + 1))
-              else
-                # Check for breaking changes
-                if git log $LAST_TAG..HEAD --grep="BREAKING CHANGE" --grep="!:" | grep -q .; then
-                  echo "Found breaking changes"
-                  MAJOR=$((MAJOR + 1))
-                  MINOR=0
-                  PATCH=0
-                # Check for features
-                elif git log $LAST_TAG..HEAD --grep="^feat" --grep="^feature" | grep -q .; then
-                  echo "Found new features"
-                  MINOR=$((MINOR + 1))
-                  PATCH=0
-                # Default to patch for fixes and other changes
-                else
-                  echo "Found fixes/other changes"
-                  PATCH=$((PATCH + 1))
-                fi
-              fi
-            fi
-            NEXT_VERSION="$MAJOR.$MINOR.$PATCH"
-            NEXT_CODE=$((${{ steps.current_version.outputs.code }} + 1))
+            # Manual trigger: use version from build.gradle.kts
+            VERSION="${{ steps.current_version.outputs.version }}"
+            CODE="${{ steps.current_version.outputs.code }}"
           fi
           
-          echo "version=$NEXT_VERSION" >> $GITHUB_OUTPUT
-          echo "code=$NEXT_CODE" >> $GITHUB_OUTPUT
-          echo "Next version: $NEXT_VERSION (code: $NEXT_CODE)"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "code=$CODE" >> $GITHUB_OUTPUT
+          echo "Release version: $VERSION (code: $CODE)"
       
       - name: Check if tag already exists
         if: ${{ !inputs.dry_run }}
@@ -199,13 +147,9 @@ jobs:
           # Output for summary
           cat RELEASE_NOTES.md
       
-      - name: Update version in build.gradle.kts
-        if: ${{ !inputs.dry_run }}
+      - name: Verify version alignment
         run: |
-          sed -i "s/versionName = \".*\"/versionName = \"${{ steps.next_version.outputs.version }}\"/" app/build.gradle.kts
-          sed -i "s/versionCode = .*/versionCode = ${{ steps.next_version.outputs.code }}/" app/build.gradle.kts
-          
-          echo "Updated build.gradle.kts:"
+          echo "Using version: ${{ steps.next_version.outputs.version }} (code: ${{ steps.next_version.outputs.code }})"
           grep "version" app/build.gradle.kts
       
       - name: Decode Keystore
@@ -334,19 +278,8 @@ jobs:
             fi
           done
       
-      - name: Commit version bump and push
-        if: ${{ !inputs.dry_run && github.event_name != 'push' }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Commit version bump
-          git add app/build.gradle.kts
-          git commit -m "chore(release): bump version to ${{ steps.next_version.outputs.version }} [skip ci]"
-          
-          # Pull latest changes and push commit
-          git pull origin main --rebase
-          git push origin main
+      # Commit version bump and push removed - version should be pre-set in build.gradle.kts
+
       
       - name: Create and push tag
         if: ${{ !inputs.dry_run && github.event_name != 'push' }}
@@ -377,10 +310,8 @@ jobs:
         run: |
           echo "🔍 DRY RUN SUMMARY"
           echo "=================="
-          echo "Current version: ${{ steps.current_version.outputs.version }}"
-          echo "Next version: ${{ steps.next_version.outputs.version }}"
+          echo "Version: ${{ steps.next_version.outputs.version }}"
           echo "Version code: ${{ steps.next_version.outputs.code }}"
-          echo "Bump type: ${{ inputs.version_bump }}"
           echo ""
           echo "📝 Release Notes:"
           cat RELEASE_NOTES.md
