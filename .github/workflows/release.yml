@@ -169,30 +169,20 @@ jobs:
           GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx6G"
         run: |
           # Build standard flavor (for Play Store)
-          if [ -f "app/release.keystore" ] && [ -n "$KEYSTORE_PASSWORD" ]; then
-            echo "Building signed standard release APK..."
-            ./gradlew assembleStandardRelease \
-              -Pandroid.injected.signing.store.file=${{ github.workspace }}/app/release.keystore \
-              -Pandroid.injected.signing.store.password=$KEYSTORE_PASSWORD \
-              -Pandroid.injected.signing.key.alias=$KEY_ALIAS \
-              -Pandroid.injected.signing.key.password=$KEY_PASSWORD
-          else
-            echo "Building unsigned standard release APK..."
-            ./gradlew assembleStandardRelease
-          fi
+          echo "Building signed standard release APK..."
+          ./gradlew assembleStandardRelease \
+            -Pandroid.injected.signing.store.file=${{ github.workspace }}/app/release.keystore \
+            -Pandroid.injected.signing.store.password=$KEYSTORE_PASSWORD \
+            -Pandroid.injected.signing.key.alias=$KEY_ALIAS \
+            -Pandroid.injected.signing.key.password=$KEY_PASSWORD
           
           # Build F-Droid flavor
-          if [ -f "app/release.keystore" ] && [ -n "$KEYSTORE_PASSWORD" ]; then
-            echo "Building signed F-Droid release APK..."
-            ./gradlew assembleFdroidRelease \
-              -Pandroid.injected.signing.store.file=${{ github.workspace }}/app/release.keystore \
-              -Pandroid.injected.signing.store.password=$KEYSTORE_PASSWORD \
-              -Pandroid.injected.signing.key.alias=$KEY_ALIAS \
-              -Pandroid.injected.signing.key.password=$KEY_PASSWORD
-          else
-            echo "Building unsigned F-Droid release APK..."
-            ./gradlew assembleFdroidRelease
-          fi
+          echo "Building signed F-Droid release APK..."
+          ./gradlew assembleFdroidRelease \
+            -Pandroid.injected.signing.store.file=${{ github.workspace }}/app/release.keystore \
+            -Pandroid.injected.signing.store.password=$KEYSTORE_PASSWORD \
+            -Pandroid.injected.signing.key.alias=$KEY_ALIAS \
+            -Pandroid.injected.signing.key.password=$KEY_PASSWORD
       
       - name: Rename APKs
         if: ${{ !inputs.dry_run }}
@@ -205,18 +195,12 @@ jobs:
           if [ -f "$STANDARD_PATH/app-standard-universal-release.apk" ]; then
             mv "$STANDARD_PATH/app-standard-universal-release.apk" \
                "$STANDARD_PATH/Cashiro-v${VERSION}-universal.apk"
-          elif [ -f "$STANDARD_PATH/app-standard-universal-release-unsigned.apk" ]; then
-            mv "$STANDARD_PATH/app-standard-universal-release-unsigned.apk" \
-               "$STANDARD_PATH/Cashiro-v${VERSION}-universal.apk"
           fi
           
           # Rename architecture-specific APKs
           for arch in armeabi-v7a arm64-v8a x86 x86_64; do
             if [ -f "$STANDARD_PATH/app-standard-${arch}-release.apk" ]; then
               mv "$STANDARD_PATH/app-standard-${arch}-release.apk" \
-                 "$STANDARD_PATH/Cashiro-v${VERSION}-${arch}.apk"
-            elif [ -f "$STANDARD_PATH/app-standard-${arch}-release-unsigned.apk" ]; then
-              mv "$STANDARD_PATH/app-standard-${arch}-release-unsigned.apk" \
                  "$STANDARD_PATH/Cashiro-v${VERSION}-${arch}.apk"
             fi
           done
@@ -227,23 +211,14 @@ jobs:
           if [ -f "$FDROID_PATH/app-fdroid-universal-release.apk" ]; then
             mv "$FDROID_PATH/app-fdroid-universal-release.apk" \
                "$FDROID_PATH/Cashiro-fdroid-v${VERSION}-universal.apk"
-          elif [ -f "$FDROID_PATH/app-fdroid-universal-release-unsigned.apk" ]; then
-            mv "$FDROID_PATH/app-fdroid-universal-release-unsigned.apk" \
-               "$FDROID_PATH/Cashiro-fdroid-v${VERSION}-universal.apk"
           elif [ -f "$FDROID_PATH/app-fdroid-release.apk" ]; then
             mv "$FDROID_PATH/app-fdroid-release.apk" \
-               "$FDROID_PATH/Cashiro-fdroid-v${VERSION}-universal.apk"
-          elif [ -f "$FDROID_PATH/app-fdroid-release-unsigned.apk" ]; then
-            mv "$FDROID_PATH/app-fdroid-release-unsigned.apk" \
                "$FDROID_PATH/Cashiro-fdroid-v${VERSION}-universal.apk"
           fi
           
           for arch in armeabi-v7a arm64-v8a; do
             if [ -f "$FDROID_PATH/app-fdroid-${arch}-release.apk" ]; then
               mv "$FDROID_PATH/app-fdroid-${arch}-release.apk" \
-                 "$FDROID_PATH/Cashiro-fdroid-v${VERSION}-${arch}.apk"
-            elif [ -f "$FDROID_PATH/app-fdroid-${arch}-release-unsigned.apk" ]; then
-              mv "$FDROID_PATH/app-fdroid-${arch}-release-unsigned.apk" \
                  "$FDROID_PATH/Cashiro-fdroid-v${VERSION}-${arch}.apk"
             fi
           done
