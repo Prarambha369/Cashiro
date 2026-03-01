@@ -278,11 +278,19 @@ jobs:
           done
           
           # Rename F-Droid APKs
+          # When ABI splits are disabled, Gradle outputs a single app-fdroid-release.apk (no -universal- suffix).
+          # When splits are enabled it outputs app-fdroid-universal-release.apk, so handle both.
           if [ -f "$FDROID_PATH/app-fdroid-universal-release.apk" ]; then
             mv "$FDROID_PATH/app-fdroid-universal-release.apk" \
                "$FDROID_PATH/Cashiro-fdroid-v${VERSION}-universal.apk"
           elif [ -f "$FDROID_PATH/app-fdroid-universal-release-unsigned.apk" ]; then
             mv "$FDROID_PATH/app-fdroid-universal-release-unsigned.apk" \
+               "$FDROID_PATH/Cashiro-fdroid-v${VERSION}-universal.apk"
+          elif [ -f "$FDROID_PATH/app-fdroid-release.apk" ]; then
+            mv "$FDROID_PATH/app-fdroid-release.apk" \
+               "$FDROID_PATH/Cashiro-fdroid-v${VERSION}-universal.apk"
+          elif [ -f "$FDROID_PATH/app-fdroid-release-unsigned.apk" ]; then
+            mv "$FDROID_PATH/app-fdroid-release-unsigned.apk" \
                "$FDROID_PATH/Cashiro-fdroid-v${VERSION}-universal.apk"
           fi
           
@@ -361,8 +369,6 @@ jobs:
             app/build/outputs/apk/standard/release/Cashiro-v${{ steps.next_version.outputs.version }}-arm64-v8a.apk
             app/build/outputs/apk/standard/release/Cashiro-v${{ steps.next_version.outputs.version }}-armeabi-v7a.apk
             app/build/outputs/apk/fdroid/release/Cashiro-fdroid-v${{ steps.next_version.outputs.version }}-universal.apk
-            app/build/outputs/apk/fdroid/release/Cashiro-fdroid-v${{ steps.next_version.outputs.version }}-arm64-v8a.apk
-            app/build/outputs/apk/fdroid/release/Cashiro-fdroid-v${{ steps.next_version.outputs.version }}-armeabi-v7a.apk
           draft: false
           prerelease: false
       

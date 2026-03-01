@@ -322,6 +322,13 @@ if [ -f "$FDROID_PATH/app-fdroid-universal-release.apk" ]; then
 elif [ -f "$FDROID_PATH/app-fdroid-universal-release-unsigned.apk" ]; then
     mv "$FDROID_PATH/app-fdroid-universal-release-unsigned.apk" \
        "$FDROID_PATH/Cashiro-fdroid-v${NEXT_VERSION}-universal.apk"
+elif [ -f "$FDROID_PATH/app-fdroid-release.apk" ]; then
+    # Splits disabled → single APK without -universal- suffix
+    mv "$FDROID_PATH/app-fdroid-release.apk" \
+       "$FDROID_PATH/Cashiro-fdroid-v${NEXT_VERSION}-universal.apk"
+elif [ -f "$FDROID_PATH/app-fdroid-release-unsigned.apk" ]; then
+    mv "$FDROID_PATH/app-fdroid-release-unsigned.apk" \
+       "$FDROID_PATH/Cashiro-fdroid-v${NEXT_VERSION}-universal.apk"
 fi
 
 for arch in armeabi-v7a arm64-v8a; do
