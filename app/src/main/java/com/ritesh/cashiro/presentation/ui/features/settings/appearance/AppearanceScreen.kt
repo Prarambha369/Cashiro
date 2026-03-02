@@ -186,7 +186,10 @@ fun AppearanceScreen(
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 Column(
-                    modifier = Modifier.animateContentSize(),
+                    modifier = Modifier
+                        .animateContentSize(
+                            MaterialTheme.motionScheme.fastSpatialSpec()
+                        ),
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     Row(
@@ -438,12 +441,16 @@ fun AppearanceScreen(
                         visible = themeUiState.themeStyle == ThemeStyle.DEFAULT,
                         enter = fadeIn() + slideInVertically{-it},
                         exit = fadeOut() + slideOutVertically{-it},
-                        modifier = Modifier.animateContentSize().zIndex(-1f)
+                        modifier = Modifier
+                            .animateContentSize(
+                            MaterialTheme.motionScheme.defaultSpatialSpec()
+                            )
+                            .zIndex(-1f)
                     ) {
                         val isDark = themeUiState.isDarkTheme ?: isSystemInDarkTheme()
 
                         LazyRow(
-                            contentPadding = PaddingValues(Spacing.md),
+                            contentPadding = PaddingValues(horizontal = Spacing.md),
                             horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                         ) {
                             items(AccentColor.entries) { accent ->
@@ -518,7 +525,12 @@ fun AppearanceScreen(
                     modifier = Modifier.padding(start = Spacing.xl, top = Spacing.md)
                 )
                 Column(
-                    modifier = Modifier.animateContentSize().fillMaxWidth().padding(horizontal = Spacing.md),
+                    modifier = Modifier
+                        .animateContentSize(
+                            MaterialTheme.motionScheme.defaultSpatialSpec()
+                        )
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.md),
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ){
                     Row(

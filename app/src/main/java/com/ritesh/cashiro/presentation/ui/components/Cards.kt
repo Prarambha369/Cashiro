@@ -34,7 +34,7 @@ fun CashiroCard(
             modifier = modifier,
             onClick = onClick,
             colors = colors,
-            shape = shape
+            shape = shape,
         ) {
             Column(
                 modifier = Modifier.padding(contentPadding)

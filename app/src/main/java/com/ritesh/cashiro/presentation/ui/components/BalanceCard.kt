@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.ArrowDropUp
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -58,7 +59,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import java.math.BigDecimal
 
-@OptIn(ExperimentalHazeApi::class)
+@OptIn(ExperimentalHazeApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun BalanceCard(
     modifier: Modifier = Modifier,
@@ -89,7 +90,9 @@ fun BalanceCard(
         CashiroCard(
             modifier = modifier
                 .fillMaxWidth()
-                .animateContentSize()
+                .animateContentSize(
+                    MaterialTheme.motionScheme.fastSpatialSpec()
+                )
                 .clip(RoundedCornerShape(Dimensions.Radius.lg))
                 .then(
                     if (blurEffects) Modifier.hazeEffect(
@@ -118,7 +121,11 @@ fun BalanceCard(
                     .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                if (!isExpanded) {
+                AnimatedVisibility(
+                    visible = !isExpanded,
+                    enter = fadeIn() + expandVertically(MaterialTheme.motionScheme.fastSpatialSpec()),
+                    exit = fadeOut() + shrinkVertically(MaterialTheme.motionScheme.fastSpatialSpec())
+                ) {
                     // Collapsed View
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.sm),
@@ -164,7 +171,12 @@ fun BalanceCard(
                             }
                         }
                     }
-                } else {
+                }
+                AnimatedVisibility(
+                    visible = isExpanded,
+                    enter = fadeIn() + expandVertically(MaterialTheme.motionScheme.fastSpatialSpec()),
+                    exit = fadeOut() + shrinkVertically(MaterialTheme.motionScheme.fastSpatialSpec())
+                ) {
                     // Expanded View
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Row(

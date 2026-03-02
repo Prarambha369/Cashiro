@@ -1,6 +1,7 @@
 package com.ritesh.cashiro.presentation.navigation
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -182,6 +183,9 @@ fun CashiroBottomNavigation(
                 HorizontalFloatingToolbar(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
+                        .animateContentSize(
+                            MaterialTheme.motionScheme.fastSpatialSpec()
+                        )
                         .navigationBarsPadding()
                         .shadow(
                             elevation = if (blurEffects) 0.dp else 16.dp,
