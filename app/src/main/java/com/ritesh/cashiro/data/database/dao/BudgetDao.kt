@@ -36,6 +36,9 @@ interface BudgetDao {
     @Query("DELETE FROM budgets")
     suspend fun deleteAllBudgets()
 
+    @Query("DELETE FROM budgets WHERE is_sample = 1")
+    suspend fun deleteSampleBudgets()
+
     // Category limit operations
     @Query("SELECT * FROM budget_category_limits")
     fun getAllCategoryLimits(): Flow<List<BudgetCategoryLimitEntity>>

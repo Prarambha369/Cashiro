@@ -54,6 +54,7 @@ import com.ritesh.cashiro.data.database.entity.BudgetTrackType
 import com.ritesh.cashiro.data.database.entity.BudgetType
 import com.ritesh.cashiro.data.database.entity.TransactionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionType
+import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.UUID
@@ -105,6 +106,8 @@ class SettingsViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = 0
         )
+
+    val isSampleDataSeeded: Flow<Boolean> = userPreferencesRepository.isSampleDataSeeded
 
     init {
         checkDownloadStatus()
@@ -458,6 +461,14 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun toggleSampleData(enabled: Boolean) {
+        if (enabled) {
+            seedSampleData()
+        } else {
+            removeSampleData()
+        }
+    }
+
     private fun sendTestNotification() {
         try {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -687,7 +698,8 @@ class SettingsViewModel @Inject constructor(
                             timestamp = now.minusDays(i.toLong()),
                             sourceType = "MANUAL",
                             iconResId = R.drawable.type_finance_bank,
-                            color = "#33B5E5"
+                            color = "#33B5E5",
+                            isSample = true
                         )
                     )
                 }
@@ -703,7 +715,8 @@ class SettingsViewModel @Inject constructor(
                         isCreditCard = true,
                         sourceType = "MANUAL",
                         iconResId = R.drawable.type_stationary_card_file_box,
-                        color = "#E91E63"
+                        color = "#E91E63",
+                        isSample = true
                     )
                 )
 
@@ -715,7 +728,8 @@ class SettingsViewModel @Inject constructor(
                         balance = BigDecimal(75000),
                         timestamp = now,
                         iconResId = R.drawable.type_finance_bank,
-                        color = "#1976D2"
+                        color = "#1976D2",
+                        isSample = true
                     )
                 )
 
@@ -728,6 +742,7 @@ class SettingsViewModel @Inject constructor(
                         timestamp = now,
                         sourceType = "MANUAL",
                         isWallet = true,
+                        isSample = true,
                         iconResId = R.drawable.type_finance_dollar_banknote
                     )
                 )
@@ -742,7 +757,8 @@ class SettingsViewModel @Inject constructor(
                         nickname = "Salary Card",
                         lastBalance = BigDecimal(48000),
                         lastBalanceSource = "Your HDFC Bank account ending in 1234 has been credited with INR 50,000.00. Avl bal: INR 48,000.00",
-                        lastBalanceDate = now
+                        lastBalanceDate = now,
+                        isSample = true
                     )
                 )
 
@@ -755,7 +771,8 @@ class SettingsViewModel @Inject constructor(
                         nickname = "Travel Card",
                         lastBalance = BigDecimal(15420),
                         lastBalanceSource = "Bank Alert: Your Axis Bank Card XX8765 was used for a transaction of INR 500 at STARBUCKS. Avl Bal: INR 15,420.75",
-                        lastBalanceDate = now
+                        lastBalanceDate = now,
+                        isSample = true
                     )
                 )
 
@@ -777,7 +794,8 @@ class SettingsViewModel @Inject constructor(
                         trackType = BudgetTrackType.ALL_TRANSACTIONS,
                         budgetType = BudgetType.EXPENSE,
                         createdAt = now.minusMonths(3).withDayOfMonth(1), // History from 3 months ago
-                        color = "#FF9800" // Orange
+                        color = "#FF9800", // Orange
+                        isSample = true
                     )
                 )
 
@@ -804,7 +822,8 @@ class SettingsViewModel @Inject constructor(
                                 transactionHash = UUID.randomUUID().toString(),
                                 currency = "INR",
                                 bankName = "HDFC Bank",
-                                accountNumber = hdfcLast4
+                                accountNumber = hdfcLast4,
+                                isSample = true
                             )
                         )
                     }
@@ -824,6 +843,7 @@ class SettingsViewModel @Inject constructor(
                         trackType = BudgetTrackType.ALL_TRANSACTIONS,
                         budgetType = BudgetType.EXPENSE,
                         createdAt = now.minusWeeks(4), // History from 4 weeks ago
+                        isSample = true,
                         color = "#9C27B0" // Purple
                     )
                 )
@@ -848,6 +868,7 @@ class SettingsViewModel @Inject constructor(
                             transactionType = TransactionType.EXPENSE,
                             dateTime = weekDate.withHour(20),
                             transactionHash = UUID.randomUUID().toString(),
+                            isSample = true,
                             currency = "INR"
                         )
                     )
@@ -867,7 +888,8 @@ class SettingsViewModel @Inject constructor(
                         trackType = BudgetTrackType.ALL_TRANSACTIONS,
                         budgetType = BudgetType.SAVINGS,
                         createdAt = now,
-                        color = "#4CAF50" // Green
+                        color = "#4CAF50", // Green
+                        isSample = true
                     )
                  )
 
@@ -880,9 +902,12 @@ class SettingsViewModel @Inject constructor(
                          transactionType = TransactionType.INCOME,
                          dateTime = now,
                          transactionHash = UUID.randomUUID().toString(),
-                         currency = "INR"
+                         currency = "INR",
+                         isSample = true
                      )
                  )
+
+                userPreferencesRepository.setSampleDataSeeded(true)
 
                 _uiState.update {
                     it.copy(
@@ -890,14 +915,42 @@ class SettingsViewModel @Inject constructor(
                         seedMessage = "Sample data (including history) seeded successfully"
                     )
                 }
-                delay(3000)
-                _uiState.update { it.copy(seedMessage = null) }
-
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
                         isSeeding = false,
                         seedMessage = "Failed to seed sample data: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    fun removeSampleData() {
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isSeeding = true) }
+
+                transactionRepository.deleteSampleTransactions()
+                accountBalanceRepository.deleteSampleBalances()
+                cardRepository.deleteSampleCards()
+                budgetRepository.deleteSampleBudgets()
+                
+                userPreferencesRepository.setSampleDataSeeded(false)
+
+                _uiState.update {
+                    it.copy(
+                        isSeeding = false,
+                        seedMessage = "Sample data removed successfully"
+                    )
+                }
+                delay(3000)
+                _uiState.update { it.copy(seedMessage = null) }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isSeeding = false,
+                        seedMessage = "Failed to remove sample data: ${e.message}"
                     )
                 }
             }

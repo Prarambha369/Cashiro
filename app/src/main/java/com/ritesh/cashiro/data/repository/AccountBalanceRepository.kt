@@ -145,6 +145,10 @@ class AccountBalanceRepository @Inject constructor(
         accountBalanceDao.deleteAllBalances()
     }
 
+    suspend fun deleteSampleBalances() {
+        accountBalanceDao.deleteSampleBalances()
+    }
+
     suspend fun getAccountByLast4(accountLast4: String): AccountBalanceEntity? {
         return accountBalanceDao.getAccountByLast4(accountLast4)
     }

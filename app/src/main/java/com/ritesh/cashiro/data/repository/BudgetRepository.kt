@@ -127,6 +127,10 @@ class BudgetRepository @Inject constructor(
         budgetDao.deleteBudget(budgetId)
     }
 
+    suspend fun deleteSampleBudgets() {
+        budgetDao.deleteSampleBudgets()
+    }
+
     fun getCategoryLimitsForBudget(budgetId: Long): Flow<List<BudgetCategoryLimitEntity>> {
         return budgetDao.getCategoryLimitsForBudget(budgetId)
     }

@@ -60,7 +60,10 @@ data class BudgetEntity(
     val accountIds: List<String> = emptyList(), // List of "BankName:Last4"
 
     @ColumnInfo(name = "color", defaultValue = "#4CAF50") // Default Green
-    val color: String = "#4CAF50"
+    val color: String = "#4CAF50",
+
+    @ColumnInfo(name = "is_sample", defaultValue = "0")
+    val isSample: Boolean = false
 )
 
 enum class BudgetPeriod {

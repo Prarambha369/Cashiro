@@ -75,6 +75,7 @@ constructor(@ApplicationContext private val context: Context) {
         val HIDE_NAVIGATION_LABELS = booleanPreferencesKey("hide_navigation_labels")
         val HIDE_PILL_INDICATOR = booleanPreferencesKey("hide_pill_indicator")
         val BLUR_EFFECTS = booleanPreferencesKey("blur_effects")
+        val IS_SAMPLE_DATA_SEEDED = booleanPreferencesKey("is_sample_data_seeded")
     }
 
     val userPreferences: Flow<UserPreferences> =
@@ -133,7 +134,8 @@ constructor(@ApplicationContext private val context: Context) {
                 },
                 hideNavigationLabels = preferences[PreferencesKeys.HIDE_NAVIGATION_LABELS] ?: false,
                 hidePillIndicator = preferences[PreferencesKeys.HIDE_PILL_INDICATOR] ?: false,
-                blurEffects = preferences[PreferencesKeys.BLUR_EFFECTS] ?: (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                blurEffects = preferences[PreferencesKeys.BLUR_EFFECTS] ?: (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S),
+                isSampleDataSeeded = preferences[PreferencesKeys.IS_SAMPLE_DATA_SEEDED] ?: false
             )
         }
 
@@ -600,6 +602,17 @@ constructor(@ApplicationContext private val context: Context) {
             preferences[PreferencesKeys.BLUR_EFFECTS] = enabled
         }
     }
+
+    val isSampleDataSeeded: Flow<Boolean> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.IS_SAMPLE_DATA_SEEDED] ?: false
+        }
+
+    suspend fun setSampleDataSeeded(seeded: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.IS_SAMPLE_DATA_SEEDED] = seeded
+        }
+    }
 }
 
 data class UserPreferences(
@@ -623,5 +636,6 @@ data class UserPreferences(
         val accentColor: AccentColor = AccentColor.BLUE,
         val hideNavigationLabels: Boolean = false,
         val hidePillIndicator: Boolean = false,
-        val blurEffects: Boolean = true
+        val blurEffects: Boolean = true,
+        val isSampleDataSeeded: Boolean = false
 )

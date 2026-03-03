@@ -163,4 +163,8 @@ class CardRepository @Inject constructor(
             android.util.Log.e("CardRepository", "Card not found for ID: $cardId")
         }
     }
+
+    suspend fun deleteSampleCards() {
+        cardDao.deleteSampleCards()
+    }
 }

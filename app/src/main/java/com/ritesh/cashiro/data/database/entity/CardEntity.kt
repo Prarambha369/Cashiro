@@ -61,7 +61,10 @@ data class CardEntity(
     val updatedAt: LocalDateTime = LocalDateTime.now(),
 
     @ColumnInfo(name = "currency", defaultValue = "INR")
-    val currency: String = "INR"
+    val currency: String = "INR",
+    
+    @ColumnInfo(name = "is_sample", defaultValue = "0")
+    val isSample: Boolean = false
 )
 
 enum class CardType {

@@ -44,7 +44,8 @@ interface AccountBalanceDao {
             ab1.currency,
             ab1.icon_res_id,
             ab1.is_wallet,
-            ab1.color
+            ab1.color,
+            ab1.is_sample
         FROM account_balances ab1
         INNER JOIN (
             SELECT bank_name, account_last4, MAX(timestamp) as max_timestamp
@@ -64,6 +65,9 @@ interface AccountBalanceDao {
     @Query("DELETE FROM account_balances")
     suspend fun deleteAllBalances()
     
+    @Query("DELETE FROM account_balances WHERE is_sample = 1")
+    suspend fun deleteSampleBalances()
+    
     @Query("""
         SELECT DISTINCT 
             ab1.id,
@@ -80,7 +84,8 @@ interface AccountBalanceDao {
             ab1.currency,
             ab1.icon_res_id,
             ab1.is_wallet,
-            ab1.color
+            ab1.color,
+            ab1.is_sample
         FROM account_balances ab1
         INNER JOIN (
             SELECT bank_name, account_last4, MAX(timestamp) as max_timestamp
@@ -153,13 +158,13 @@ interface AccountBalanceDao {
     @Query("""SELECT COUNT(*) FROM account_balances
         WHERE bank_name = :bankName AND account_last4 = :accountLast4""")
     suspend fun getBalanceCountForAccount(bankName: String, accountLast4: String): Int
-
+ 
     @Query("DELETE FROM account_balances WHERE bank_name = :bankName AND account_last4 = :accountLast4")
     suspend fun deleteAccount(bankName: String, accountLast4: String): Int
-
+ 
     @Query("UPDATE account_balances SET bank_name = :newBankName WHERE bank_name = :oldBankName AND account_last4 = :accountLast4")
     suspend fun updateAccountBankName(oldBankName: String, accountLast4: String, newBankName: String): Int
-
+ 
     /** Finds the latest account record for a given last-4 digits, regardless of bank name. */
     @Query("""
         SELECT * FROM account_balances

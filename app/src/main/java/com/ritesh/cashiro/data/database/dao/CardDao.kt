@@ -76,4 +76,7 @@ interface CardDao {
     
     @Query("DELETE FROM cards")
     suspend fun deleteAllCards()
+
+    @Query("DELETE FROM cards WHERE is_sample = 1")
+    suspend fun deleteSampleCards()
 }

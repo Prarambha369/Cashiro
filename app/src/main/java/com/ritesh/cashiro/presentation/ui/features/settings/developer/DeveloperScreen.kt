@@ -68,6 +68,11 @@ fun DeveloperScreen(
             initialValue = false
         )
 
+    val isSampleDataSeeded by
+        settingsViewModel.isSampleDataSeeded.collectAsStateWithLifecycle(
+            initialValue = false
+        )
+
     val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -166,10 +171,12 @@ fun DeveloperScreen(
                     isLast = false
                 )
 
-                ListItem(
-                    headline = { Text("Seed Sample Data") },
-                    supporting = { Text("Create dummy accounts and transactions") },
-                    leading = {
+                PreferenceSwitch(
+                    title = "Sample Data",
+                    subtitle = "Create dummy accounts and transactions",
+                    checked = isSampleDataSeeded,
+                    onCheckedChange = { if (!uiState.isSeeding) settingsViewModel.toggleSampleData(it) },
+                    leadingIcon = {
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
@@ -194,9 +201,9 @@ fun DeveloperScreen(
                             }
                         }
                     },
-                    onClick = { if (!uiState.isSeeding) settingsViewModel.seedSampleData() },
-                    shape = ListItemPosition.Bottom.toShape(),
-                    padding = PaddingValues(0.dp)
+                    padding = PaddingValues(0.dp),
+                    isSingle = false,
+                    isLast = true
                 )
             }
         }

@@ -66,7 +66,7 @@ import com.ritesh.cashiro.data.database.entity.UnrecognizedSmsEntity
             BudgetEntity::class,
             BudgetCategoryLimitEntity::class
         ],
-    version = 41,
+    version = 42,
     exportSchema = true,
     autoMigrations =
         [
@@ -83,7 +83,8 @@ import com.ritesh.cashiro.data.database.entity.UnrecognizedSmsEntity
             AutoMigration(from = 37, to = 38),
             AutoMigration(from = 38, to = 39),
             AutoMigration(from = 39, to = 40),
-            AutoMigration(from = 40, to = 41, spec = Migration40To41::class)
+            AutoMigration(from = 40, to = 41, spec = Migration40To41::class),
+            AutoMigration(from = 41, to = 42)
         ]
 )
 @TypeConverters(Converters::class)
@@ -584,16 +585,16 @@ class Migration29To30 : AutoMigrationSpec {
 class Migration31To32 : AutoMigrationSpec {
     override fun onPostMigrate(db: SupportSQLiteDatabase) {
         super.onPostMigrate(db)
-        
+
         // Update transactions categorized as 'Others' to 'Miscellaneous'
         db.execSQL("UPDATE transactions SET category = 'Miscellaneous' WHERE category = 'Others'")
-        
+
         // Update subscriptions categorized as 'Others' to 'Miscellaneous'
         db.execSQL("UPDATE subscriptions SET category = 'Miscellaneous' WHERE category = 'Others'")
-        
+
         // Update merchant mappings from 'Others' to 'Miscellaneous'
         db.execSQL("UPDATE merchant_mappings SET category = 'Miscellaneous' WHERE category = 'Others'")
-        
+
         // Delete the 'Others' category from categories table
         db.execSQL("DELETE FROM categories WHERE name = 'Others'")
     }
@@ -625,20 +626,20 @@ class Migration40To41 : AutoMigrationSpec {
         oldToNewMap.forEach { (old, new) ->
             // Update transactions
             db.execSQL("UPDATE transactions SET category = ? WHERE category = ?", arrayOf(new, old))
-            
+
             // Update subscriptions
             db.execSQL("UPDATE subscriptions SET category = ? WHERE category = ?", arrayOf(new, old))
-            
+
             // Update merchant mappings
             db.execSQL("UPDATE merchant_mappings SET category = ? WHERE category = ?", arrayOf(new, old))
-            
-            // Update rules (actions) - this is stored as JSON in the database, 
+
+            // Update rules (actions) - this is stored as JSON in the database,
             // but we can do a simple string replace for the value if it's stored as plain text in the JSON
-            // TransactionRule actions are serialized. We might need a more careful approach here 
-            // if we want to be 100% sure, but simple string replacement in the 'actions' column 
+            // TransactionRule actions are serialized. We might need a more careful approach here
+            // if we want to be 100% sure, but simple string replacement in the 'actions' column
             // usually works for SQLite JSON if the structure is simple.
             // However, to be safe, let's just do it for categories.
-            db.execSQL("UPDATE transaction_rules SET actions = REPLACE(actions, ?, ?) WHERE actions LIKE ?", 
+            db.execSQL("UPDATE transaction_rules SET actions = REPLACE(actions, ?, ?) WHERE actions LIKE ?",
                 arrayOf("\"value\":\"$old\"", "\"value\":\"$new\"", "%\"value\":\"$old\"%"))
         }
 
