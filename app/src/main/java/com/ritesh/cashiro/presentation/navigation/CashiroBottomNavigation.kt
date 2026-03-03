@@ -1,5 +1,6 @@
 package com.ritesh.cashiro.presentation.navigation
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandHorizontally
@@ -38,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavDestination
@@ -76,6 +78,7 @@ fun CashiroBottomNavigation(
 ) {
     val navigationItems = listOf(BottomNavItem.Home, BottomNavItem.Analytics, BottomNavItem.Chat)
     val containerColor = MaterialTheme.colorScheme.surface
+    val view = LocalView.current
 
     Box(modifier = modifier) {
         // NORMAL style NavigationBar
@@ -118,6 +121,7 @@ fun CashiroBottomNavigation(
                         NavigationBarItem(
                             selected = selected,
                             onClick = {
+                                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                 navController.safeNavigate(item.destination) {
                                     popUpTo(Home) {
                                         saveState = true
@@ -221,6 +225,7 @@ fun CashiroBottomNavigation(
                         TonalToggleButton(
                             checked = selected,
                             onCheckedChange = {
+                                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                 navController.safeNavigate(item.destination) {
                                     popUpTo(Home) {
                                         saveState = true

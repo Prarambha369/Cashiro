@@ -13,7 +13,7 @@ fun NavController.safeNavigate(
     route: Any,
     builder: NavOptionsBuilder.() -> Unit = {}
 ) {
-    if (currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED) {
+    if (currentBackStackEntry?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.STARTED) == true) {
         navigate(route, builder)
     }
 }
@@ -23,7 +23,7 @@ fun NavController.safeNavigate(
  * Prevents race conditions during transitions by checking lifecycle state.
  */
 fun NavController.safePopBackStack() {
-    if (currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED) {
+    if (currentBackStackEntry?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.STARTED) == true) {
         popBackStack()
     }
 }
