@@ -131,6 +131,7 @@ fun CreateRuleScreen(
             ruleName = rule.name
             description = rule.description ?: ""
             conditions = rule.conditions
+            fieldDropdownsExpanded = List(rule.conditions.size) { false }
             val action = rule.actions.firstOrNull()
             if (action != null) {
                 actionType = action.actionType
@@ -154,6 +155,7 @@ fun CreateRuleScreen(
             actionType = ActionType.BLOCK
             actionField = TransactionField.CATEGORY
             actionValue = ""
+            fieldDropdownsExpanded = List(conditions.size) { false }
         },
         "Block Small Amounts" to {
             ruleName = "Block Small Transactions"
@@ -163,6 +165,7 @@ fun CreateRuleScreen(
             actionType = ActionType.BLOCK
             actionField = TransactionField.CATEGORY
             actionValue = ""
+            fieldDropdownsExpanded = List(conditions.size) { false }
         },
         "Small amounts → Food" to {
             ruleName = "Small Food Payments"
@@ -172,6 +175,7 @@ fun CreateRuleScreen(
             actionType = ActionType.SET
             actionField = TransactionField.CATEGORY
             actionValue = "Food & Drinks"
+            fieldDropdownsExpanded = List(conditions.size) { false }
         },
         "Standardize Merchant" to {
             ruleName = "Standardize Merchant Name"
@@ -181,6 +185,7 @@ fun CreateRuleScreen(
             actionType = ActionType.SET
             actionField = TransactionField.MERCHANT
             actionValue = "Amazon"
+            fieldDropdownsExpanded = List(conditions.size) { false }
         },
         "Mark as Income" to {
             ruleName = "Mark Credits as Income"
@@ -190,6 +195,7 @@ fun CreateRuleScreen(
             actionType = ActionType.SET
             actionField = TransactionField.TYPE
             actionValue = "income"
+            fieldDropdownsExpanded = List(conditions.size) { false }
         }
     )
 
