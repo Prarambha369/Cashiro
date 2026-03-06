@@ -30,6 +30,29 @@ fun TiledScrollingIconBackground(
     rotation: Float = -20f,
     animationDuration: Int = 15000
 ) {
+    TiledScrollingIconBackground(
+        iconResources = listOf(iconResource),
+        modifier = modifier,
+        opacity = opacity,
+        iconSize = iconSize,
+        rotation = rotation,
+        animationDuration = animationDuration
+    )
+}
+
+/**
+ * A background component that tiles multiple icons and scrolls them vertically.
+ * Icons alternate in both columns and rows.
+ */
+@Composable
+fun TiledScrollingIconBackground(
+    iconResources: List<IconResource>,
+    modifier: Modifier = Modifier,
+    opacity: Float = 0.05f,
+    iconSize: Dp = 60.dp,
+    rotation: Float = -20f,
+    animationDuration: Int = 15000
+) {
     val infiniteTransition = rememberInfiniteTransition(label = "TiledBackground")
     val scrollOffset by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -41,16 +64,19 @@ fun TiledScrollingIconBackground(
         label = "ScrollAnimation"
     )
 
-    val painter = when (iconResource) {
-        is IconResource.DrawableResource -> painterResource(id = iconResource.resId)
-        is IconResource.TintedResIcon -> painterResource(id = iconResource.resId)
-        is IconResource.VectorIcon -> rememberVectorPainter(image = iconResource.icon)
-    }
+    val paintersWithTint = iconResources.map { iconResource ->
+        val painter = when (iconResource) {
+            is IconResource.DrawableResource -> painterResource(id = iconResource.resId)
+            is IconResource.TintedResIcon -> painterResource(id = iconResource.resId)
+            is IconResource.VectorIcon -> rememberVectorPainter(image = iconResource.icon)
+        }
 
-    val tint = when (iconResource) {
-        is IconResource.TintedResIcon -> iconResource.tint
-        is IconResource.VectorIcon -> iconResource.tint
-        else -> Color.Unspecified
+        val tint = when (iconResource) {
+            is IconResource.TintedResIcon -> iconResource.tint
+            is IconResource.VectorIcon -> iconResource.tint
+            else -> Color.Unspecified
+        }
+        painter to tint
     }
 
     Canvas(modifier = modifier.fillMaxSize()) {
@@ -63,8 +89,8 @@ fun TiledScrollingIconBackground(
 
         // Calculate how many items we need to cover the area
         // We add extra to handle rotation and overflow
-        val columns = (size.width / step).toInt() + 3
-        val rows = (size.height / step).toInt() + 3
+        val columns = (size.width / step).toInt() + 4
+        val rows = (size.height / step).toInt() + 4
 
         rotate(rotation) {
             for (col in -2..columns) {
@@ -73,6 +99,10 @@ fun TiledScrollingIconBackground(
                     // Add scrolling offset to Y position
                     val y = (row * step) + offsetY
                     
+                    // Select icon based on position to create alternating pattern
+                    val index = (col + row).let { if (it < 0) -it else it } % iconResources.size
+                    val (painter, tint) = paintersWithTint[index]
+
                     translate(left = x, top = y) {
                         with(painter) {
                             draw(

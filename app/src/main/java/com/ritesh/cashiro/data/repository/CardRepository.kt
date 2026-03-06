@@ -167,4 +167,8 @@ class CardRepository @Inject constructor(
     suspend fun deleteSampleCards() {
         cardDao.deleteSampleCards()
     }
+
+    suspend fun deleteAllCards() {
+        cardDao.deleteAllCards()
+    }
 }

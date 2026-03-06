@@ -32,6 +32,8 @@ import com.ritesh.cashiro.data.backup.BackupImporter
 import com.ritesh.cashiro.data.backup.ExportResult
 import com.ritesh.cashiro.data.backup.ImportResult
 import com.ritesh.cashiro.data.backup.ImportStrategy
+import com.ritesh.cashiro.data.repository.MerchantMappingRepository
+import com.ritesh.cashiro.domain.repository.RuleRepository
 import android.content.Intent
 import androidx.core.content.FileProvider
 import com.ritesh.cashiro.core.Constants
@@ -42,6 +44,7 @@ import java.net.URLEncoder
 import java.io.File
 import javax.inject.Inject
 import androidx.core.net.toUri
+import com.ritesh.cashiro.data.database.CashiroDatabase
 import com.ritesh.cashiro.data.repository.TransactionRepository
 import com.ritesh.cashiro.data.repository.AccountBalanceRepository
 import com.ritesh.cashiro.data.repository.CardRepository
@@ -74,9 +77,15 @@ class SettingsViewModel @Inject constructor(
     private val cardRepository: CardRepository,
     private val budgetRepository: BudgetRepository,
     private val subscriptionRepository: SubscriptionRepository,
+    private val ruleRepository: RuleRepository,
+    private val merchantMappingRepository: MerchantMappingRepository,
     private val backupExporter: BackupExporter,
-    private val backupImporter: BackupImporter
+    private val backupImporter: BackupImporter,
+    private val database: CashiroDatabase
 ) : ViewModel() {
+
+    val databaseVersion: Int
+        get() = database.openHelper.readableDatabase.version
 
     val userPreferences = userPreferencesRepository.userPreferences
 
@@ -95,7 +104,6 @@ class SettingsViewModel @Inject constructor(
 
     private var currentDownloadId: Long? = null
 
-    // Developer mode state
     // Developer mode state
     val isDeveloperModeEnabled = userPreferencesRepository.isDeveloperModeEnabled
     val isTestNotificationAlertsEnabled = userPreferencesRepository.isTestNotificationAlertsEnabled
@@ -1072,5 +1080,28 @@ class SettingsViewModel @Inject constructor(
 
     fun clearSeedMessage() {
         _uiState.update { it.copy(seedMessage = null) }
+    }
+
+    fun deleteAllData() {
+        viewModelScope.launch {
+            try {
+                transactionRepository.deleteAllTransactions()
+                accountBalanceRepository.deleteAllBalances()
+                budgetRepository.deleteAllBudgets()
+                subscriptionRepository.deleteAllSubscriptions()
+                cardRepository.deleteAllCards()
+                ruleRepository.deleteAllRules()
+                merchantMappingRepository.deleteAllMappings()
+                unrecognizedSmsRepository.deleteAll()
+                
+                // Clear some relevant preferences
+                userPreferencesRepository.setSampleDataSeeded(false)
+                
+                _uiState.update { it.copy(seedMessage = "All data deleted successfully") }
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "Error deleting data", e)
+                _uiState.update { it.copy(seedMessage = "Failed to delete data: ${e.message}") }
+            }
+        }
     }
 }

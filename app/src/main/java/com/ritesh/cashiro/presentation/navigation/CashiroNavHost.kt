@@ -74,12 +74,13 @@ import com.ritesh.cashiro.presentation.ui.features.home.HomeViewModel
 import com.ritesh.cashiro.presentation.ui.features.onboarding.OnBoardingScreen
 import com.ritesh.cashiro.presentation.ui.features.profile.ProfileScreen
 import com.ritesh.cashiro.presentation.ui.features.settings.SettingsScreen
+import com.ritesh.cashiro.presentation.ui.features.settings.about.AboutScreen
+import com.ritesh.cashiro.presentation.ui.features.settings.about.LicensesScreen
 import com.ritesh.cashiro.presentation.ui.features.settings.appearance.AppearanceScreen
 import com.ritesh.cashiro.presentation.ui.features.settings.appearance.ThemeViewModel
 import com.ritesh.cashiro.presentation.ui.features.settings.applock.AppLockScreen
 import com.ritesh.cashiro.presentation.ui.features.settings.dataprivacy.DataPrivacyScreen
 import com.ritesh.cashiro.presentation.ui.features.settings.developer.DeveloperScreen
-import com.ritesh.cashiro.presentation.ui.features.settings.faq.FAQScreen
 import com.ritesh.cashiro.presentation.ui.features.settings.notifications.NotificationScreen
 import com.ritesh.cashiro.presentation.ui.features.settings.rules.CreateRuleScreen
 import com.ritesh.cashiro.presentation.ui.features.settings.rules.RulesScreen
@@ -93,7 +94,6 @@ import com.ritesh.cashiro.presentation.ui.features.transactions.TransactionsScre
 import com.ritesh.cashiro.presentation.ui.features.transactions.TransactionsViewModel
 import com.ritesh.cashiro.presentation.ui.icons.Iconax
 import com.ritesh.cashiro.presentation.ui.icons.ImportArrow01
-import com.ritesh.cashiro.presentation.ui.icons.Sync
 import com.ritesh.cashiro.presentation.ui.theme.Dimensions
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -275,15 +275,39 @@ fun CashiroNavHost(
                         onNavigateToCategories = { navController.safeNavigate(Categories) },
                         onNavigateToManageAccounts = { navController.safeNavigate(ManageAccounts) },
                         onNavigateToRules = { navController.safeNavigate(Rules) },
-                        onNavigateToFaq = { navController.safeNavigate(Faq) },
                         onNavigateToAppearance = { navController.safeNavigate(Appearance) },
                         onNavigateToProfile = { navController.safeNavigate(Profile) },
                         onNavigateToSms = { navController.safeNavigate(SmsSettings) },
                         onNavigateToNotifications = { navController.safeNavigate(NotificationSettings) },
                         onNavigateToBudgets = { navController.safeNavigate(Budgets()) },
-                        onNavigateToDeveloper = { navController.safeNavigate(DeveloperOptions) },
                         onNavigateToDataPrivacy = { navController.safeNavigate(DataPrivacy) },
+                        onNavigateToAbout = { navController.safeNavigate(About) },
                         blurEffects = themeUiState.blurEffects
+                    )
+                }
+
+                composable<About>(
+                    enterTransition = CashiroTransitions.horizontalSlideEnter,
+                    exitTransition = CashiroTransitions.horizontalSlideExit,
+                    popEnterTransition = CashiroTransitions.horizontalSlidePopEnter,
+                    popExitTransition = CashiroTransitions.horizontalSlidePopExit
+                ) {
+                    AboutScreen(
+                        onNavigateBack = { navController.safePopBackStack() },
+                        onNavigateToLicenses = { navController.safeNavigate(Licenses) },
+                        onNavigateToDeveloper = { navController.safeNavigate(DeveloperOptions) },
+                        blurEffects = themeUiState.blurEffects
+                    )
+                }
+
+                composable<Licenses>(
+                    enterTransition = CashiroTransitions.horizontalSlideEnter,
+                    exitTransition = CashiroTransitions.horizontalSlideExit,
+                    popEnterTransition = CashiroTransitions.horizontalSlidePopEnter,
+                    popExitTransition = CashiroTransitions.horizontalSlidePopExit
+                ) {
+                    LicensesScreen(
+                        onNavigateBack = { navController.safePopBackStack() }
                     )
                 }
 
@@ -381,16 +405,6 @@ fun CashiroNavHost(
                     )
                 }
 
-                composable<Faq>(
-                    enterTransition = CashiroTransitions.horizontalSlideEnter,
-                    exitTransition = CashiroTransitions.horizontalSlideExit,
-                    popEnterTransition = CashiroTransitions.horizontalSlidePopEnter,
-                    popExitTransition = CashiroTransitions.horizontalSlidePopExit
-                ) {
-                    FAQScreen(
-                        onNavigateBack = { navController.safePopBackStack() }
-                    )
-                }
 
                 composable<ManageAccounts>(
                     enterTransition = CashiroTransitions.horizontalSlideEnter,

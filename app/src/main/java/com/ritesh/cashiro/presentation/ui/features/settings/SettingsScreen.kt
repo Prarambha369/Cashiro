@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
@@ -104,15 +105,14 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToCategories: () -> Unit = {},
     onNavigateToManageAccounts: () -> Unit = {},
-    onNavigateToFaq: () -> Unit = {},
     onNavigateToRules: () -> Unit = {},
     onNavigateToAppearance: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
     onNavigateToSms: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
-    onNavigateToDeveloper: () -> Unit = {},
     onNavigateToDataPrivacy: () -> Unit = {},
+    onNavigateToAbout: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     blurEffects: Boolean
 ) {
@@ -258,58 +258,11 @@ fun SettingsScreen(
                         )
                     },
                     onClick = { onNavigateToAppearance() },
-                    shape = ListItemPosition.Middle.toShape(),
-                    padding = PaddingValues(0.dp)
-                )
-
-                ListItem(
-                    headline = {
-                        Text(
-                            text = "Notifications",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                    },
-                    supporting = {
-                        Text(
-                            text = "Manage reminder notification settings",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    leading = {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(
-                                    color = blue_light,
-                                    shape = CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Iconax.NotificationBing,
-                                contentDescription = null,
-                                tint = blue_dark
-                            )
-                        }
-                    },
-                    trailing = {
-                        Icon(
-                            Icons.Rounded.ChevronRight,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    onClick = { onNavigateToNotifications() },
                     shape = ListItemPosition.Bottom.toShape(),
                     padding = PaddingValues(0.dp)
                 )
-                // Data Management Section
-                SectionHeader(
-                    title = "Data Management",
-                    modifier = Modifier.padding(Spacing.md)
-                )
+
+                Spacer( modifier = Modifier.height(Spacing.md))
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(1.5.dp)
@@ -535,12 +488,157 @@ fun SettingsScreen(
                             )
                         },
                         onClick = { onNavigateToDataPrivacy() },
+                        shape = ListItemPosition.Bottom.toShape(),
+                        padding = PaddingValues(0.dp)
+                    )
+                }
+
+                Spacer( modifier = Modifier.height(Spacing.md))
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(1.5.dp)
+                ) {
+                    ListItem(
+                        headline = {
+                            Text(
+                                text = "AI Chat Assistant",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                        },
+                        supporting = {
+                            Text(
+                                text = when (downloadState) {
+                                    DownloadState.NOT_DOWNLOADED -> "Download Qwen 2.5 model (${Constants.ModelDownload.MODEL_SIZE_MB} MB)"
+                                    DownloadState.DOWNLOADING -> "Downloading... $downloadProgress%"
+                                    DownloadState.PAUSED -> "Download paused. Tap to resume."
+                                    DownloadState.COMPLETED -> "Qwen ready for chat"
+                                    DownloadState.FAILED -> "Download failed. Tap to retry."
+                                    DownloadState.ERROR_INSUFFICIENT_SPACE -> "Not enough storage space"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (downloadState == DownloadState.FAILED || downloadState == DownloadState.ERROR_INSUFFICIENT_SPACE)
+                                    MaterialTheme.colorScheme.error
+                                else
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        leading = {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(
+                                        color = yellow_light,
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = yellow_dark
+                                )
+                            }
+                        },
+                        trailing = {
+                            when (downloadState) {
+                                DownloadState.NOT_DOWNLOADED -> {
+                                    Icon(
+                                        Iconax.ImportArrow01,
+                                        contentDescription = "Download",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                DownloadState.DOWNLOADING -> {
+                                    LoadingCircularProgress(
+                                        modifier = Modifier.size(32.dp),
+                                        progress = downloadProgress / 100f
+                                    )
+                                }
+                                DownloadState.PAUSED, DownloadState.FAILED -> {
+                                    Icon(
+                                        Icons.Rounded.Refresh,
+                                        contentDescription = "Retry",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                DownloadState.COMPLETED -> {
+                                    Icon(
+                                        Iconax.Bag,
+                                        contentDescription = "Delete",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                DownloadState.ERROR_INSUFFICIENT_SPACE -> {
+                                    Icon(
+                                        Icons.Rounded.Error,
+                                        contentDescription = "Error",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        },
+                        onClick = {
+                            when (downloadState) {
+                                DownloadState.NOT_DOWNLOADED, DownloadState.PAUSED, DownloadState.FAILED -> {
+                                    settingsViewModel.startModelDownload()
+                                }
+                                DownloadState.DOWNLOADING -> {
+                                    settingsViewModel.cancelDownload()
+                                }
+                                DownloadState.COMPLETED -> {
+                                    showDeleteModelDialog = true
+                                }
+                                else -> {}
+                            }
+                        },
+                        shape = ListItemPosition.Top.toShape(),
+                        padding = PaddingValues(0.dp)
+                    )
+                    // Notifications
+                    ListItem(
+                        headline = {
+                            Text(
+                                text = "Notifications",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                        },
+                        supporting = {
+                            Text(
+                                text = "Manage reminder notification settings",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        leading = {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(
+                                        color = green_light,
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Iconax.NotificationBing,
+                                    contentDescription = null,
+                                    tint = green_dark
+                                )
+                            }
+                        },
+                        trailing = {
+                            Icon(
+                                Icons.Rounded.ChevronRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        onClick = { onNavigateToNotifications() },
                         shape = ListItemPosition.Middle.toShape(),
                         padding = PaddingValues(0.dp)
                     )
-
-
-
                     // SMS
                     ListItem(
                         headline = {
@@ -587,130 +685,18 @@ fun SettingsScreen(
                     )
                 }
 
-
-                // AI Features Section
-                SectionHeader(
-                    title = "AI Features",
-                    modifier = Modifier.padding(Spacing.md)
-                )
-
-                val aiIconColor = yellow_dark
-                val aiBackgroundColor = yellow_light
-
+                Spacer( modifier = Modifier.height(Spacing.md))
                 ListItem(
                     headline = {
                         Text(
-                            text = "AI Chat Assistant",
+                            text = "About",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium
                         )
                     },
                     supporting = {
                         Text(
-                            text = when (downloadState) {
-                                DownloadState.NOT_DOWNLOADED -> "Download Qwen 2.5 model (${Constants.ModelDownload.MODEL_SIZE_MB} MB)"
-                                DownloadState.DOWNLOADING -> "Downloading... $downloadProgress%"
-                                DownloadState.PAUSED -> "Download paused. Tap to resume."
-                                DownloadState.COMPLETED -> "Qwen ready for chat"
-                                DownloadState.FAILED -> "Download failed. Tap to retry."
-                                DownloadState.ERROR_INSUFFICIENT_SPACE -> "Not enough storage space"
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (downloadState == DownloadState.FAILED || downloadState == DownloadState.ERROR_INSUFFICIENT_SPACE)
-                                MaterialTheme.colorScheme.error
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    leading = {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(
-                                    color = aiBackgroundColor,
-                                    shape = CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                tint = aiIconColor
-                            )
-                        }
-                    },
-                    trailing = {
-                        when (downloadState) {
-                            DownloadState.NOT_DOWNLOADED -> {
-                                Icon(
-                                    Iconax.ImportArrow01,
-                                    contentDescription = "Download",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            DownloadState.DOWNLOADING -> {
-                                LoadingCircularProgress(
-                                    modifier = Modifier.size(32.dp),
-                                    progress = downloadProgress / 100f
-                                )
-                            }
-                            DownloadState.PAUSED, DownloadState.FAILED -> {
-                                Icon(
-                                    Icons.Rounded.Refresh,
-                                    contentDescription = "Retry",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            DownloadState.COMPLETED -> {
-                                Icon(
-                                    Iconax.Bag,
-                                    contentDescription = "Delete",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            DownloadState.ERROR_INSUFFICIENT_SPACE -> {
-                                Icon(
-                                    Icons.Rounded.Error,
-                                    contentDescription = "Error",
-                                    tint = MaterialTheme.colorScheme.error
-                                )
-                            }
-                        }
-                    },
-                    onClick = {
-                        when (downloadState) {
-                            DownloadState.NOT_DOWNLOADED, DownloadState.PAUSED, DownloadState.FAILED -> {
-                                settingsViewModel.startModelDownload()
-                            }
-                            DownloadState.DOWNLOADING -> {
-                                settingsViewModel.cancelDownload()
-                            }
-                            DownloadState.COMPLETED -> {
-                                showDeleteModelDialog = true
-                            }
-                            else -> {}
-                        }
-                    },
-                    shape = ListItemPosition.Single.toShape(),
-                    padding = PaddingValues(0.dp)
-                )
-
-
-                // Developer Section
-                SectionHeader(title = "Developer",
-                    modifier = Modifier.padding(Spacing.md))
-
-                ListItem(
-                    headline = {
-                        Text(
-                            text = "Developer Options",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                    },
-                    supporting = {
-                        Text(
-                            text = "Experimental features and developer settings",
+                            text = "App version, source code and more",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -720,15 +706,15 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .size(48.dp)
                                 .background(
-                                    color = grey_light,
-                                    shape = CircleShape
-                                ),
+                                    color = orange_light,
+                                    shape = CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                Iconax.MessageProgramming,
-                                contentDescription = null,
-                                tint = grey_dark
+                            Image(
+                                painter = painterResource(id = R.drawable.cashiro),
+                                contentDescription = "Cashiro Logo",
+                                colorFilter = ColorFilter.tint(orange_dark),
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                     },
@@ -739,116 +725,11 @@ fun SettingsScreen(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
-                    onClick = { onNavigateToDeveloper() },
+                    onClick = { onNavigateToAbout() },
                     shape = ListItemPosition.Single.toShape(),
                     padding = PaddingValues(0.dp)
                 )
-
-                // Support Section
-                SectionHeader(
-                    title = "Support & Community",
-                    modifier = Modifier.padding(Spacing.md)
-                )
-
-                val context = LocalContext.current
-
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(1.5.dp)
-                ) {
-                    ListItem(
-                        headline = {
-                            Text(
-                                text = "Help & FAQ",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium
-                            )
-                        },
-                        supporting = {
-                            Text(
-                                text = "Frequently asked questions and help",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        leading = {
-                            Box(modifier = Modifier
-                                .size(48.dp)
-                                .background(
-                                    color = pink_light,
-                                    shape = CircleShape
-                                ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Iconax.MessageQuestion,
-                                    contentDescription = null,
-                                    tint = pink_dark
-                                )
-                            }
-                        },
-                        trailing = {
-                            Icon(
-                                Icons.Rounded.ChevronRight,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        onClick = { onNavigateToFaq() },
-                        shape = ListItemPosition.Top.toShape(),
-                        padding = PaddingValues(0.dp)
-                    )
-                    ListItem(
-                        headline = {
-                            Text(
-                                text = "Report an Issue",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium
-                            )
-                        },
-                        supporting = {
-                            Text(
-                                text = "Submit bug reports or bank requests on GitHub",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        leading = {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .background(
-                                        color = blue_light,
-                                        shape = CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Iconax.Ghost,
-                                    contentDescription = null,
-                                    tint = blue_dark
-                                )
-                            }
-                        },
-                        trailing = {
-                            Icon(
-                                Iconax.ExportArrow02,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        onClick = {
-                            val intent = Intent(
-                                Intent.ACTION_VIEW,
-                                "https://github.com/ritesh-kanwar/Cashiro/issues/new/choose".toUri()
-                            )
-                            context.startActivity(intent)
-                        },
-                        shape = ListItemPosition.Bottom.toShape(),
-                        padding = PaddingValues(0.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(110.dp))
-                }
+                Spacer(modifier = Modifier.height(110.dp))
             }
         }
 

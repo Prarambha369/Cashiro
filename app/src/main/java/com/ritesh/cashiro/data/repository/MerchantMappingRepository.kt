@@ -37,4 +37,8 @@ class MerchantMappingRepository @Inject constructor(
     suspend fun getMappingCount(): Int {
         return merchantMappingDao.getMappingCount()
     }
+
+    suspend fun deleteAllMappings() {
+        merchantMappingDao.deleteAllMappings()
+    }
 }
