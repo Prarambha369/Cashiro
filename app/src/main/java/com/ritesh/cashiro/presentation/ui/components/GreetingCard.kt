@@ -116,39 +116,49 @@ fun GreetingCard(
                     else -> null
                 }
             }
+            Text(
+                text = monthStatus ?: greeting,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            )
 
             /* Priority Logic:
              1. If unread updates > 0 and (it's not the last day of month OR 50% chance)
              2. If monthStatus is available
              3. Greeting
              */
-            val showUpdates = unreadUpdatesCount > 0 && (monthStatus == null || Math.random() > 0.5)
-            
-            if (showUpdates) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable(onClick = onUpdatesClick)
-                ) {
-                    Text(
-                        text = "$unreadUpdatesCount+ unread updates",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF4285F4)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
-                        contentDescription = null,
-                        tint = Color(0xFF4285F4),
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            } else {
-                Text(
-                    text = monthStatus ?: greeting,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                )
-            }
+
+            /*
+            * Planning to add a OTA update sheet and changelog
+            * therefore commenting out
+            */
+//            val showUpdates = unreadUpdatesCount > 0 && (monthStatus == null || Math.random() > 0.5)
+//
+//            if (showUpdates) {
+//                Row(
+//                    verticalAlignment = Alignment.CenterVertically,
+//                    modifier = Modifier.clickable(onClick = onUpdatesClick)
+//                ) {
+//                    Text(
+//                        text = "$unreadUpdatesCount+ unread updates",
+//                        style = MaterialTheme.typography.bodyMedium,
+//                        color = Color(0xFF4285F4)
+//                    )
+//                    Spacer(modifier = Modifier.width(4.dp))
+//                    Icon(
+//                        imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+//                        contentDescription = null,
+//                        tint = Color(0xFF4285F4),
+//                        modifier = Modifier.size(16.dp)
+//                    )
+//                }
+//            } else {
+//                Text(
+//                    text = monthStatus ?: greeting,
+//                    style = MaterialTheme.typography.bodyMedium,
+//                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+//                )
+//            }
         }
 
         // Action Buttons
