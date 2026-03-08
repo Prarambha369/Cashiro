@@ -19,6 +19,19 @@
 | **Jupiter** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅* | ✅ |
 | **Amazon Pay** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅* | ✅ |
 | **IDFC First** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ |
+| **Equitas Bank** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Faysal Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Emirates NBD** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **ADCB** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **FAB** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Siddhartha Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Melli Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Parsian Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Bangkok Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Kasikorn Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **SCB Thailand** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **M-Pesa Tanzania** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| **Telebirr** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 
 *Uses default balance patterns (may have limited support)
 
@@ -114,6 +127,20 @@
 | **Jupiter** | `JUSPAY`, `JUPITER`, `XX-JUSPAY-S` |
 | **Amazon Pay** | `AMZNPY`, `AMAZONPAY`, `XX-AMZNPY-S` |
 | **IDFC First** | `IDFCFB`, `IDFCFBANK`, `XX-IDFCFB-S` |
+| **Equitas** | `EQUITAS`, `EQUITB`, `XX-EQUITAS-S` |
+| **Faysal Bank** | `FBL`, `FaysalBank`, `8756`, `com.avanza.ambitwizfbl` |
+| **Emirates NBD** | `EmiratesNBD`, `ENBD`, `EmiratesNB` |
+| **ADCB** | `ADCB`, `ADCB_Alert` |
+| **FAB** | `FAB`, `FirstAbuDhab` |
+| **Siddhartha** | `SBL_Alert`, `SBL-Alert`, `SIDDHARTHA` |
+| **Melli Bank** | `MELLI`, `MELLIBANK`, `+98700717` |
+| **Parsian Bank** | `PARSIAN`, `PARSIANBANK`, `PERSIANBANK` |
+| **Bangkok Bank** | `BBL`, `BANGKOK BANK` |
+| **Kasikorn Bank** | `KBank`, `KASIKORN` |
+| **SCB** | `SCB`, `SIAM COMMERCIAL` |
+| **Tigo Pesa** | `TIGOPESA(smsfp)`, `MIXX BY YAS` |
+| **M-Pesa** | `M-PESA`, `Vodacom` |
+| **Selcom Pesa** | `Selcom Pesa` |
 
 ---
 

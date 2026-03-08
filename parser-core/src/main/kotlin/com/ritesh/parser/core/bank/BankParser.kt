@@ -2,6 +2,7 @@ package com.ritesh.parser.core.bank
 
 import com.ritesh.parser.core.CompiledPatterns
 import com.ritesh.parser.core.Constants
+import com.ritesh.parser.core.SmsFilter
 import com.ritesh.parser.core.ParsedTransaction
 import com.ritesh.parser.core.TransactionType
 import java.math.BigDecimal
@@ -56,12 +57,15 @@ abstract class BankParser {
             null
         }
 
+        val rawAccountLast4 = extractAccountLast4(smsBody)
+        val safeAccountLast4 = rawAccountLast4?.let { extractLast4Digits(it) } ?: rawAccountLast4
+
         return ParsedTransaction(
             amount = amount,
             type = type,
             merchant = extractMerchant(smsBody, sender),
             reference = extractReference(smsBody),
-            accountLast4 = extractAccountLast4(smsBody),
+            accountLast4 = safeAccountLast4,
             balance = extractBalance(smsBody),
             creditLimit = availableLimit,  // TODO: This is actually available limit, will be fixed in SmsReaderWorker
             smsBody = smsBody,
@@ -130,7 +134,10 @@ abstract class BankParser {
             "spent", "received", "transferred", "paid"
         )
 
-        return transactionKeywords.any { lowerMessage.contains(it) }
+        val hasKeyword = transactionKeywords.any { lowerMessage.contains(it) }
+        
+        // Final fallback to SmsFilter for broad pattern matching
+        return hasKeyword || SmsFilter.isTransactionMessage(message)
     }
 
     /**
@@ -243,6 +250,8 @@ abstract class BankParser {
             "folio",                        // Mutual fund folio
             "demat",
             "stockbroker",
+            "digital gold",                 // Digital Gold investments
+            "sovereign gold",               // Sovereign Gold Bonds
 
             // Stock exchanges
             "nse",                          // National Stock Exchange
@@ -284,16 +293,76 @@ abstract class BankParser {
     }
 
     /**
+     * Extracts last 4 digits from a raw captured string.
+     * Filters to digits only, takes last 4. Returns null if fewer than 3 digits.
+     */
+    protected fun extractLast4Digits(raw: String): String? {
+        val digits = raw.filter { it.isDigit() }
+        val last4 = digits.takeLast(4)
+        return if (last4.length >= 3) last4 else null
+    }
+
+    /**
      * Extracts last 4 digits of account number.
      */
     protected open fun extractAccountLast4(message: String): String? {
         for (pattern in CompiledPatterns.Account.ALL_PATTERNS) {
             pattern.find(message)?.let { match ->
-                return match.groupValues[1]
+                val rawCapture = match.groupValues[1]
+                val last4 = extractLast4Digits(rawCapture)
+
+                if (last4 != null && isValidAccountLast4(last4, match.value, message)) {
+                    return last4
+                }
             }
         }
 
         return null
+    }
+
+    /**
+     * Validates that the extracted 4 digits are actually part of an account number,
+     * not a date, RRN, or other numeric field.
+     */
+    private fun isValidAccountLast4(last4: String, matchedText: String, fullMessage: String): Boolean {
+        // Escape the last4 for safe regex usage
+        val escapedLast4 = Regex.escape(last4)
+
+        // Check if it's part of a date pattern (dd/mm/yyyy, dd-mm-yyyy, etc.)
+        val datePatterns = listOf(
+            Regex("""\d{1,2}[/-]\d{1,2}[/-]$escapedLast4"""),  // 04/11/2025, 05-02-2025
+            Regex("""$escapedLast4[/-]\d{1,2}[/-]\d{1,2}"""),  // 2025/11/04, 2025-02-05
+            Regex("""\bon\s+\d{1,2}[/-]\d{1,2}[/-]$escapedLast4""", RegexOption.IGNORE_CASE),  // "on 04/11/2025"
+            Regex("""\bdated\s+\d{1,2}[/-]\d{1,2}[/-]$escapedLast4""", RegexOption.IGNORE_CASE)  // "dated 05-02-2025"
+        )
+
+        for (datePattern in datePatterns) {
+            if (datePattern.find(fullMessage) != null) {
+                return false
+            }
+        }
+
+        // Check if it's a standalone year (2024, 2025, etc.)
+        if (last4.toIntOrNull() in 2000..2099) {
+            // Only reject if it appears to be a year in date context
+            val yearContextPatterns = listOf(
+                Regex("""\bon\s+\d{1,2}[/-]\d{1,2}[/-]$escapedLast4""", RegexOption.IGNORE_CASE),
+                Regex("""\bdated\s+.*?$escapedLast4""", RegexOption.IGNORE_CASE),
+                Regex("""$escapedLast4(?:\s|$)""")  // Year at end of phrase
+            )
+
+            for (yearPattern in yearContextPatterns) {
+                if (yearPattern.find(fullMessage) != null) {
+                    // Only reject if NOT preceded by "Account" or "A/c" within 25 chars
+                    val accountBeforeYear = Regex("""(?:A/c|Account|Acct).{0,25}$escapedLast4""", RegexOption.IGNORE_CASE)
+                    if (accountBeforeYear.find(fullMessage) == null) {
+                        return false
+                    }
+                }
+            }
+        }
+
+        return true
     }
 
     /**

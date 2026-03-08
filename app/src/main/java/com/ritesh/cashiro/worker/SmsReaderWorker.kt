@@ -12,6 +12,7 @@ import com.ritesh.parser.core.bank.HDFCBankParser
 import com.ritesh.parser.core.bank.IndianBankParser
 import com.ritesh.parser.core.bank.IndusIndBankParser
 import com.ritesh.parser.core.bank.SBIBankParser
+import com.ritesh.parser.core.SmsFilter
 import com.ritesh.cashiro.data.mapper.toEntity
 import com.ritesh.cashiro.data.mapper.toEntityType
 import com.ritesh.cashiro.data.repository.AccountBalanceRepository
@@ -541,10 +542,11 @@ class SmsReaderWorker @AssistedInject constructor(
                     val upperSender = sms.sender.uppercase()
                     if (upperSender.endsWith("-T") || upperSender.endsWith("-S")) {
                         try {
-                            // Check if this message already exists (including soft-deleted ones)
+                            // Only store as unrecognized if it's a potential financial provider AND not an OTP/Promo
+                            val isTransaction = SmsFilter.isTransactionMessage(sms.body)
                             val alreadyExists = unrecognizedSmsRepository.exists(sms.sender, sms.body)
                             
-                            if (!alreadyExists) {
+                            if (isTransaction && !alreadyExists) {
                                 // Store unrecognized SMS for later reporting
                                 val unrecognizedSms = UnrecognizedSmsEntity(
                                     sender = sms.sender,

@@ -15,6 +15,7 @@ import com.ritesh.parser.core.bank.HDFCBankParser
 import com.ritesh.parser.core.bank.IndianBankParser
 import com.ritesh.parser.core.bank.SBIBankParser
 import com.ritesh.parser.core.bank.IndusIndBankParser
+import com.ritesh.parser.core.SmsFilter
 import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
 import com.ritesh.cashiro.data.database.entity.TransactionType
 import com.ritesh.cashiro.data.database.entity.UnrecognizedSmsEntity
@@ -1349,6 +1350,10 @@ private suspend fun processUnrecognizedSms(sms: SmsMessage) {
     val upperSender = sms.sender.uppercase()
     if (upperSender.endsWith("-T") || upperSender.endsWith("-S")) {
         try {
+            if (!SmsFilter.isTransactionMessage(sms.body)) {
+                Log.d(TAG, "Skipping non-transaction unrecognized SMS from: ${sms.sender}")
+                return
+            }
             val alreadyExists = unrecognizedSmsRepository.exists(sms.sender, sms.body)
 
             if (!alreadyExists) {
