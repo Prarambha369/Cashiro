@@ -290,8 +290,10 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             for (sms in batch) {
                 try {
                     // Skip promotional (-P) and government (-G) messages
+                    // Exception: Allow known banks like DOP that use -G sender IDs
                     val senderUpper = sms.sender.uppercase()
-                    if (senderUpper.endsWith("-P") || senderUpper.endsWith("-G")) {
+                    val isKnownBank = BankParserFactory.isKnownBankSender(sms.sender)
+                    if ((senderUpper.endsWith("-P") || senderUpper.endsWith("-G")) && !isKnownBank) {
                         Log.d(TAG, "Skipping promotional/government SMS from: ${sms.sender}")
                         continue
                     }
@@ -540,8 +542,10 @@ private suspend fun processMessageChunk(
     for (sms in messages) {
         try {
             // Skip promotional (-P) and government (-G) messages
+            // Exception: Allow known banks like DOP that use -G sender IDs
             val senderUpper = sms.sender.uppercase()
-            if (senderUpper.endsWith("-P") || senderUpper.endsWith("-G")) {
+            val isKnownBank = BankParserFactory.isKnownBankSender(sms.sender)
+            if ((senderUpper.endsWith("-P") || senderUpper.endsWith("-G")) && !isKnownBank) {
                 continue
             }
 
@@ -642,8 +646,10 @@ private suspend fun processBatchCoroutinesDirect(
                 atomicProcessed.incrementAndGet()
 
                 // Skip promotional (-P) and government (-G) messages
+                // Exception: Allow known banks like DOP that use -G sender IDs
                 val senderUpper = sms.sender.uppercase()
-                if (senderUpper.endsWith("-P") || senderUpper.endsWith("-G")) {
+                val isKnownBank = BankParserFactory.isKnownBankSender(sms.sender)
+                if ((senderUpper.endsWith("-P") || senderUpper.endsWith("-G")) && !isKnownBank) {
                     continue
                 }
 
@@ -1508,9 +1514,12 @@ private suspend fun readSmsMessages(forceResync: Boolean = false): List<SmsMessa
 
                         // Convert to SmsMessage format for processing
                         if (messageText != null && sender != null) {
-                            // Only process RCS messages from PNB to avoid unnecessary processing
-                            if (sender.uppercase().contains("PUNJAB NATIONAL BANK")) {
-                                Log.d(TAG, "RCS message from PNB (sender: $sender)")
+                            val senderUpper = sender.uppercase()
+                            // Process RCS messages from known financial senders (PNB, Department of Post)
+                            if (senderUpper.contains("PUNJAB NATIONAL BANK") ||
+                                senderUpper.contains("DEPARTMENT OF POST") ||
+                                senderUpper.contains("DOPBNK")) {
+                                Log.d(TAG, "RCS message from recognized financial sender: $sender")
                                 val rcsMessage = SmsMessage(
                                     id = messageId,
                                     sender = sender,
@@ -1520,7 +1529,7 @@ private suspend fun readSmsMessages(forceResync: Boolean = false): List<SmsMessa
                                 )
                                 messages.add(rcsMessage)
                             } else {
-                                Log.d(TAG, "Skipping RCS message from non-PNB sender: $sender")
+                                Log.d(TAG, "Skipping RCS message from non-financial sender: $sender")
                             }
                         }
                     }

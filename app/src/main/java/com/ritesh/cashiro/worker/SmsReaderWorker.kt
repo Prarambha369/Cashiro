@@ -88,8 +88,14 @@ class SmsReaderWorker @AssistedInject constructor(
             // Process all messages from the scan period
             for (sms in messages) {
                 // Skip promotional (-P) and government (-G) messages
+                // Exception: Allow messages if they are from a known bank (like DOP which uses -G)
+                // Also allow if it looks like a transaction message to avoid false positives
                 val senderUpper = sms.sender.uppercase()
-                if (senderUpper.endsWith("-P") || senderUpper.endsWith("-G")) {
+                val isKnownBank = BankParserFactory.isKnownBankSender(sms.sender)
+                val isTransaction = SmsFilter.isTransactionMessage(sms.body)
+                val isDop = senderUpper.contains("DOPBNK") || senderUpper.contains("DOP")
+                
+                if ((senderUpper.endsWith("-P") || senderUpper.endsWith("-G")) && !isKnownBank && !isTransaction && !isDop) {
                     Log.d(TAG, "Skipping promotional/government SMS from: ${sms.sender}")
                     continue
                 }
@@ -538,9 +544,9 @@ class SmsReaderWorker @AssistedInject constructor(
                         }
                     }
                 } else {
-                    // Check if it's from a potential financial provider (-T or -S suffix)
+                    // Check if it's from a potential financial provider (-T, -S, or -G for banks like DOP)
                     val upperSender = sms.sender.uppercase()
-                    if (upperSender.endsWith("-T") || upperSender.endsWith("-S")) {
+                    if (upperSender.endsWith("-T") || upperSender.endsWith("-S") || upperSender.contains("DOP")) {
                         try {
                             // Only store as unrecognized if it's a potential financial provider AND not an OTP/Promo
                             val isTransaction = SmsFilter.isTransactionMessage(sms.body)
@@ -720,9 +726,12 @@ class SmsReaderWorker @AssistedInject constructor(
                             
                             // Convert to SmsMessage format for processing
                             if (messageText != null && sender != null) {
-                                // Only process RCS messages from PNB to avoid unnecessary processing
-                                if (sender.uppercase().contains("PUNJAB NATIONAL BANK")) {
-                                    Log.d(TAG, "RCS message from PNB (sender: $sender)")
+                                val senderUpper = sender.uppercase()
+                                // Process RCS messages from PNB or Department of Post
+                                if (senderUpper.contains("PUNJAB NATIONAL BANK") || 
+                                    senderUpper.contains("DEPARTMENT OF POST") || 
+                                    senderUpper.contains("DOPBNK")) {
+                                    Log.d(TAG, "RCS message from recognized sender: $sender")
                                     val rcsMessage = SmsMessage(
                                         id = messageId,
                                         sender = sender,
@@ -732,7 +741,7 @@ class SmsReaderWorker @AssistedInject constructor(
                                     )
                                     messages.add(rcsMessage)
                                 } else {
-                                    Log.d(TAG, "Skipping RCS message from non-PNB sender: $sender")
+                                    Log.d(TAG, "Skipping RCS message from non-financial sender: $sender")
                                 }
                             }
                         }

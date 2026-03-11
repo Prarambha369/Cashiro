@@ -59,7 +59,7 @@ object SmsFilter {
         // Must contain transaction keywords
         val transactionKeywords = listOf(
             "debited", "credited", "withdrawn", "withdrawal", "withdrawing", "deposited",
-            "spent", "received", "transferred", "paid"
+            "spent", "received", "transferred", "paid", "credit", "debit"
         )
 
         return transactionKeywords.any { lowerMessage.contains(it) }

@@ -37,6 +37,7 @@ object BankParserFactory {
         JKBankParser(),
         JioPayParser(),
         IPPBParser(),
+        DOPBankParser(),
         CityUnionBankParser(),
         IndianOverseasBankParser(),
         AirtelPaymentsBankParser(),

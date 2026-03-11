@@ -16,6 +16,8 @@
 | **Canara Bank** | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
 | **Bank of Baroda** | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
 | **Jio Payments** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ |
+| **Department of Post** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Jupiter** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅* | ✅ |
 | **Jupiter** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅* | ✅ |
 | **Amazon Pay** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅* | ✅ |
 | **IDFC First** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ |
@@ -113,6 +115,13 @@
 | **Debit** | `Debited Rs XXX from A/c` | Debited Rs 2500 from A/c XX9876 |
 | **UPI** | `UPI payment of Rs XXX` | UPI payment of Rs 500 from A/c XX9876 |
 
+### Department of Post (DOP)
+| Type | Template Pattern | Example |
+|------|-----------------|---------|
+| **Credit** | `Account No. XXXXXXXX1234 CREDIT with amount Rs. XXX` | Account No. XXXXXXXX1234 CREDIT with amount Rs. 5550.00 |
+| **Balance** | `Balance: Rs.XXXXX.XX` | Balance: Rs.40000.00 |
+| **Reference** | `[SXXXXXXXX]` | [S76543210] |
+
 ---
 
 ## Sender ID Patterns
@@ -148,6 +157,7 @@
 | **Tigo Pesa** | `TIGOPESA(smsfp)`, `MIXX BY YAS` |
 | **M-Pesa** | `M-PESA`, `Vodacom` |
 | **Selcom Pesa** | `Selcom Pesa` |
+| **DOP** | `DOPBNK`, `XX-DOPBNK-X` |
 
 ---
 
@@ -169,6 +179,7 @@
 | **Canara Bank** | `Total Avail.bal INR XXX` | Total Avail.bal INR 1,092.62 |
 | **Bank of Baroda** | `AvlBal:RsXXX` | AvlBal:Rs10500.50 |
 | **Jio Payments** | `Avl. Bal: Rs. XXX` | Avl. Bal: Rs. 9095.5 |
+| **DOP** | `Balance: Rs.XXXXX.XX` | Balance: Rs.40000.00 |
 
 ### Banks Using Default Patterns
 These banks rely on the base parser patterns which look for:

@@ -46,6 +46,8 @@ object BrandIcons {
         "cultfit" to R.drawable.ic_brand_cultfit,
         "curefit" to R.drawable.ic_brand_curefit,
         "dish tv" to R.drawable.ic_brand_dish_tv,
+        "department of post" to R.drawable.ic_brand_dop,
+        "dop" to R.drawable.ic_brand_dop,
         "dmart" to R.drawable.ic_brand_dmart,
         "dominos" to R.drawable.ic_brand_dominos,
         "dream11" to R.drawable.ic_brand_dream11,
