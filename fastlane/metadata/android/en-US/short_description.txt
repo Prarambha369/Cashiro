@@ -1,1 +1,1 @@
-Offline expense tracker for bank SMS and PDF statements with optional AI chat
+All-In-One Expense-Budget tracker for bank SMS and PDF statements with optional AI chat & Analysis

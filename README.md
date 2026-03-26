@@ -9,10 +9,9 @@
 
 [//]: # ([![Downloads]&#40;https://img.shields.io/badge/Downloads-100+-green&#41;]&#40;https://play.google.com/store/apps/details?id=com.pennywiseai.tracker&#41;)
 
-[//]: # ([![F-Droid]&#40;https://img.shields.io/f-droid/v/com.pennywiseai.tracker?color=1976d2&#41;]&#40;https://f-droid.org/packages/com.pennywiseai.tracker/&#41;)
-[//]: # ([![GitHub release]&#40;https://img.shields.io/github/v/release/sarim2000/pennywiseai-tracker&#41;]&#40;https://github.com/sarim2000/pennywiseai-tracker/releases&#41;)
-
-[//]: # ([![GitHub last commit]&#40;https://img.shields.io/github/last-commit/sarim2000/pennywiseai-tracker&#41;]&#40;https://github.com/sarim2000/pennywiseai-tracker/commits&#41;)
+[![F-Droid](https://img.shields.io/f-droid/v/com.ritesh.cashiro?color=green)](https://f-droid.org/packages/com.ritesh.cashiro/)
+[![GitHub release](https://img.shields.io/github/v/release/ritesh-kanwar/Cashiro)](https://github.com/ritesh-kanwar/Cashiro/releases)
+[![GitHub last commit](https://img.shields.io/github/last-commit/ritesh-kanwar/Cashiro)](https://github.com/ritesh-kanwar/Cashiro/commits)
 
 [//]: # ([![Discord]&#40;https://img.shields.io/badge/Discord-Join_Community-5865F2&#41;]&#40;https://discord.gg/H3xWeMWjKQ&#41;)
 
@@ -22,20 +21,17 @@ Cashiro is a comprehensive financial tracking manager that Turn bank SMS and PDF
 
 
 [//]: # ()
-[//]: # (⭐ **Star us on GitHub — join 100+ supporters!**)
+⭐ **Star us on GitHub**
 
 [//]: # ()
-[//]: # ([![Share]&#40;https://img.shields.io/badge/share-000000?logo=x&logoColor=white&#41;]&#40;https://x.com/intent/tweet?text=Check%20out%20PennyWise%20AI%20-%20Privacy-first%20expense%20tracker%20with%20on-device%20AI:%20https://github.com/sarim2000/pennywiseai-tracker%20%23Android%20%23PrivacyFirst%20%23OnDeviceAI&#41;)
-
-[//]: # ([![Share]&#40;https://img.shields.io/badge/share-0A66C2?logo=linkedin&logoColor=white&#41;]&#40;https://www.linkedin.com/sharing/share-offsite/?url=https://github.com/sarim2000/pennywiseai-tracker&#41;)
-
-[//]: # ([![Share]&#40;https://img.shields.io/badge/share-FF4500?logo=reddit&logoColor=white&#41;]&#40;https://www.reddit.com/submit?title=PennyWise%20AI%20-%20Privacy-first%20expense%20tracker&url=https://github.com/sarim2000/pennywiseai-tracker&#41;)
-
-[//]: # ([![Share]&#40;https://img.shields.io/badge/share-0088CC?logo=telegram&logoColor=white&#41;]&#40;https://t.me/share/url?url=https://github.com/sarim2000/pennywiseai-tracker&text=Check%20out%20PennyWise%20AI&#41;)
+[![Share](https://img.shields.io/badge/share-000000?logo=x&logoColor=white)](https://x.com/intent/tweet?text=Check%20out%20Cashiro%20AI%20-%20Privacy-first%20expense-budget%20tracker%20with%20on-device%20AI:%20https://github.com/ritesh-kanwar/Cashiro%20%23Android%20%23PrivacyFirst%20%23OnDeviceAI)
+[![Share](https://img.shields.io/badge/share-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/sharing/share-offsite/?url=https://github.com/ritesh-kanwar/Cashiro)
+[![Share](https://img.shields.io/badge/share-FF4500?logo=reddit&logoColor=white)](https://www.reddit.com/submit?title=Cashiro%20AI%20-%20Privacy-first%20expense-budget%20tracker&url=https://github.com/ritesh-kanwar/Cashiro)
+[![Share](https://img.shields.io/badge/share-0088CC?logo=telegram&logoColor=white)](https://t.me/share/url?url=https://github.com/ritesh-kanwar/Cashiro&text=Check%20out%20Cashiro%20AI)
 
 ## Overview
 
-For Android users worldwide who want comprehensive financial tracking — automatic expense tracking from bank SMS, manual cash entry, budgeting, clean categories, subscription detection, and clear insights. Supporting 40+ banks across 5 countries with multi-currency capabilities.
+For Android users worldwide who want a comprehensive financial tracking — automatic expense tracking from bank SMS, manual cash entry, budgeting, clean categories, subscription detection, and clear insights. Supporting 80+ banks across 14 countries with multi-currency capabilities.
 
 [//]: # (<a href="https://play.google.com/store/apps/details?id=com.pennywiseai.tracker">)
 
@@ -43,21 +39,21 @@ For Android users worldwide who want comprehensive financial tracking — automa
 
 [//]: # (</a>)
 
-[//]: # (<a href="https://f-droid.org/packages/com.pennywiseai.tracker">)
+<a href="https://f-droid.org/packages/com.ritesh.cashiro">
 
-[//]: # (  <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80">)
+  <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80">
 
-[//]: # (</a>)
+</a>
 
 ### How it works
 
-1. Grant SMS permission (read‑only). No inbox changes, no messages sent.
-2. Cashiro parses transaction SMS, extracts amount, merchant, category, and date.
+1. Grant SMS permission (read‑only). No inbox changes, no messages sent OR import PDF Statements.
+2. Cashiro parses transaction SMS or PDF, extracts amount, merchant, category, and date.
 3. View analytics, subscriptions, and the full transaction timeline — with on-device AI assistant for insights.
 
 ## Why Cashiro
 
-- **🤖 Smart SMS Parsing** - Automatically extracts transaction details from 40+ banks across 5 countries
+- **🤖 Smart SMS Parsing** - Automatically extracts transaction details from 40+ banks SMS across 5 countries
 - **🗂️ Smart PDF Parsing** - Automatically extracts transaction details from GPay and PhonePe PDF UPI Statements.
 - **💰 Smart Budgeting** - Set and track monthly budgets with visual progress indicators
 - **👛 Cash Wallet** - Dedicated default wallet for tracking cash expenses
@@ -74,44 +70,65 @@ For Android users worldwide who want comprehensive financial tracking — automa
 
 ## Supported Banks & Countries
 
-Supporting **47+ banks** across **10 countries** with **multi-currency** capabilities:
+Supporting **80+ banks** across **14 countries** with **multi-currency** capabilities:
 
-### 🇮🇳 India (35 banks) - INR ₹
+### 🇮🇳 India (40+ banks) - INR ₹
 - **HDFC Bank**, **State Bank of India (SBI)**, **ICICI Bank**
 - **Axis Bank**, **Punjab National Bank (PNB)**, **IDBI Bank**
 - **Indian Bank**, **Federal Bank**, **Karnataka Bank**, **Kerala Gramin Bank**
-- **Canara Bank**, **Bank of Baroda**, **Bank of India**
+- **Canara Bank**, **Bank of Baroda**, **Bank of India**, **Union Bank**
 - **Jupiter (CSB Bank)**, **Amazon Pay (Juspay)**, **Kotak Bank**
-- **IDFC First Bank**, **Union Bank**, **HSBC Bank**
-- **Central Bank of India**, **South Indian Bank**, **JK Bank**
-- **Indian Overseas Bank**, **Airtel Payments Bank**, **AMEX**
-- **OneCard**, **UCO Bank**, **AU Bank**, and more...
+- **IDFC First Bank**, **HSBC Bank**, **Central Bank of India**
+- **South Indian Bank**, **JK Bank**, **Indian Overseas Bank**
+- **Airtel Payments Bank**, **AMEX**, **IPPB**, **DOP (Post Office)**
+- **OneCard**, **UCO Bank**, **AU Bank**, **Yes Bank**, **Bandhan Bank**
+- **IndusInd Bank**, **City Union Bank**, **Dhanlaxmi Bank**, **Standard Chartered**
+- **Equitas Small Finance Bank**, **Saraswat Bank**, **DBS Bank**, **Utkarsh Bank**
+- *Services*: **Slice**, **LazyPay**, **Jio Pay**, **Juspay**
 
-### 🇺🇸 USA (4 banks) - USD $
+### 🇺🇸 USA (7 banks) - USD $
 - **Citi Bank**, **Discover Card**, **Old Hickory Credit Union**, **Charles Schwab**
+- **Navy Federal Credit Union**, **AdelFi Credit Union**, **Huntington Bank**
 
-### 🇦🇪 UAE (3 banks) - AED د.إ
-- **First Abu Dhabi Bank (FAB)**
-- **Abu Dhabi Commercial Bank (ADCB)**
-- **Mashreq Bank**
+### 🇦🇪 UAE (5 banks) - AED د.إ
+- **First Abu Dhabi Bank (FAB)**, **Abu Dhabi Commercial Bank (ADCB)**
+- **Emirates NBD**, **Liv Bank**, **Mashreq Bank**
+
+### 🇳🇵 Nepal (5 banks) - NPR ₨
+- **Laxmi Sunrise Bank**, **Everest Bank**, **NMB Bank (Nabil Bank)**
+- **Siddhartha Bank**, **Prime Commercial Bank**
+
+### 🇹🇭 Thailand (11 banks/cards) - THB ฿
+- **Bangkok Bank**, **Kasikorn Bank**, **Siam Commercial Bank**, **Krungthai Bank**
+- **Krungsri (Bank of Ayudhya)**, **TMBThanachart (TTB)**, **Government Savings Bank (GSB)**
+- **BAAC**, **UOB Thailand**, **CIMB Thai**, **KTC Credit Card**
+
+### 🇪🇹 Ethiopia (4 banks/services) - ETB ብር
+- **Commercial Bank of Ethiopia (CBE)**, **Telebirr**, **Zemen Bank**, **Dashen Bank**
+
+### 🇹🇿 Tanzania (3 services) - TZS TSh
+- **M-Pesa Tanzania**, **Selcom Pesa**, **Tigo Pesa (Mixx by Yas)**
+
+### 🇵🇰 Pakistan (2 banks) - PKR ₨
+- **Faysal Bank**, **Standard Chartered Bank**
+
+### 🇮🇷 Iran (2 banks) - IRR ﷼
+- **Melli Bank**, **Parsian Bank**
 
 ### 🇸🇦 Saudi Arabia (1 bank) - SAR ﷼
 - **Alinma Bank (بنك الإنماء)** - Arabic SMS support
 
-### 🇧🇾 Belarus (1 bank) - BYN Br
-- **Priorbank** - Russian/Belarusian SMS support
+### 🇪🇬 Egypt (1 bank) - EGP E£
+- **CIB (Commercial International Bank)**
 
-### 🇳🇵 Nepal (3 banks) - NPR ₨
-- **Laxmi Sunrise Bank**, **Everest Bank**, **NMB Bank (Nabil Bank)**, **Prime Commercial Bank**
-
-### 🇪🇹 Ethiopia (1 bank) - ETB ብር
-- **Commercial Bank of Ethiopia (CBE)**
+### 🇰🇪 Kenya (1 service) - KES Ksh
+- **M-PESA** - Mobile money service
 
 ### 🇨🇴 Colombia (1 bank) - COP $
 - **Bancolombia**
 
-### 🇰🇪 Kenya (1 service) - KES Ksh
-- **M-PESA** - Mobile money service
+### 🇧🇾 Belarus (1 bank) - BYN Br
+- **Priorbank** - Russian/Belarusian SMS support
 
 More banks being added regularly! [Request your bank →](https://github.com/ritesh-kanwar/Cashiro/issues/new?template=bank_support_request.md)
 
