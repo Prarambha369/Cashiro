@@ -119,6 +119,7 @@ object BrandIcons {
         "pepperfry" to R.drawable.ic_brand_pepperfry,
         "pharmeasy" to R.drawable.ic_brand_pharmeasy,
         "phonepe" to R.drawable.ic_brand_phonepe,
+        "prime commercial bank" to R.drawable.ic_brand_prime_commercial_bank,
         "pizza hut" to R.drawable.ic_brand_pizza_hut,
         "policybazaar" to R.drawable.ic_brand_policybazaar,
         "practo" to R.drawable.ic_brand_practo,
@@ -227,6 +228,7 @@ object BrandIcons {
         merchantName.contains("idfc", ignoreCase = true) -> "#8B0000"
         merchantName.contains("indusind", ignoreCase = true) -> "#98272B"
         merchantName.contains("pnb", ignoreCase = true) -> "#0E2B5C"
+        merchantName.contains("prime commercial bank", ignoreCase = true) -> "#0054A6"
         
         // Payments
         merchantName.contains("paytm", ignoreCase = true) -> "#00B9F1"
