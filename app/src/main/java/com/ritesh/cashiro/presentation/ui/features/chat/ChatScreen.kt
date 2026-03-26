@@ -90,6 +90,7 @@ import com.ritesh.cashiro.presentation.effects.overScrollVertical
 import com.ritesh.cashiro.presentation.effects.rememberOverscrollFlingBehavior
 import com.ritesh.cashiro.presentation.ui.components.CustomTitleTopAppBar
 import com.ritesh.cashiro.presentation.ui.components.LoadingCircle
+import com.ritesh.cashiro.presentation.ui.components.LoadingLine
 import com.ritesh.cashiro.presentation.ui.features.categories.NavigationContent
 import com.ritesh.cashiro.presentation.ui.icons.Iconax
 import com.ritesh.cashiro.presentation.ui.icons.Send
@@ -303,21 +304,32 @@ fun ChatScreen(
                 ModelState.DOWNLOADING -> {
                     Box(
                         modifier = Modifier
-                            .fillMaxSize(),
+                            .fillMaxSize()
+                            .padding(paddingValues),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = Spacing.xl),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(Spacing.md)
                         ) {
-                            LoadingCircle()
+                            LoadingCircle(modifier = Modifier.size(64.dp))
                             Text(
-                                text = "Downloading Model...",
+                                text = "Downloading Model... ${uiState.downloadProgress}%",
                                 style = MaterialTheme.typography.bodyLarge
                             )
+                            LoadingLine(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(Spacing.xs)
+                                    .clip(RoundedCornerShape(Spacing.xs)),
+                                progress = uiState.downloadProgress / 100f
+                            )
                             Text(
-                                text = "Check Settings for progress",
-                                style = MaterialTheme.typography.bodyMedium,
+                                text = "Check Settings for more details",
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
