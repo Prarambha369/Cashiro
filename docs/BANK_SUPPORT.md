@@ -27,6 +27,7 @@
 | **ADCB** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **FAB** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **Siddhartha Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Prime Commercial Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **Melli Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **Parsian Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **Bangkok Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
@@ -149,6 +150,7 @@
 | **ADCB** | `ADCB`, `ADCB_Alert` |
 | **FAB** | `FAB`, `FirstAbuDhab` |
 | **Siddhartha** | `SBL_Alert`, `SBL-Alert`, `SIDDHARTHA` |
+| **Prime Commercial** | `PCBLNPKA`, `PRIME_ALERT`, `PRIME`, `AD-PRIME-ALERT` |
 | **Melli Bank** | `MELLI`, `MELLIBANK`, `+98700717` |
 | **Parsian Bank** | `PARSIAN`, `PARSIANBANK`, `PERSIANBANK` |
 | **Bangkok Bank** | `BBL`, `BANGKOK BANK` |

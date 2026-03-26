@@ -602,7 +602,7 @@ object CategoryMapping {
 
     private val BANKING = setOf(
         "hdfc", "icici", "axis", "sbi", "kotak", "bank", "loan", "emi",
-        "credit card", "yes bank", "idfc", "indusind", "pnb", "canara", "union bank", "rbl",
+        "credit card", "yes bank", "idfc", "indusind", "pnb", "canara", "union bank", "rbl", "prime commercial bank",
 
         // --- Newly Added Merchants ---
         "atm withdrawal",

@@ -67,6 +67,7 @@ object BankParserFactory {
         AlinmaBankParser(),  // Alinma Bank (Saudi Arabia)
         NMBBankParser(),  // NMB Bank / Nabil Bank (Nepal)
         SiddharthaBankParser(),  // Siddhartha Bank Limited (Nepal)
+        PrimeCommercialBankParser(),  // Prime Commercial Bank (Nepal)
         MPesaTanzaniaParser(),  // M-Pesa Tanzania (must be before Kenya M-PESA)
         MPESAParser(),  // M-PESA (Kenya)
         SelcomPesaParser(),  // Selcom Pesa (Tanzania)
