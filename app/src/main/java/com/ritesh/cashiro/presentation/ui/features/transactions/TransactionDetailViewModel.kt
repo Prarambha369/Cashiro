@@ -113,6 +113,10 @@ class TransactionDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val transaction = transactionRepository.getTransactionById(transactionId)
             _uiState.update { it.copy(transaction = transaction) }
+            val accountIconName = transaction?.let { txn ->
+                accountBalanceRepository.getLatestBalance(txn.bankName ?: "", txn.accountNumber ?: "")?.iconName
+            }
+            _uiState.update { it.copy(accountIconName = accountIconName) }
             transaction?.let {
                 determinePrimaryCurrency(it)
                 calculateConvertedAmount(it)
@@ -304,7 +308,8 @@ class TransactionDetailViewModel @Inject constructor(
                     bankName = account?.bankName ?: "Manual Entry",
                     accountNumber = account?.accountLast4,
                     currency = account?.currency ?: current.currency
-                )
+                ),
+                accountIconName = account?.iconName // Update the icon name in state too
             )
         }
     }

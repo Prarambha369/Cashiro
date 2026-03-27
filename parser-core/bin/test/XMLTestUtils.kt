@@ -1,5 +1,3 @@
-package com.ritesh.parser.core.test
-
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 import org.w3c.dom.Node
@@ -23,7 +21,7 @@ data class SMSData(
 object XMLTestUtils {
 
     /**
-     * Load SMS data from an XML file in the test resources directory.
+     * Load SMS data from an XML file in the test resources' directory.
      */
     fun loadSMSDataFromXML(fileName: String): List<SMSData> {
         val smsList = mutableListOf<SMSData>()

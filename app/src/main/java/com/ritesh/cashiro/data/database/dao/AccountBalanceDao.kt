@@ -43,6 +43,7 @@ interface AccountBalanceDao {
             ab1.source_type,
             ab1.currency,
             ab1.icon_res_id,
+            ab1.icon_name,
             ab1.is_wallet,
             ab1.color,
             ab1.is_sample
@@ -83,6 +84,7 @@ interface AccountBalanceDao {
             ab1.source_type,
             ab1.currency,
             ab1.icon_res_id,
+            ab1.icon_name,
             ab1.is_wallet,
             ab1.color,
             ab1.is_sample

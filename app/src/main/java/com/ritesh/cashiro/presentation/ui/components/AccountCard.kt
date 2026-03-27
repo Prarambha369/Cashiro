@@ -88,10 +88,11 @@ fun AccountCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
-            val iconResource = remember(account.bankName, account.iconResId) {
+            val iconResource = remember(account.bankName, account.iconResId, account.iconName) {
                 IconProvider.getIconForTransaction(
                     merchantName = account.bankName,
-                    accountIconResId = account.iconResId
+                    accountIconResId = account.iconResId,
+                    accountIconName = account.iconName
                 )
             }
 
@@ -365,6 +366,7 @@ fun AccountCard(
                                     size = 48.dp,
                                     showBackground = true,
                                     accountIconResId = account.iconResId,
+                                    accountIconName = account.iconName,
                                     accountColorHex = account.color
                                 )
                             }

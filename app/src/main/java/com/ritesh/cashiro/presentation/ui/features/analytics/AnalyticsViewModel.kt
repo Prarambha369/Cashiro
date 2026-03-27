@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ritesh.cashiro.data.database.entity.TransactionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionType
+import com.ritesh.cashiro.data.repository.AccountBalanceRepository
 import com.ritesh.cashiro.data.repository.CategoryRepository
 import com.ritesh.cashiro.data.repository.SubcategoryRepository
 import com.ritesh.cashiro.data.repository.TransactionRepository
@@ -29,6 +30,7 @@ class AnalyticsViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val categoryRepository: CategoryRepository,
     private val subcategoryRepository: SubcategoryRepository,
+    private val accountBalanceRepository: AccountBalanceRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     
@@ -75,10 +77,13 @@ class AnalyticsViewModel @Inject constructor(
         _selectedPeriod,
         customDateRange,
         _transactionTypeFilter,
-        _selectedCurrency
-    ) { period, customRange, typeFilter, currency ->
-        FilterState(period, customRange, typeFilter, currency)
-    }.flatMapLatest { filterState ->
+        _selectedCurrency,
+        accountBalanceRepository.getAllLatestBalances() // Add account balances here
+    ) { period, customRange, typeFilter, currency, allAccounts ->
+        FilterState(period, customRange, typeFilter, currency) to allAccounts
+    }.flatMapLatest { (filterState, allAccounts) ->
+        val accountsMap = allAccounts.associateBy { it.accountLast4 } // Create accountsMap here
+
         val dateRange = if (filterState.period == TimePeriod.CUSTOM) {
             val customRange = filterState.customRange
             if (customRange == null) {
@@ -160,13 +165,18 @@ class AnalyticsViewModel @Inject constructor(
                     .mapValues { (merchant, txns) ->
                         val primaryCategory = txns.groupBy { it.category }.maxByOrNull { it.value.size }?.key
                         val primarySubcategory = txns.groupBy { it.subcategory }.maxByOrNull { it.value.size }?.key
+                        val firstTxn = txns.firstOrNull()
+                        val accountLast4 = firstTxn?.accountNumber ?: firstTxn?.fromAccount
+                        val accountIconName = accountLast4?.let { accountsMap[it]?.iconName }
+
                         MerchantData(
                             name = merchant,
                             amount = txns.sumOf { it.amount.toDouble() }.toBigDecimal(),
                             transactionCount = txns.size,
                             isSubscription = txns.any { it.isRecurring },
                             categoryName = primaryCategory,
-                            subcategoryName = primarySubcategory
+                            subcategoryName = primarySubcategory,
+                            accountIconName = accountIconName
                         )
                     }
                     .values

@@ -447,8 +447,8 @@ fun CategoriesScreen(
             EditCategorySheet(
                 category = editingCategory,
                 onDismiss = { categoriesViewModel.hideDialog() },
-                onSave = { name, description, color, iconResId, isIncome ->
-                    categoriesViewModel.saveCategory(name, description, color, iconResId, isIncome)
+                onSave = { name, description, color, iconResId, iconName, isIncome ->
+                    categoriesViewModel.saveCategory(name, description, color, iconResId, iconName, isIncome)
                 },
                 onReset = if (editingCategory?.isSystem == true) {
                     { categoryId -> categoriesViewModel.resetCategory(categoryId) }
@@ -478,8 +478,8 @@ fun CategoriesScreen(
                 categoryIconResId = currentCategory?.iconResId
                     ?: R.drawable.type_food_dining,
                 onDismiss = { categoriesViewModel.hideSubcategoryDialog() },
-                onSave = { name, iconResId, color ->
-                    categoriesViewModel.saveSubcategory(name, iconResId, color)
+                onSave = { name, iconResId, iconName, color ->
+                    categoriesViewModel.saveSubcategory(name, iconResId, iconName, color)
                 },
                 onReset = if (editingSubcategory?.isSystem == true) {
                     { subcategoryId -> categoriesViewModel.resetSubcategory(subcategoryId) }

@@ -46,21 +46,27 @@ import androidx.compose.ui.unit.DpOffset
 import com.ritesh.cashiro.presentation.ui.icons.Bag
 import com.ritesh.cashiro.presentation.ui.icons.Iconax
 import androidx.compose.material3.OutlinedButton
+import com.ritesh.cashiro.utils.IconResolutionUtils
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun EditCategorySheet(
     category: CategoryEntity?,
     onDismiss: () -> Unit,
-    onSave: (name: String, description: String, color: String, iconResId: Int, isIncome: Boolean) -> Unit,
+    onSave: (name: String, description: String, color: String, iconResId: Int, iconName: String, isIncome: Boolean) -> Unit,
     onReset: ((Long) -> Unit)? = null,
     onDelete: (() -> Unit)? = null
 ) {
+    val context = LocalContext.current
     var name by remember { mutableStateOf(category?.name ?: "") }
     var description by remember { mutableStateOf(category?.description ?: "") }
     var colorHex by remember { mutableStateOf(category?.color ?: "#33B5E5") }
     var iconResId by remember {
         mutableIntStateOf(category?.iconResId ?: R.drawable.type_food_dining)
+    }
+    var iconName by remember {
+        mutableStateOf(category?.iconName ?: IconResolutionUtils.resIdToName(context, iconResId))
     }
     var isIncome by remember { mutableStateOf(category?.isIncome ?: false) }
 
@@ -75,9 +81,10 @@ fun EditCategorySheet(
             containerColor = MaterialTheme.colorScheme.surface
         ) {
             IconSelector(
-                selectedIconId = iconResId,
-                onIconSelected = {
-                    iconResId = it
+                selectedIconName = iconName,
+                onIconSelected = { name ->
+                    iconName = name
+                    iconResId = IconResolutionUtils.nameToResId(context, name)
                     showIconSelector = false
                 }
             )
@@ -360,7 +367,7 @@ fun EditCategorySheet(
 
                 // Create/Update button
                 Button(
-                    onClick = { onSave(name, description, colorHex, iconResId, isIncome) },
+                    onClick = { onSave(name, description, colorHex, iconResId, iconName, isIncome) },
                     enabled = name.isNotBlank(),
                     modifier = Modifier
                         .weight(1f)
@@ -381,7 +388,8 @@ fun EditCategorySheet(
                             name = category.defaultName ?: category.name
                             description = category.defaultDescription ?: ""
                             colorHex = category.defaultColor ?: category.color
-                            iconResId = category.defaultIconResId ?: category.iconResId
+                            iconName = category.defaultIconName ?: category.iconName
+                            iconResId = IconResolutionUtils.nameToResId(context, iconName)
                             onReset(category.id)
                         },
                         modifier = Modifier

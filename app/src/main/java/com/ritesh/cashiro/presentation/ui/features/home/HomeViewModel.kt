@@ -87,6 +87,12 @@ class HomeViewModel @Inject constructor(
         .map { subcats -> subcats.associateBy { it.name } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
+    val accountsMap = accountBalanceRepository.getAllLatestBalances()
+        .map { accountList ->
+            accountList.associateBy { "${it.bankName}_${it.accountLast4}" }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
     // Store currency breakdown maps for quick access when switching currencies
     private var currentMonthBreakdownMap: Map<String, TransactionRepository.MonthlyBreakdown> =
         emptyMap()

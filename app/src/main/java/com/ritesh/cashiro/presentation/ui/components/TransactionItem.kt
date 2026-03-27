@@ -64,6 +64,7 @@ fun SharedTransitionScope.TransactionItem(
     categoryEntity: CategoryEntity? = null,
     subcategoryEntity: SubcategoryEntity? = null,
     accountIconResId: Int = 0,
+    accountIconName: String? = null,
     accountColorHex: String? = null,
     showDate: Boolean = true,
     useCardStyle: Boolean = false,
@@ -142,6 +143,7 @@ fun SharedTransitionScope.TransactionItem(
                 category = transaction?.category,
                 subcategory = transaction?.subcategory,
                 accountIconResId = accountIconResId,
+                accountIconName = accountIconName,
                 accountColorHex = accountColorHex
             )
         }

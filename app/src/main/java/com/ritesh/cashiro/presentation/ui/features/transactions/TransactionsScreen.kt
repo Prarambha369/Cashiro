@@ -754,6 +754,7 @@ fun SharedTransitionScope.TransactionsScreen(
                                         categoryEntity = categoriesMap[transaction.category],
                                         subcategoryEntity = transaction.subcategory?.let { subcategoriesMap[it] },
                                         accountIconResId = accountsMap["${transaction.bankName}_${transaction.accountNumber}"]?.iconResId ?: 0,
+                                        accountIconName = accountsMap["${transaction.bankName}_${transaction.accountNumber}"]?.iconName,
                                         accountColorHex = accountsMap["${transaction.bankName}_${transaction.accountNumber}"]?.color,
                                         showDate = dateGroup == DateGroup.EARLIER,
                                         shape = position.toShape(),

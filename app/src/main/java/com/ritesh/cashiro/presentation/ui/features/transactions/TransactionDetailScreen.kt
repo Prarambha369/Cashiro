@@ -388,7 +388,8 @@ fun SharedTransitionScope.TransactionDetailScreen(
                     onAddAttachment = transactionDetailViewModel::addAttachment,
                     onRemoveAttachment = transactionDetailViewModel::removeAttachment,
                     blurEffects = blurEffects,
-                    hazeState = hazeState
+                    hazeState = hazeState,
+                    accountIconName = uiState.accountIconName
                 )
             }
 
@@ -643,6 +644,7 @@ private fun TransactionDetailContent(
     onRemoveAttachment: (String) -> Unit = {},
     blurEffects: Boolean,
     hazeState: HazeState = remember { HazeState()},
+    accountIconName: String?
 ) {
 
     Column(
@@ -685,7 +687,8 @@ private fun TransactionDetailContent(
                     categoryEntity = categoryEntity,
                     subcategoryEntity = subcategoryEntity,
                     blurEffects = blurEffects,
-                    hazeState = hazeState
+                    hazeState = hazeState,
+                    accountIconName = accountIconName
                 )
                 Spacer(modifier = Modifier.height(Spacing.lg))
                 // SMS Body - Always read-only
@@ -804,6 +807,7 @@ private fun EditableTransactionHeader(
     subcategoryEntity: SubcategoryEntity? = null,
     blurEffects: Boolean,
     hazeState: HazeState = remember { HazeState()},
+    accountIconName: String?
 ) {
     CashiroCard(
         modifier = Modifier.fillMaxWidth(),
@@ -904,7 +908,8 @@ private fun EditableTransactionHeader(
                             size = 24.dp,
                             showBackground = false,
                             categoryEntity = categoryEntity,
-                            subcategoryEntity = subcategoryEntity
+                            subcategoryEntity = subcategoryEntity,
+                            accountIconName = accountIconName
                         )
                     },
                     isError = transaction.merchantName.isBlank(),
@@ -1045,6 +1050,7 @@ private fun EditableExtractedInfoCard(
                                     BrandIcon(
                                         merchantName = selectedAccount?.bankName ?: "",
                                         accountIconResId = selectedAccount?.iconResId ?: 0,
+                                        accountIconName = selectedAccount?.iconName,
                                         size = 24.dp,
                                         showBackground = false
                                     )
@@ -1099,6 +1105,7 @@ private fun EditableExtractedInfoCard(
                                     BrandIcon(
                                         merchantName = targetAccount?.bankName ?: "",
                                         accountIconResId = targetAccount?.iconResId ?: 0,
+                                        accountIconName = targetAccount?.iconName,
                                         size = 24.dp,
                                         showBackground = false
                                     )
@@ -1205,6 +1212,7 @@ private fun EditableExtractedInfoCard(
                                 BrandIcon(
                                     merchantName = selectedAccount?.bankName ?: "",
                                     accountIconResId = selectedAccount?.iconResId ?: 0,
+                                    accountIconName = selectedAccount?.iconName,
                                     size = 24.dp,
                                     showBackground = false
                                 )
@@ -1949,6 +1957,7 @@ private fun TransactionReceipt(
                                 size = 20.dp,
                                 showBackground = false,
                                 accountIconResId = fromAccountEntity?.iconResId ?: 0,
+                                accountIconName = fromAccountEntity?.iconName,
                                 accountColorHex = fromAccountEntity?.color
                             )
                         },
@@ -1959,6 +1968,7 @@ private fun TransactionReceipt(
                                     size = 20.dp,
                                     showBackground = false,
                                     accountIconResId = toAccountEntity?.iconResId ?: 0,
+                                    accountIconName = toAccountEntity?.iconName,
                                     accountColorHex = toAccountEntity?.color
                                 )
                             }
@@ -2265,7 +2275,8 @@ private fun ReceiptBadge(
                 size = 32.dp,
                 showBackground = true,
                 categoryEntity = categoryEntity,
-                subcategoryEntity = subcategoryEntity
+                subcategoryEntity = subcategoryEntity,
+                accountIconName = null // Not an account icon in this context
             )
             Text(
                 text = merchantName,

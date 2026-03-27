@@ -20,6 +20,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import com.ritesh.cashiro.R
+import com.ritesh.cashiro.utils.IconResolutionUtils
 import androidx.core.content.edit
 
 data class ManageAccountsUiState(
@@ -41,6 +42,7 @@ data class AccountFormState(
     val creditLimit: String = "",
     val accountType: AccountType = AccountType.SAVINGS,
     val iconResId: Int = 0,
+    val iconName: String = "",
     val isValid: Boolean = false,
     val errorMessage: String? = null
 )
@@ -91,6 +93,7 @@ constructor(
                         sourceType = "MANUAL",
                         isWallet = true,
                         iconResId = R.drawable.type_finance_dollar_banknote,
+                        iconName = "type_finance_dollar_banknote",
                         color = "#4CAF50"
                     )
                 )
@@ -191,8 +194,9 @@ constructor(
         _formState.update { it.copy(accountType = type) }
     }
 
-    fun updateIcon(iconResId: Int) {
-        _formState.update { it.copy(iconResId = iconResId) }
+    fun updateIcon(iconName: String) {
+        val iconResId = IconResolutionUtils.nameToResId(context, iconName)
+        _formState.update { it.copy(iconResId = iconResId, iconName = iconName) }
     }
 
     private fun validateForm(bankName: String, last4: String, balance: String): Boolean {
@@ -207,6 +211,7 @@ constructor(
         balance: BigDecimal,
         accountLast4: String,
         iconResId: Int,
+        iconName: String,
         colorHex: String,
         isCreditCard: Boolean = false,
         isWallet: Boolean = false,
@@ -236,6 +241,7 @@ constructor(
                     isCreditCard = isCreditCard,
                     isWallet = isWallet,
                     iconResId = iconResId,
+                    iconName = iconName,
                     currency = currency,
                     color = colorHex
                 )
@@ -261,6 +267,7 @@ constructor(
             balance = BigDecimal(state.balance),
             accountLast4 = state.accountLast4,
             iconResId = state.iconResId,
+            iconName = state.iconName,
             colorHex = "#33B5E5", // Default or handle color
             isCreditCard = (state.accountType == AccountType.CREDIT),
             isWallet = (state.accountType == AccountType.WALLET),
@@ -283,6 +290,7 @@ constructor(
                 creditLimit = latestBalance?.creditLimit,
                 timestamp = LocalDateTime.now(),
                 iconResId = latestBalance?.iconResId ?: 0,
+                iconName = latestBalance?.iconName ?: "",
                 isWallet = latestBalance?.isWallet ?: false,
                 color = latestBalance?.color ?: "#33B5E5"
             )
@@ -305,6 +313,7 @@ constructor(
                     creditLimit = newLimit,
                     timestamp = LocalDateTime.now(),
                     isCreditCard = true,
+                    iconName = "type_finance_credit_card",
                     color = "#E91E63"
                 )
             )
@@ -528,6 +537,7 @@ constructor(
             isCreditCard: Boolean,
             isWallet: Boolean,
             newIconResId: Int,
+            newIconName: String,
             newColorHex: String,
             newCurrency: String = "INR"
     ) {
@@ -571,6 +581,7 @@ constructor(
                         isWallet = isWallet,
                         sourceType = "MANUAL",
                         iconResId = newIconResId,
+                        iconName = newIconName,
                         currency = newCurrency,
                         color = newColorHex
                     )
@@ -613,6 +624,7 @@ constructor(
                         isCreditCard = targetAccount.isCreditCard,
                         sourceType = "MERGE",
                         iconResId = targetAccount.iconResId,
+                        iconName = targetAccount.iconName,
                         color = targetAccount.color
                     )
                     )

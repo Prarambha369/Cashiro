@@ -19,6 +19,7 @@ import java.time.LocalDateTime
 data class AccountBalanceEntity(
     @PrimaryKey(autoGenerate = true) @ColumnInfo(name = "id") val id: Long = 0,
     @ColumnInfo(name = "icon_res_id", defaultValue = "0") val iconResId: Int = 0,
+    @ColumnInfo(name = "icon_name", defaultValue = "") val iconName: String = "",
     @ColumnInfo(name = "bank_name") val bankName: String,
     @ColumnInfo(name = "account_last4") val accountLast4: String,
     @ColumnInfo(name = "balance") val balance: BigDecimal,

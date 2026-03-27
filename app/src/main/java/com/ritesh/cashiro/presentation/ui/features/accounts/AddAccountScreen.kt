@@ -19,6 +19,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.platform.LocalContext
 import com.ritesh.cashiro.presentation.ui.features.categories.IconSelector
 import com.ritesh.cashiro.presentation.ui.theme.Dimensions
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
@@ -152,9 +153,11 @@ fun AddAccountScreen(
 
     // Icon Selector
     Text("Account Icon", style = MaterialTheme.typography.labelMedium)
+    val context = LocalContext.current
     Box(modifier = Modifier.height(200.dp).fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)) {
         IconSelector(
-            selectedIconId = formState.iconResId,
+            context = context,
+            selectedIconName = formState.iconName,
             onIconSelected = { manageAccountsViewModel.updateIcon(it) }
         )
     }

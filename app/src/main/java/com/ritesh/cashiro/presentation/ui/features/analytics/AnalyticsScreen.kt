@@ -629,6 +629,7 @@ fun SharedTransitionScope.AnalyticsScreen(
                                 subcategoryEntity = if (merchant.categoryName != null && merchant.subcategoryName != null) {
                                     subcategoriesMap[merchant.subcategoryName]
                                 } else null,
+                                accountIconName = merchant.accountIconName,
                                 onClick = {
                                      onNavigateToTransactions(
                                          null,

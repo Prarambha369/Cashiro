@@ -1,5 +1,6 @@
 package com.ritesh.cashiro.data.repository
 
+import android.content.Context
 import com.ritesh.cashiro.data.database.dao.CategoryDao
 import com.ritesh.cashiro.data.database.entity.CategoryEntity
 import com.ritesh.cashiro.di.ApplicationScope
@@ -8,6 +9,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import com.ritesh.cashiro.utils.IconResolutionUtils
 import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -15,6 +18,7 @@ import javax.inject.Singleton
 @Singleton
 class CategoryRepository @Inject constructor(
     private val categoryDao: CategoryDao,
+    @ApplicationContext private val context: Context,
     @ApplicationScope private val externalScope: CoroutineScope
 ) {
     
@@ -50,6 +54,7 @@ class CategoryRepository @Inject constructor(
         description: String = "",
         color: String,
         iconResId: Int = 0,
+        iconName: String = "",
         isIncome: Boolean = false
     ): Long {
         val category = CategoryEntity(
@@ -57,6 +62,7 @@ class CategoryRepository @Inject constructor(
             description = description,
             color = color,
             iconResId = iconResId,
+            iconName = iconName,
             isSystem = false,
             isIncome = isIncome,
             displayOrder = 999
@@ -73,6 +79,7 @@ class CategoryRepository @Inject constructor(
                 description = category.defaultDescription ?: category.description,
                 color = category.defaultColor ?: category.color,
                 iconResId = category.defaultIconResId ?: category.iconResId,
+                iconName = category.defaultIconName ?: category.iconName,
                 updatedAt = LocalDateTime.now()
             )
             categoryDao.updateCategory(resetCategory)

@@ -1,20 +1,29 @@
 package com.ritesh.cashiro.data.repository
 
+import android.content.Context
 import com.ritesh.cashiro.data.database.dao.AccountBalanceDao
 import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
 import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import dagger.hilt.android.qualifiers.ApplicationContext
+import com.ritesh.cashiro.utils.IconResolutionUtils
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class AccountBalanceRepository @Inject constructor(
-    private val accountBalanceDao: AccountBalanceDao
+    private val accountBalanceDao: AccountBalanceDao,
+    @ApplicationContext private val context: Context
 ) {
     
     suspend fun insertBalance(balance: AccountBalanceEntity): Long {
-        return accountBalanceDao.insertBalance(balance)
+        val balanceWithIconName = if (balance.iconName.isEmpty() && balance.iconResId != 0) {
+            balance.copy(iconName = IconResolutionUtils.resIdToName(context, balance.iconResId))
+        } else {
+            balance
+        }
+        return accountBalanceDao.insertBalance(balanceWithIconName)
     }
     
     suspend fun getLatestBalance(bankName: String, accountLast4: String): AccountBalanceEntity? {
@@ -82,6 +91,7 @@ class AccountBalanceRepository @Inject constructor(
                 creditLimit = creditLimit ?: latest?.creditLimit,
                 isCreditCard = isCreditCard || (latest?.isCreditCard ?: false),
                 iconResId = latest?.iconResId ?: 0,
+                iconName = latest?.iconName ?: "",
                 isWallet = latest?.isWallet ?: false,
                 color = latest?.color ?: "#33B5E5"
             )
@@ -109,6 +119,7 @@ class AccountBalanceRepository @Inject constructor(
             sourceType = sourceType,
             currency = currency,
             iconResId = latest?.iconResId ?: 0,
+            iconName = latest?.iconName ?: "",
             isWallet = latest?.isWallet ?: false,
             isCreditCard = latest?.isCreditCard ?: false,
             creditLimit = latest?.creditLimit,

@@ -82,6 +82,7 @@ fun SharedTransitionScope.AccountCarousel(
                 animatedContentScope = animatedContentScope,
                 isWallet = account.isWallet,
                 iconResId = account.iconResId,
+                iconName = account.iconName,
                 color = account.color,
                 blurEffects = blurEffects,
                 hazeState = hazeState,
@@ -113,6 +114,7 @@ fun SharedTransitionScope.AccountCarousel(
                 animatedContentScope = animatedContentScope,
                 isWallet = account.isWallet,
                 iconResId = account.iconResId,
+                iconName = account.iconName,
                 color = account.color,
                 blurEffects = blurEffects,
                 hazeState = hazeState,
@@ -134,6 +136,7 @@ fun SharedTransitionScope.AccountCarouselCard(
     animatedContentScope: AnimatedVisibilityScope? = null,
     isWallet: Boolean = false,
     iconResId: Int = 0,
+    iconName: String? = null,
     color: String? = null,
     blurEffects: Boolean,
     hazeState: HazeState = remember { HazeState() }
@@ -187,10 +190,11 @@ fun SharedTransitionScope.AccountCarouselCard(
         shape = RoundedCornerShape(28.dp),
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            val iconResource = remember(bankName, iconResId) {
+            val iconResource = remember(bankName, iconResId, iconName) {
                 IconProvider.getIconForTransaction(
                     merchantName = bankName,
-                    accountIconResId = iconResId
+                    accountIconResId = iconResId,
+                    accountIconName = iconName
                 )
             }
 
@@ -228,6 +232,7 @@ fun SharedTransitionScope.AccountCarouselCard(
                     size = 48.dp,
                     showBackground = true,
                     accountIconResId = iconResId,
+                    accountIconName = iconName,
                     accountColorHex = color
                 )
 

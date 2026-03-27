@@ -376,6 +376,7 @@ fun SharedTransitionScope.BudgetDetailScreen(
                                 categoryEntity = categoriesMap[transaction.category],
                                 subcategoryEntity = transaction.subcategory?.let { subcategoriesMap[it] },
                                 accountIconResId = account?.iconResId ?: 0,
+                                accountIconName = account?.iconName,
                                 accountColorHex = account?.color,
                                 onClick = { onTransactionClick(transaction.id, "budget_txn_${transaction.id}") },
                                 modifier = Modifier.padding(horizontal = Spacing.md),

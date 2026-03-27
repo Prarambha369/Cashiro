@@ -19,6 +19,7 @@ data class TransactionDetailUiState(
     val showDeleteDialog: Boolean = false,
     val isDeleting: Boolean = false,
     val deleteSuccess: Boolean = false,
-    val subscription: SubscriptionEntity? = null
+    val subscription: SubscriptionEntity? = null,
+    val accountIconName: String? = null
 )
 

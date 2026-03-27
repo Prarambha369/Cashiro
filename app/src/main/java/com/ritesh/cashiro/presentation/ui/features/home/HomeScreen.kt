@@ -187,6 +187,7 @@ fun SharedTransitionScope.HomeScreen(
     val deletedTransaction by homeViewModel.deletedTransaction.collectAsState()
     val categoriesMap by homeViewModel.categoriesMap.collectAsStateWithLifecycle()
     val subcategoriesMap by homeViewModel.subcategoriesMap.collectAsStateWithLifecycle()
+    val accountsMap by homeViewModel.accountsMap.collectAsStateWithLifecycle()
     val homeWidgets by homeViewModel.homeWidgets.collectAsStateWithLifecycle()
     val activity = LocalActivity.current
     val hazeState = remember { HazeState()}
@@ -689,10 +690,14 @@ fun SharedTransitionScope.HomeScreen(
                                                             uiState.recentTransactions.size
                                                         )
 
+                                                        val accountEntity = accountsMap["${transaction.bankName}_${transaction.accountNumber}"]
                                                         TransactionItem(
                                                             transaction = transaction,
                                                             categoryEntity = categoryEntity,
                                                             subcategoryEntity = subcategoryEntity,
+                                                            accountIconResId = accountEntity?.iconResId ?: 0,
+                                                            accountIconName = accountEntity?.iconName,
+                                                            accountColorHex = accountEntity?.color,
                                                             onClick = {
                                                                 onTransactionClick(
                                                                     transaction.id,

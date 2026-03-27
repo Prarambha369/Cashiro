@@ -1124,6 +1124,7 @@ private fun AccountMultiSelectionSheet(
                                 size = 40.dp,
                                 showBackground = true,
                                 accountIconResId = account.iconResId,
+                                accountIconName = account.iconName,
                                 accountColorHex = account.color
                             )
 

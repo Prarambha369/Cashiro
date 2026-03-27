@@ -43,5 +43,6 @@ data class MerchantData(
     val transactionCount: Int,
     val isSubscription: Boolean,
     val categoryName: String? = null,
-    val subcategoryName: String? = null
+    val subcategoryName: String? = null,
+    val accountIconName: String? = null
 )

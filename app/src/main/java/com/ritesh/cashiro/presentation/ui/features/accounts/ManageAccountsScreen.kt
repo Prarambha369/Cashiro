@@ -824,7 +824,7 @@ fun ManageAccountsScreen(
                     accountToEdit = null
                     showDeleteConfirmDialog = true
                 },
-                onSave = { bankName, balance, last4, icon, color, isCC, isWallet, limit, currency ->
+                onSave = { bankName, balance, last4, iconResId, iconName, color, isCC, isWallet, limit, currency ->
                     manageAccountsViewModel.editAccount(
                         oldBankName = accountToEdit!!.bankName,
                         accountLast4 = accountToEdit!!.accountLast4,
@@ -833,7 +833,8 @@ fun ManageAccountsScreen(
                         newCreditLimit = limit,
                         isCreditCard = isCC,
                         isWallet = isWallet,
-                        newIconResId = icon,
+                        newIconResId = iconResId,
+                        newIconName = iconName,
                         newColorHex = color,
                         newCurrency = currency
                     )
@@ -855,12 +856,13 @@ fun ManageAccountsScreen(
             EditAccountSheet(
                 allAccounts = uiState.accounts,
                 onDismiss = { showAddSheet = false },
-                onSave = { bankName, balance, last4, icon, color, isCC, isWallet, limit, currency ->
+                onSave = { bankName, balance, last4, iconResId, iconName, color, isCC, isWallet, limit, currency ->
                     manageAccountsViewModel.addAccount(
                         bankName = bankName,
                         balance = balance,
                         accountLast4 = last4,
-                        iconResId = icon,
+                        iconResId = iconResId,
+                        iconName = iconName,
                         colorHex = color,
                         isCreditCard = isCC,
                         isWallet = isWallet,

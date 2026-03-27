@@ -66,7 +66,7 @@ import com.ritesh.cashiro.data.database.entity.UnrecognizedSmsEntity
             BudgetEntity::class,
             BudgetCategoryLimitEntity::class
         ],
-    version = 45,
+    version = 46,
     exportSchema = true,
     autoMigrations =
         [
@@ -87,7 +87,8 @@ import com.ritesh.cashiro.data.database.entity.UnrecognizedSmsEntity
             AutoMigration(from = 41, to = 42),
             AutoMigration(from = 42, to = 43),
             AutoMigration(from = 43, to = 44, spec = Migration43To44::class),
-            AutoMigration(from = 44, to = 45, spec = Migration44To45::class)
+            AutoMigration(from = 44, to = 45, spec = Migration44To45::class),
+            AutoMigration(from = 45, to = 46, spec = Migration45To46::class)
         ]
 )
 @TypeConverters(Converters::class)
@@ -662,15 +663,15 @@ class Migration43To44 : AutoMigrationSpec {
         db.execSQL(
             """
             INSERT OR IGNORE INTO categories (
-                name, color, icon_res_id, description, is_system, is_income, display_order,
-                default_name, default_color, default_icon_res_id, default_description,
+                name, color, icon_res_id, icon_name, description, is_system, is_income, display_order,
+                default_name, default_color, default_icon_res_id, default_icon_name, default_description,
                 created_at, updated_at
             )
-            VALUES (?, ?, ?, ?, 1, 1, 0, ?, ?, ?, ?, datetime('now'), datetime('now'))
+            VALUES (?, ?, ?, ?, ?, 1, 1, 0, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
             """.trimIndent(),
             arrayOf<Any>(
-                "Income", "#4CAF50", com.ritesh.cashiro.R.drawable.type_finance_money_bag, "Generic income",
-                "Income", "#4CAF50", com.ritesh.cashiro.R.drawable.type_finance_money_bag, "Generic income"
+                "Income", "#4CAF50", com.ritesh.cashiro.R.drawable.type_finance_money_bag, "type_finance_money_bag", "Generic income",
+                "Income", "#4CAF50", com.ritesh.cashiro.R.drawable.type_finance_money_bag, "type_finance_money_bag", "Generic income"
             )
         )
         
@@ -694,17 +695,28 @@ class Migration43To44 : AutoMigrationSpec {
             )
             
             incomeSubcategories.forEach { (name, iconResId, color) ->
+                val iconName = when(name) {
+                    "Freelance" -> "type_stationary_clipboard"
+                    "Business" -> "type_finance_classical_building"
+                    "Bonus" -> "type_stationary_wrapped_gift"
+                    "Gift" -> "type_stationary_wrapped_gift"
+                    "Interest" -> "type_finance_chart_decreasing"
+                    "Refund" -> "type_finance_currency_exchange"
+                    "Other" -> "type_stationary_clipboard"
+                    else -> ""
+                }
+                
                 db.execSQL(
                     """
                     INSERT OR IGNORE INTO subcategories (
-                        category_id, name, icon_res_id, color, is_system,
-                        default_name, default_color, default_icon_res_id
+                        category_id, name, icon_res_id, icon_name, color, is_system,
+                        default_name, default_color, default_icon_res_id, default_icon_name
                     )
-                    VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
                     """.trimIndent(),
                     arrayOf<Any>(
-                        incomeCategoryId, name, iconResId, color,
-                        name, color, iconResId
+                        incomeCategoryId, name, iconResId, iconName, color,
+                        name, color, iconResId, iconName
                     )
                 )
             }
@@ -733,10 +745,10 @@ class Migration44To45 : AutoMigrationSpec {
             db.execSQL(
                 """
                 INSERT OR IGNORE INTO subcategories (
-                    category_id, name, icon_res_id, color, is_system,
-                    default_name, default_color, default_icon_res_id
+                    category_id, name, icon_res_id, icon_name, color, is_system,
+                    default_name, default_color, default_icon_res_id, default_icon_name
                 )
-                VALUES (?, 'Salary', ?, '#8BC34A', 1, 'Salary', '#8BC34A', ?)
+                VALUES (?, 'Salary', ?, 'type_finance_coin', '#8BC34A', 1, 'Salary', '#8BC34A', ?, 'type_finance_coin')
                 """.trimIndent(),
                 arrayOf<Any>(
                     incomeCategoryId, 
@@ -774,5 +786,96 @@ class Migration44To45 : AutoMigrationSpec {
 
         // Delete the old 'Salary' category from categories table
         db.execSQL("DELETE FROM categories WHERE name = 'Salary'")
+    }
+}
+
+/** 
+ * Migration from version 45 to 46. 
+ * Populates icon_name for existing categories, subcategories and account balances.
+ * This preserves stability across app updates.
+ */
+class Migration45To46 : AutoMigrationSpec {
+    override fun onPostMigrate(db: SupportSQLiteDatabase) {
+        super.onPostMigrate(db)
+        
+        // Categories (System ones)
+        val categoryMappings = mapOf(
+            "Food & Drinks" to "type_food_stuffed_flatbread",
+            "Transport" to "type_travel_transport_airplane",
+            "Shopping" to "type_shopping_shopping_bags",
+            "Groceries" to "type_groceries_bread",
+            "Home" to "type_event_and_place_house",
+            "Entertainment" to "type_snack_popcorn",
+            "Events" to "type_event_and_place_party_popper",
+            "Travel" to "type_travel_transport_luggage",
+            "Medical" to "type_health_pill",
+            "Personal" to "type_tool_electronic_scissors",
+            "Fitness" to "type_sports_baseball",
+            "Services" to "type_tool_electronic_high_voltage",
+            "Bill" to "type_travel_transport_admission_tickets",
+            "Subscription" to "type_tool_electronic_clapper_board",
+            "EMI" to "type_travel_transport_automobile",
+            "Credit Bill" to "type_stationary_card_file_box",
+            "Investment" to "type_flower_and_tree_herb",
+            "Support" to "type_health_stethoscope",
+            "Insurance" to "type_health_mending_heart",
+            "Tax" to "type_finance_chart_decreasing",
+            "Top-up" to "type_finance_money_bag",
+            "Children" to "type_event_and_place_houses",
+            "Pet Care" to "type_animal_dog_face",
+            "Business" to "type_finance_classical_building",
+            "Miscellaneous" to "type_stationary_clipboard",
+            "Self Transfer" to "type_finance_bank",
+            "Savings" to "type_sports_bullseye",
+            "Gift" to "type_stationary_wrapped_gift",
+            "Lent" to "type_finance_money_with_wings",
+            "Donation" to "type_health_drop_of_blood",
+            "Hidden Charges" to "type_animal_goblin",
+            "Cash Withdrawal" to "type_finance_dollar_banknote",
+            "Income" to "type_finance_money_bag"
+        )
+        
+        categoryMappings.forEach { (name, iconName) ->
+            db.execSQL("UPDATE categories SET icon_name = ?, default_icon_name = ? WHERE name = ?", arrayOf(iconName, iconName, name))
+        }
+
+        // Subcategories (System ones)
+        // partial list of the most common ones
+        val subcategoryMappings = mapOf(
+            "Eating out" to "type_food_dining",
+            "Take Away" to "type_food_takeout",
+            "Tea & Coffee" to "type_beverages_tea",
+            "Fast Food" to "type_food_hamburger",
+            "Snacks" to "type_snack_cookie",
+            "Swiggy" to "ic_brand_swiggy",
+            "Zomato" to "ic_brand_zomato",
+            "Sweets" to "type_sweet_cupcake",
+            "Uber" to "ic_brand_uber",
+            "Rapido" to "ic_brand_rapido",
+            "Auto" to "type_travel_transport_auto_rickshaw",
+            "Cab" to "type_travel_transport_taxi",
+            "Train" to "type_travel_transport_high_speed_train",
+            "Metro" to "type_travel_transport_metro",
+            "Bus" to "type_travel_transport_bus",
+            "Bike" to "type_travel_transport_motorcycle",
+            "Fuel" to "type_travel_transport_fuel_pump",
+            "Clothes" to "type_shopping_necktie",
+            "Footwear" to "type_shopping_mans_shoe",
+            "Electronics" to "type_tool_electronic_desktop_computer",
+            "Vegetables" to "type_vegetable_broccoli",
+            "Fruits" to "type_fruit_mango",
+            "Dairy" to "type_groceries_glass_of_milk",
+            "Salary" to "type_finance_coin",
+            "Freelance" to "type_stationary_clipboard",
+            "Business" to "type_finance_classical_building",
+            "Bonus" to "type_stationary_wrapped_gift",
+            "Gift" to "type_stationary_wrapped_gift",
+            "Interest" to "type_finance_chart_decreasing",
+            "Refund" to "type_finance_currency_exchange"
+        )
+        
+        subcategoryMappings.forEach { (name, iconName) ->
+            db.execSQL("UPDATE subcategories SET icon_name = ?, default_icon_name = ? WHERE name = ? AND is_system = 1", arrayOf(iconName, iconName, name))
+        }
     }
 }

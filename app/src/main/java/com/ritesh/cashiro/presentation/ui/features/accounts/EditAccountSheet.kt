@@ -54,6 +54,8 @@ import com.ritesh.cashiro.presentation.ui.icons.Wallet3
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
 import com.ritesh.cashiro.utils.CurrencyFormatter
 import java.math.BigDecimal
+import com.ritesh.cashiro.utils.IconResolutionUtils
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -66,6 +68,7 @@ fun EditAccountSheet(
         balance: BigDecimal,
         accountLast4: String,
         iconResId: Int,
+        iconName: String,
         colorHex: String,
         isCreditCard: Boolean,
         isWallet: Boolean,
@@ -73,6 +76,7 @@ fun EditAccountSheet(
         currency: String
     ) -> Unit
 ) {
+    val context = LocalContext.current
     var bankName by remember { mutableStateOf(account?.bankName ?: "") }
     var balance by remember { mutableStateOf(account?.balance ?: BigDecimal.ZERO) }
     var creditLimit by remember { mutableStateOf(account?.creditLimit ?: BigDecimal.ZERO) }
@@ -85,6 +89,9 @@ fun EditAccountSheet(
             if (account?.iconResId != 0 && account?.iconResId != null) account.iconResId
             else R.drawable.type_finance_bank
         )
+    }
+    var iconName by remember {
+        mutableStateOf(account?.iconName ?: IconResolutionUtils.resIdToName(context, iconResId))
     }
     var colorHex by remember { mutableStateOf(account?.color ?: "#33B5E5") }
 
@@ -128,9 +135,10 @@ fun EditAccountSheet(
             dragHandle = { BottomSheetDefaults.DragHandle() }
         ) {
             IconSelector(
-                selectedIconId = iconResId,
-                onIconSelected = {
-                    iconResId = it
+                selectedIconName = iconName,
+                onIconSelected = { name ->
+                    iconName = name
+                    iconResId = IconResolutionUtils.nameToResId(context, name)
                     showIconSelector = false
                 }
             )
@@ -243,6 +251,7 @@ fun EditAccountSheet(
                             isCreditCard = false
                             accountLast4 = "wallet"
                             bankName = "Cash"
+                            iconName = "type_finance_dollar_banknote"
                             iconResId = R.drawable.type_finance_dollar_banknote
                             colorHex = "#8BC34A"
                         },
@@ -274,6 +283,7 @@ fun EditAccountSheet(
                     balance = balance,
                     accountLast4 = accountLast4.ifEmpty { "0000" },
                     iconResId = iconResId,
+                    iconName = iconName,
                     colorHex = colorHex,
                     currency = selectedCurrency,
                     isCreditCard = isCreditCard,
@@ -649,6 +659,7 @@ fun EditAccountSheet(
                             balance,
                             accountLast4,
                             iconResId,
+                            iconName,
                             colorHex,
                             isCreditCard,
                             isWallet,
@@ -680,6 +691,7 @@ private fun PreviewAccountCard(
     balance: BigDecimal,
     accountLast4: String,
     iconResId: Int,
+    iconName: String,
     colorHex: String,
     currency: String,
     isCreditCard: Boolean = false,

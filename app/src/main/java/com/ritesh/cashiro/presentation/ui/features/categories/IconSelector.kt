@@ -1,5 +1,6 @@
 package com.ritesh.cashiro.presentation.ui.features.categories
 
+import android.content.Context
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.LinearEasing
@@ -49,6 +50,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -61,21 +63,22 @@ import com.ritesh.cashiro.R
 import com.ritesh.cashiro.presentation.ui.components.SearchBarBox
 
 data class IconItem(
-        val id: Int,
         val name: String,
         val category: String,
+        val iconName: String,
         val resourceId: Int
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IconSelector(
-        selectedIconId: Int?,
-        onIconSelected: (Int) -> Unit,
+    context: Context = LocalContext.current,
+    selectedIconName: String?,
+    onIconSelected: (String) -> Unit,
 ) {
     var searchQuery by remember { mutableStateOf(TextFieldValue("")) }
 
-    val allIcons = remember { getAllIcons() }
+    val allIcons = remember { getAllIcons(context) }
 
     val filteredIcons =
             remember(searchQuery.text) {
@@ -148,7 +151,7 @@ fun IconSelector(
         ) { iconsToDisplay ->
             IconFlowLayout(
                     icons = iconsToDisplay,
-                    selectedIconId = selectedIconId,
+                    selectedIconName = selectedIconName,
                     onIconSelected = onIconSelected,
             )
         }
@@ -159,8 +162,8 @@ fun IconSelector(
 @Composable
 private fun IconFlowLayout(
     icons: List<IconItem>,
-    selectedIconId: Int?,
-    onIconSelected: (Int) -> Unit,
+    selectedIconName: String?,
+    onIconSelected: (String) -> Unit,
 ) {
     val themeColors = MaterialTheme.colorScheme
     val groupedIcons = icons.groupBy { it.category }
@@ -208,8 +211,8 @@ private fun IconFlowLayout(
                     iconsInCategory.forEach { icon ->
                         IconItemView(
                                 icon = icon,
-                                isSelected = icon.resourceId == selectedIconId,
-                                onClick = { onIconSelected(icon.resourceId) }
+                                isSelected = icon.iconName == selectedIconName,
+                                onClick = { onIconSelected(icon.iconName) }
                         )
                     }
                 }
@@ -277,12 +280,17 @@ private fun IconItemView(
     }
 }
 
-private fun getAllIcons(): List<IconItem> {
+private fun getAllIcons(context: android.content.Context): List<IconItem> {
     val icons = mutableListOf<IconItem>()
 
     // Helper to add icons
     fun addIcon(name: String, category: String, resId: Int) {
-        icons.add(IconItem(icons.size, name, category, resId))
+        val iconName = try {
+            context.resources.getResourceEntryName(resId)
+        } catch (e: Exception) {
+            "" // Fallback if resource name cannot be retrieved
+        }
+        icons.add(IconItem(name, category, iconName, resId))
     }
 
     // Animals

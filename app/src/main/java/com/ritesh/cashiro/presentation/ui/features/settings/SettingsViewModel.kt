@@ -60,6 +60,7 @@ import com.ritesh.cashiro.data.database.entity.TransactionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionType
 import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
 import com.ritesh.cashiro.data.database.entity.SubscriptionState
+import com.ritesh.cashiro.utils.IconResolutionUtils
 import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -670,6 +671,7 @@ class SettingsViewModel @Inject constructor(
                             timestamp = now.minusDays(i.toLong()),
                             sourceType = "MANUAL",
                             iconResId = R.drawable.type_finance_bank,
+                            iconName = IconResolutionUtils.resIdToName(context, R.drawable.type_finance_bank),
                             color = "#33B5E5",
                             isSample = true
                         )
@@ -687,6 +689,7 @@ class SettingsViewModel @Inject constructor(
                         isCreditCard = true,
                         sourceType = "MANUAL",
                         iconResId = R.drawable.type_stationary_card_file_box,
+                        iconName = IconResolutionUtils.resIdToName(context, R.drawable.type_stationary_card_file_box),
                         color = "#E91E63",
                         isSample = true
                     )
@@ -700,6 +703,7 @@ class SettingsViewModel @Inject constructor(
                         balance = BigDecimal(75000),
                         timestamp = now,
                         iconResId = R.drawable.type_finance_bank,
+                        iconName = IconResolutionUtils.resIdToName(context, R.drawable.type_finance_bank),
                         color = "#1976D2",
                         isSample = true
                     )
@@ -715,7 +719,8 @@ class SettingsViewModel @Inject constructor(
                         sourceType = "MANUAL",
                         isWallet = true,
                         isSample = true,
-                        iconResId = R.drawable.type_finance_dollar_banknote
+                        iconResId = R.drawable.type_finance_dollar_banknote,
+                        iconName = IconResolutionUtils.resIdToName(context, R.drawable.type_finance_dollar_banknote)
                     )
                 )
 
@@ -783,12 +788,18 @@ class SettingsViewModel @Inject constructor(
                     }
                     
                     // Split into few transactions per month
+                    val foodMerchants = listOf("Swiggy", "Zomato", "Blinkit", "Zepto")
                     for (i in 1..4) {
                         transactionRepository.insertTransaction(
                             TransactionEntity(
                                 amount = BigDecimal(baseAmount / 4),
-                                merchantName = "Groceries $i",
+                                merchantName = foodMerchants[i-1],
                                 category = foodCategory,
+                                subcategory = when(foodMerchants[i-1]) {
+                                    "Swiggy", "Zomato" -> "Eating out"
+                                    "Blinkit", "Zepto" -> "Groceries"
+                                    else -> "Eating out"
+                                },
                                 transactionType = TransactionType.EXPENSE,
                                 dateTime = monthDate.withDayOfMonth(i * 5).withHour(12),
                                 transactionHash = UUID.randomUUID().toString(),
@@ -821,6 +832,7 @@ class SettingsViewModel @Inject constructor(
                 )
 
                 // Seed transactions for Weekly Fun (Last 5 weeks inclusive)
+                val entertainmentMerchants = listOf("Netflix", "Spotify", "BookMyShow", "PVR", "Youtube")
                 for (weekOffset in 0..4) {
                     val weekDate = now.minusWeeks(weekOffset.toLong())
                     val amount = when(weekOffset) {
@@ -835,8 +847,12 @@ class SettingsViewModel @Inject constructor(
                     transactionRepository.insertTransaction(
                         TransactionEntity(
                             amount = BigDecimal(amount),
-                            merchantName = "Movie/Games",
+                            merchantName = entertainmentMerchants[weekOffset],
                             category = entertainmentCategory,
+                            subcategory = when(entertainmentMerchants[weekOffset]) {
+                                "Netflix", "Spotify", "Youtube" -> "Subscription"
+                                else -> "Movies"
+                            },
                             transactionType = TransactionType.EXPENSE,
                             dateTime = weekDate.withHour(20),
                             transactionHash = UUID.randomUUID().toString(),
@@ -870,7 +886,7 @@ class SettingsViewModel @Inject constructor(
                  
                  // 1. Weekly Subscription: Fruits & Vegetables
                  val weeklyFruits = SubscriptionEntity(
-                     merchantName = "Daily Fresh Vegetables",
+                     merchantName = "BigBasket",
                      amount = BigDecimal(500),
                      nextPaymentDate = today.plusDays(3),
                      billingCycle = "WEEKLY",
@@ -885,7 +901,7 @@ class SettingsViewModel @Inject constructor(
                      transactionRepository.insertTransaction(
                          TransactionEntity(
                              amount = BigDecimal(500),
-                             merchantName = "Daily Fresh Vegetables",
+                             merchantName = "BigBasket",
                              category = "Groceries",
                              transactionType = TransactionType.EXPENSE,
                              dateTime = now.minusWeeks(i.toLong()).withHour(10),
@@ -930,7 +946,7 @@ class SettingsViewModel @Inject constructor(
 
                  // 3. Monthly Subscription: Rent
                  val rent = SubscriptionEntity(
-                     merchantName = "House Rent",
+                     merchantName = "NoBroker Rent",
                      amount = BigDecimal(25000),
                      nextPaymentDate = today.plusMonths(1).withDayOfMonth(1),
                      billingCycle = "MONTHLY",
@@ -945,7 +961,7 @@ class SettingsViewModel @Inject constructor(
                      transactionRepository.insertTransaction(
                          TransactionEntity(
                              amount = BigDecimal(25000),
-                             merchantName = "House Rent",
+                             merchantName = "NoBroker Rent",
                              category = "Bill",
                              transactionType = TransactionType.EXPENSE,
                              dateTime = now.minusMonths(i.toLong()).withDayOfMonth(1).withHour(9),

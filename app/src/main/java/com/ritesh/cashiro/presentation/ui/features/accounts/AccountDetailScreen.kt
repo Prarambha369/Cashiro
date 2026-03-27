@@ -237,6 +237,7 @@ fun SharedTransitionScope.AccountDetailScreen(
                         balanceAfter = transaction.balanceAfter,
                         balanceCurrency = uiState.primaryCurrency,
                         accountIconResId = uiState.currentBalance?.iconResId ?: 0,
+                        accountIconName = uiState.currentBalance?.iconName,
                         accountColorHex = uiState.currentBalance?.color,
                         onClick = {
                             navController.safeNavigate(
