@@ -43,6 +43,7 @@ data class AccountFormState(
     val accountType: AccountType = AccountType.SAVINGS,
     val iconResId: Int = 0,
     val iconName: String = "",
+    val currency: String = "INR",
     val isValid: Boolean = false,
     val errorMessage: String? = null
 )
@@ -199,6 +200,10 @@ constructor(
         _formState.update { it.copy(iconResId = iconResId, iconName = iconName) }
     }
 
+    fun updateCurrency(currency: String) {
+        _formState.update { it.copy(currency = currency) }
+    }
+
     private fun validateForm(bankName: String, last4: String, balance: String): Boolean {
         return bankName.isNotBlank() &&
                 last4.length == 4 &&
@@ -272,6 +277,7 @@ constructor(
             isCreditCard = (state.accountType == AccountType.CREDIT),
             isWallet = (state.accountType == AccountType.WALLET),
             creditLimit = creditLimit,
+            currency = state.currency
         )
 
         // Clear form

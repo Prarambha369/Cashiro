@@ -1,39 +1,19 @@
 package com.ritesh.cashiro.utils
 
+import com.ritesh.cashiro.data.currency.model.CurrencySymbols
 import com.ritesh.parser.core.bank.BankParserFactory
 import java.math.BigDecimal
+import java.text.DecimalFormat
 import java.text.NumberFormat
 import java.util.Currency
 import java.util.Locale
 
 /**
- * Utility object for formatting currency values with multi-currency support
+ * Utility class for formatting currency values
  */
 object CurrencyFormatter {
 
-    private val INDIAN_LOCALE = Locale.Builder().setLanguage("en").setRegion("IN").build()
-
-    /**
-     * Currency symbol mapping for display
-     */
-    private val CURRENCY_SYMBOLS = mapOf(
-        "INR" to "₹",
-        "USD" to "$",
-        "EUR" to "€",
-        "GBP" to "£",
-        "AED" to "AED",
-        "SGD" to "S$",
-        "CAD" to "C$",
-        "AUD" to "A$",
-        "JPY" to "¥",
-        "CNY" to "¥",
-        "NPR" to "₨",
-        "ETB" to "ብር",
-        "THB" to "฿",
-        "MYR" to "RM",
-        "KWD" to "KD",
-        "KRW" to "₩"
-    )
+    private val INDIAN_LOCALE = Locale("en", "IN")
 
     /**
      * Locale mapping for different currencies
@@ -54,7 +34,11 @@ object CurrencyFormatter {
         "THB" to Locale.Builder().setLanguage("th").setRegion("TH").build(),
         "MYR" to Locale.Builder().setLanguage("ms").setRegion("MY").build(),
         "KWD" to Locale.Builder().setLanguage("en").setRegion("KW").build(),
-        "KRW" to Locale.KOREA
+        "KRW" to Locale.KOREA,
+        "SEK" to Locale.Builder().setLanguage("sv").setRegion("SE").build(),
+        "CHF" to Locale.Builder().setLanguage("de").setRegion("CH").build(),
+        "NZD" to Locale.Builder().setLanguage("en").setRegion("NZ").build(),
+        "MXN" to Locale.Builder().setLanguage("es").setRegion("MX").build()
     )
 
     /**
@@ -64,23 +48,39 @@ object CurrencyFormatter {
         return try {
             val locale = CURRENCY_LOCALES[currencyCode] ?: INDIAN_LOCALE
             val formatter = NumberFormat.getCurrencyInstance(locale)
+            
+            // Get our custom symbol
+            val customSymbol = CurrencySymbols.getSymbol(currencyCode)
 
+            // Configure formatting rules
+            formatter.minimumFractionDigits = 0
+            formatter.maximumFractionDigits = 2
+ 
             // Set the currency if supported
             try {
                 formatter.currency = Currency.getInstance(currencyCode)
             } catch (e: Exception) {
                 // If currency not supported, use symbol mapping
-                val symbol = CURRENCY_SYMBOLS[currencyCode] ?: currencyCode
-                return "$symbol${formatAmount(amount)}"
+                return "$customSymbol${formatAmount(amount)}"
             }
-
-            // Show decimals only if they exist
-            formatter.minimumFractionDigits = 0
-            formatter.maximumFractionDigits = 2
-            formatter.format(amount)
+ 
+            val formatted = formatter.format(amount)
+            
+            // If the formatted string doesn't contain our custom symbol, or contains the ISO code,
+            // we override it to ensure the custom symbol is used.
+            if (formatted.contains(currencyCode) || !formatted.contains(customSymbol)) {
+                val cleanAmount = formatAmount(amount)
+                return if (locale == Locale.US || locale == INDIAN_LOCALE || locale == Locale.UK) {
+                    "$customSymbol$cleanAmount"
+                } else {
+                    "$cleanAmount $customSymbol"
+                }
+            }
+            
+            formatted
         } catch (e: Exception) {
             // Fallback to symbol + amount
-            val symbol = CURRENCY_SYMBOLS[currencyCode] ?: currencyCode
+            val symbol = CurrencySymbols.getSymbol(currencyCode)
             "$symbol${formatAmount(amount)}"
         }
     }
@@ -95,32 +95,23 @@ object CurrencyFormatter {
     /**
      * Legacy method for backward compatibility - defaults to INR
      */
-    fun formatCurrency(amount: BigDecimal): String {
-        return formatCurrency(amount, "INR")
+    fun formatAmount(amount: BigDecimal): String {
+        val formatter = DecimalFormat("#,##,##0.00")
+        return formatter.format(amount)
     }
 
     /**
      * Legacy method for backward compatibility - defaults to INR
      */
-    fun formatCurrency(amount: Double): String {
-        return formatCurrency(amount.toBigDecimal(), "INR")
+    fun formatAmount(amount: Double): String {
+        return formatAmount(amount.toBigDecimal())
     }
 
     /**
-     * Formats just the numeric amount without currency symbol
-     */
-    private fun formatAmount(amount: BigDecimal): String {
-        val formatter = NumberFormat.getNumberInstance(INDIAN_LOCALE)
-        formatter.minimumFractionDigits = 0
-        formatter.maximumFractionDigits = 2
-        return formatter.format(amount)
-    }
-
-    /**
-     * Gets the currency symbol for a given currency code
+     * Get symbol for a currency code
      */
     fun getCurrencySymbol(currencyCode: String): String {
-        return CURRENCY_SYMBOLS[currencyCode] ?: currencyCode
+        return CurrencySymbols.getSymbol(currencyCode)
     }
 
     /**
@@ -131,7 +122,11 @@ object CurrencyFormatter {
         if (bankName == null) return "INR"
 
         // Try to find a parser that can handle this bank name
-        val parser = BankParserFactory.getParserByName(bankName)
-        return parser?.getCurrency() ?: "INR"
+        return try {
+            val parser = BankParserFactory.getParser(bankName)
+            parser?.getCurrency() ?: "INR"
+        } catch (e: Exception) {
+            "INR"
+        }
     }
 }
