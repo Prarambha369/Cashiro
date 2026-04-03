@@ -19,5 +19,8 @@ data class OnBoardingUiState(
     val onboardingFinished: Boolean = false,
     val manualAccountName: String = "",
     val manualAccountBalance: String = "",
-    val manualAccountLast4: String = ""
+    val manualAccountLast4: String = "",
+    val selectedCurrency: String = "INR", // Default currency
+    val showCurrencyBottomSheet: Boolean = false,
+    val permissionSubStep: Int = 0 // 0: SMS, 1: Notification
 )

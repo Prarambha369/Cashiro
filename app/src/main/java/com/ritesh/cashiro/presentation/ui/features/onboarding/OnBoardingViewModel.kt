@@ -86,16 +86,28 @@ constructor(
     }
 
     fun nextStep() {
-        _uiState.update { it.copy(currentStep = it.currentStep + 1) }
+        _uiState.update { state ->
+            val next = when (state.currentStep) {
+                1 -> 2 // Welcome -> SMS
+                2 -> 3 // SMS -> Notification
+                3 -> 4 // Notification -> Account Phase (Sync/Manual)
+                4 -> 5 // Account Phase -> Profile
+                else -> state.currentStep
+            }
+            state.copy(currentStep = next)
+        }
     }
 
     fun previousStep() {
-        if (_uiState.value.currentStep > 1) {
-            val prev = when (_uiState.value.currentStep) {
-                5, 6 -> 4
-                else -> _uiState.value.currentStep - 1
+        _uiState.update { state ->
+            val prev = when (state.currentStep) {
+                5 -> 4 // Profile -> Account Phase
+                4 -> 3 // Account Phase -> Notification
+                3 -> 2 // Notification -> SMS
+                2 -> 1 // SMS -> Welcome
+                else -> if (state.currentStep > 1) state.currentStep - 1 else 1
             }
-            _uiState.update { it.copy(currentStep = prev) }
+            state.copy(currentStep = prev)
         }
     }
 
@@ -146,7 +158,7 @@ constructor(
                     profile.editedProfileBackgroundColor.toArgb()
             )
             userPreferencesRepository.updateBannerImageUri(profile.editedBannerImageUri?.toString())
-            nextStep()
+            finishOnboarding()
         }
     }
 
@@ -159,6 +171,19 @@ constructor(
 
     fun onPermissionDenied() {
         _uiState.update { it.copy(showRationale = true) }
+    }
+
+    fun skipSmsPermission() {
+        nextStep()
+        viewModelScope.launch { userPreferencesRepository.updateSkippedSmsPermission(true) }
+    }
+
+    fun toggleCurrencyBottomSheet(show: Boolean) {
+        _uiState.update { it.copy(showCurrencyBottomSheet = show) }
+    }
+
+    fun updateSelectedCurrency(currency: String) {
+        _uiState.update { it.copy(selectedCurrency = currency) }
     }
 
     private fun observeScanWorkInfo() {
@@ -199,23 +224,23 @@ constructor(
         viewModelScope.launch {
             val accounts = accountBalanceRepository.getAllLatestBalances().first()
             if (accounts.size == 1) {
-                // If only one account, set as main and proceed
+                // If only one account, set as main and proceed to profile
                 val account = accounts.first()
                 setAsMainAccount(account.bankName, account.accountLast4)
-                finishOnboarding()
-            } else if (accounts.size > 1) {
-                // If multiple accounts, move to next step (Account Setup)
                 nextStep()
+            } else if (accounts.size > 1) {
+                // If multiple accounts, move to next step (handled in OnBoardingScreen based on results)
+
             } else {
-                // If no accounts found, redirect to manual entry (Step 6)
-                _uiState.update { it.copy(currentStep = 6) }
+                // If no accounts found, the UI will show manual option
+                _uiState.update { it.copy(hasSkippedPermission = true) }
             }
         }
     }
 
     fun skipSync() {
-        // Move to manual entry (Step 6)
-        _uiState.update { it.copy(currentStep = 6) }
+        // Move to manual entry within Stage 4
+        _uiState.update { it.copy(hasSkippedPermission = true) }
     }
 
     fun updateManualAccountName(name: String) {
@@ -252,12 +277,13 @@ constructor(
                     timestamp = LocalDateTime.now(),
                     sourceType = "MANUAL",
                     iconResId = com.ritesh.cashiro.R.drawable.type_finance_dollar_banknote, // Default icon
-                    color = "#33B5E5"
+                    color = "#33B5E5",
+                    currency = state.selectedCurrency
                 )
             )
             
             setAsMainAccount(state.manualAccountName, state.manualAccountLast4)
-            finishOnboarding()
+            nextStep()
             _uiState.update { it.copy(isLoading = false) }
         }
     }
