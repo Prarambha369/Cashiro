@@ -14,6 +14,7 @@ data class ProfileScreenState(
     val totalIncome: BigDecimal = BigDecimal.ZERO,
     val totalExpense: BigDecimal = BigDecimal.ZERO,
     val activeSubscriptions: Int = 0,
+    val baseCurrency: String = "INR",
     val isLoading: Boolean = false,
     val isEditSheetOpen: Boolean = false,
     val hasStoragePermission: Boolean = false,

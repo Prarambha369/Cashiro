@@ -57,7 +57,7 @@ import com.ritesh.cashiro.presentation.ui.theme.orange_dark
 import com.ritesh.cashiro.presentation.ui.theme.orange_light
 import com.ritesh.cashiro.presentation.ui.theme.red_dark
 import com.ritesh.cashiro.presentation.ui.theme.red_light
-import com.ritesh.cashiro.utils.CurrencyUtils
+import com.ritesh.cashiro.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import java.math.BigDecimal
 
@@ -194,7 +194,8 @@ fun ProfileContent(
                     netWorth = state.netWorth,
                     income = state.totalIncome,
                     expense = state.totalExpense,
-                    activeSubscriptions = state.activeSubscriptions
+                    activeSubscriptions = state.activeSubscriptions,
+                    baseCurrency = state.baseCurrency
                 )
             }
         }
@@ -314,7 +315,8 @@ fun FinancialOverviewCard(
     netWorth: BigDecimal,
     income: BigDecimal,
     expense: BigDecimal,
-    activeSubscriptions: Int
+    activeSubscriptions: Int,
+    baseCurrency: String
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -341,7 +343,7 @@ fun FinancialOverviewCard(
             ) {
                 FinancialItem(
                     label = "Net Worth",
-                    value = CurrencyUtils.formatCurrency(netWorth),
+                    value = CurrencyFormatter.formatCurrency(netWorth, baseCurrency),
                     icon = Icons.Rounded.AccountBalance,
                     color = green_light,
                     iconColor = green_dark,
@@ -366,7 +368,7 @@ fun FinancialOverviewCard(
             ) {
                 FinancialItem(
                     label = "Expense",
-                    value = CurrencyUtils.formatCurrency(expense),
+                    value = CurrencyFormatter.formatCurrency(expense, baseCurrency),
                     icon = Icons.AutoMirrored.Rounded.TrendingDown,
                     color = red_light,
                     iconColor = red_dark,
@@ -374,7 +376,7 @@ fun FinancialOverviewCard(
                 )
                 FinancialItem(
                     label = "Income",
-                    value = CurrencyUtils.formatCurrency(income),
+                    value = CurrencyFormatter.formatCurrency(income, baseCurrency),
                     icon = Icons.AutoMirrored.Rounded.TrendingUp,
                     color = blue_light,
                     iconColor = blue_dark,

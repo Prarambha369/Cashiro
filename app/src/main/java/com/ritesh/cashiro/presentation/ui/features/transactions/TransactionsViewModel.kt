@@ -20,6 +20,7 @@ import com.ritesh.cashiro.core.Constants
 import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
 import com.ritesh.cashiro.data.preferences.UserPreferencesRepository
 import com.ritesh.cashiro.data.repository.AccountBalanceRepository
+import com.ritesh.cashiro.data.repository.CurrencyRepository
 import com.ritesh.cashiro.data.repository.SubcategoryRepository
 import com.ritesh.cashiro.utils.CurrencyUtils
 import com.ritesh.cashiro.utils.DeviceEncryption
@@ -43,6 +44,7 @@ class TransactionsViewModel @Inject constructor(
     private val subcategoryRepository: SubcategoryRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val currencyRepository: CurrencyRepository,
     private val savedStateHandle: SavedStateHandle,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -90,11 +92,16 @@ class TransactionsViewModel @Inject constructor(
     private val _currencyGroupedTotals = MutableStateFlow(CurrencyGroupedTotals())
     val currencyGroupedTotals: StateFlow<CurrencyGroupedTotals> = _currencyGroupedTotals.asStateFlow()
 
-    // Available currencies for the selected time period
-    val availableCurrencies: StateFlow<List<String>> = combine(selectedPeriod, customDateRange) { period, customRange ->
-        period to customRange
-    }.flatMapLatest { (period, customRange) ->
-        if (period == TimePeriod.ALL) {
+    // Available currencies for the selected time period and all accounts
+    val availableCurrencies: StateFlow<List<String>> = combine(
+        selectedPeriod,
+        customDateRange,
+        accountBalanceRepository.getAllLatestBalances()
+    ) { period, customRange, accounts ->
+        Triple(period, customRange, accounts)
+    }.flatMapLatest { (period, customRange, accounts) ->
+        val accountCurrencies = accounts.map { it.currency }.distinct()
+        val transactionCurrenciesFlow = if (period == TimePeriod.ALL) {
             transactionRepository.getAllCurrencies()
         } else if (period == TimePeriod.CUSTOM && customRange != null) {
             val (startDate, endDate) = customRange
@@ -112,9 +119,8 @@ class TransactionsViewModel @Inject constructor(
                 transactionRepository.getAllCurrencies()
             }
         }
-    }
-        .map { currencies ->
-            currencies.sortedWith { a, b ->
+        transactionCurrenciesFlow.map { txCurrencies ->
+            (txCurrencies + accountCurrencies).distinct().sortedWith { a, b ->
                 when {
                     a == "INR" -> -1 // INR first
                     b == "INR" -> 1
@@ -122,6 +128,7 @@ class TransactionsViewModel @Inject constructor(
                 }
             }
         }
+    }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -238,6 +245,17 @@ class TransactionsViewModel @Inject constructor(
     }
     
     init {
+        // Observe the main account's currency dynamically
+        viewModelScope.launch {
+            var lastBaseCurrency: String? = null
+            currencyRepository.baseCurrencyCode.collectLatest { mainAccountCurrency ->
+                if (lastBaseCurrency == null || mainAccountCurrency != lastBaseCurrency) {
+                    _selectedCurrency.value = mainAccountCurrency
+                    lastBaseCurrency = mainAccountCurrency
+                }
+            }
+        }
+
         _canLoadData
             .filter { it }
             .flatMapLatest {
@@ -282,7 +300,7 @@ class TransactionsViewModel @Inject constructor(
                 // Auto-select primary currency if not already selected or if current currency no longer exists
                 val currentCurrency = selectedCurrency.value
                 if (!_currencyGroupedTotals.value.availableCurrencies.contains(currentCurrency) && _currencyGroupedTotals.value.hasAnyCurrency()) {
-                    _selectedCurrency.value = _currencyGroupedTotals.value.getPrimaryCurrency()
+                    _selectedCurrency.value = _currencyGroupedTotals.value.getPrimaryCurrency(currentCurrency)
                 }
             }
             .launchIn(viewModelScope)

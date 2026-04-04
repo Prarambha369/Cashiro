@@ -8,6 +8,7 @@ import com.ritesh.cashiro.data.database.entity.BudgetTrackType
 import com.ritesh.cashiro.data.database.entity.BudgetType
 import com.ritesh.cashiro.data.database.entity.TransactionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionType
+import com.ritesh.cashiro.data.currency.CurrencyConversionService
 import com.ritesh.cashiro.di.ApplicationScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -65,6 +66,7 @@ data class CategoryLimitWithSpending(
 class BudgetRepository @Inject constructor(
     private val budgetDao: BudgetDao,
     private val transactionDao: TransactionDao,
+    private val currencyConversionService: CurrencyConversionService,
     @ApplicationScope private val externalScope: CoroutineScope
 ) {
 
@@ -192,14 +194,21 @@ class BudgetRepository @Inject constructor(
             transactions = transactions.filter { it.smsBody.isNullOrBlank() }
         }
         
-        // Filter by currency
-        transactions = transactions.filter { it.currency == budget.currency }
-
         // Filter by accounts if specified
         if (budget.accountIds.isNotEmpty()) {
             transactions = transactions.filter { txn ->
                 val accountKey = "${txn.bankName}:${txn.accountNumber?.takeLast(4) ?: ""}"
                 budget.accountIds.any { it.contains(txn.bankName ?: "") && it.contains(txn.accountNumber?.takeLast(4) ?: "") }
+            }
+        }
+        
+        // Convert currencies to match the budget's currency
+        transactions = transactions.map { txn ->
+            if (txn.currency != budget.currency) {
+                val convertedAmount = currencyConversionService.convertAmount(txn.amount, txn.currency, budget.currency)
+                txn.copy(amount = convertedAmount ?: txn.amount, currency = budget.currency)
+            } else {
+                txn
             }
         }
 
@@ -249,7 +258,7 @@ class BudgetRepository @Inject constructor(
                     (budget.endDate.isAfter(startOfMonth) || budget.endDate.isEqual(startOfMonth))
                 )
             }.map { budget ->
-                calculateSpendingSync(budget, transactions, categoryLimits)
+                calculateSpending(budget, transactions, categoryLimits)
             }
         }
     }
@@ -261,12 +270,12 @@ class BudgetRepository @Inject constructor(
             budgetDao.getAllCategoryLimits()
         ) { budgets, transactions, categoryLimits ->
             budgets.map { budget ->
-                calculateSpendingSync(budget, transactions, categoryLimits)
+                calculateSpending(budget, transactions, categoryLimits)
             }
         }
     }
 
-    private fun calculateSpendingSync(
+    private suspend fun calculateSpending(
         budget: BudgetEntity,
         allTransactions: List<TransactionEntity>,
         allCategoryLimits: List<BudgetCategoryLimitEntity>
@@ -293,13 +302,20 @@ class BudgetRepository @Inject constructor(
             transactions = transactions.filter { it.smsBody.isNullOrBlank() }
         }
         
-        // Filter by currency
-        transactions = transactions.filter { it.currency == budget.currency }
-
         // Filter by accounts if specified
         if (budget.accountIds.isNotEmpty()) {
             transactions = transactions.filter { txn ->
                 budget.accountIds.any { it.contains(txn.bankName ?: "") && it.contains(txn.accountNumber?.takeLast(4) ?: "") }
+            }
+        }
+
+        // Convert currencies to match the budget's currency
+        transactions = transactions.map { txn ->
+            if (txn.currency != budget.currency) {
+                val convertedAmount = currencyConversionService.convertAmount(txn.amount, txn.currency, budget.currency)
+                txn.copy(amount = convertedAmount ?: txn.amount, currency = budget.currency)
+            } else {
+                txn
             }
         }
 
@@ -368,13 +384,20 @@ class BudgetRepository @Inject constructor(
                     filtered = filtered.filter { it.smsBody.isNullOrBlank() }
                 }
                 
-                // Filter by currency
-                filtered = filtered.filter { it.currency == budget.currency }
-
                 // Filter by accounts if specified
                 if (budget.accountIds.isNotEmpty()) {
                     filtered = filtered.filter { txn ->
                         budget.accountIds.any { it.contains(txn.bankName ?: "") && it.contains(txn.accountNumber?.takeLast(4) ?: "") }
+                    }
+                }
+
+                // Convert currencies to match the budget's currency
+                filtered = filtered.map { txn ->
+                    if (txn.currency != budget.currency) {
+                        val convertedAmount = currencyConversionService.convertAmount(txn.amount, txn.currency, budget.currency)
+                        txn.copy(amount = convertedAmount ?: txn.amount, currency = budget.currency)
+                    } else {
+                        txn
                     }
                 }
                 

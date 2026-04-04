@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
 import com.ritesh.cashiro.data.database.entity.CardEntity
 import com.ritesh.cashiro.data.database.entity.CardType
+import com.ritesh.cashiro.data.preferences.UserPreferencesRepository
 import com.ritesh.cashiro.data.repository.AccountBalanceRepository
 import com.ritesh.cashiro.data.repository.CardRepository
 import com.ritesh.cashiro.data.repository.TransactionRepository
@@ -62,7 +63,8 @@ constructor(
     @ApplicationContext private val context: Context,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val cardRepository: CardRepository,
-    private val transactionRepository: TransactionRepository
+    private val transactionRepository: TransactionRepository,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
 
     private val sharedPrefs = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
@@ -149,6 +151,13 @@ constructor(
         sharedPrefs.edit { putString("main_account", key) }
         _uiState.update { it.copy(mainAccountKey = key, successMessage = "Main account set successfully") }
         viewModelScope.launch {
+            // Persist this account's currency as the app-wide base currency
+            val account = _uiState.value.accounts.find {
+                it.bankName == bankName && it.accountLast4 == accountLast4
+            }
+            if (account != null) {
+                userPreferencesRepository.updateBaseCurrency(account.currency)
+            }
             delay(3000)
             _uiState.update { it.copy(successMessage = null) }
         }

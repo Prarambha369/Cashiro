@@ -23,6 +23,7 @@ import com.ritesh.cashiro.data.preferences.UserPreferencesRepository
 import com.ritesh.cashiro.data.repository.AccountBalanceRepository
 import com.ritesh.cashiro.data.repository.BudgetRepository
 import com.ritesh.cashiro.data.repository.CategoryRepository
+import com.ritesh.cashiro.data.repository.CurrencyRepository
 import com.ritesh.cashiro.data.repository.LlmRepository
 import com.ritesh.cashiro.data.repository.SubcategoryRepository
 import com.ritesh.cashiro.data.repository.SubscriptionRepository
@@ -41,6 +42,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -55,6 +58,7 @@ class HomeViewModel @Inject constructor(
     private val accountBalanceRepository: AccountBalanceRepository,
     private val llmRepository: LlmRepository,
     private val currencyConversionService: CurrencyConversionService,
+    private val currencyRepository: CurrencyRepository,
     private val inAppUpdateManager: InAppUpdateManager,
     private val inAppReviewManager: InAppReviewManager,
     private val userPreferencesRepository: UserPreferencesRepository,
@@ -98,6 +102,9 @@ class HomeViewModel @Inject constructor(
         emptyMap()
     private var lastMonthBreakdownMap: Map<String, TransactionRepository.MonthlyBreakdown> =
         emptyMap()
+
+    private val baseCurrency = currencyRepository.baseCurrencyCode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "INR")
 
     init {
         loadHomeData()
@@ -158,6 +165,13 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun loadHomeData() {
+        // Observe base currency changes
+        viewModelScope.launch {
+            baseCurrency.collect { mainAccountCurrency ->
+                _uiState.update { it.copy(selectedCurrency = mainAccountCurrency) }
+            }
+        }
+
         viewModelScope.launch {
             // Load current month breakdown by currency
             transactionRepository.getCurrentMonthBreakdownByCurrency()
@@ -167,8 +181,11 @@ class HomeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            // Load account balances
-            accountBalanceRepository.getAllLatestBalances().collect { allBalances ->
+            // Load account balances and react to currency changes
+            combine(
+                accountBalanceRepository.getAllLatestBalances(),
+                baseCurrency
+            ) { allBalances, selectedCurrency ->
                 // Get hidden accounts from SharedPreferences
                 val hiddenAccounts =
                     sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
@@ -195,7 +212,6 @@ class HomeViewModel @Inject constructor(
                 }
 
                 // Convert all account balances to selected currency for total
-                val selectedCurrency = _uiState.value.selectedCurrency
                 val totalBalanceInSelectedCurrency = regularAccounts.sumOf { account ->
                     if (account.currency == selectedCurrency) {
                         account.balance
@@ -224,13 +240,15 @@ class HomeViewModel @Inject constructor(
                     }
                 }
 
-                _uiState.value = _uiState.value.copy(
-                    accountBalances = regularAccounts,
-                    creditCards = creditCards,
-                    totalBalance = totalBalanceInSelectedCurrency,
-                    totalAvailableCredit = totalAvailableCreditInSelectedCurrency
-                )
-            }
+                _uiState.update { 
+                    it.copy(
+                        accountBalances = regularAccounts,
+                        creditCards = creditCards,
+                        totalBalance = totalBalanceInSelectedCurrency,
+                        totalAvailableCredit = totalAvailableCreditInSelectedCurrency
+                    )
+                }
+            }.collectLatest { }
         }
 
         viewModelScope.launch {
@@ -280,22 +298,11 @@ class HomeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            // Load all active subscriptions
-            subscriptionRepository.getActiveSubscriptions().collect { subscriptions ->
-                // Get main account currency for conversion
-                val mainAccountKey = sharedPrefs.getString("main_account", null)
-                val targetCurrency = if (mainAccountKey != null) {
-                    val parts = mainAccountKey.split("_")
-                    if (parts.size >= 2) {
-                        accountBalanceRepository.getLatestBalance(parts[0], parts[1])?.currency
-                            ?: _uiState.value.selectedCurrency
-                    } else {
-                        _uiState.value.selectedCurrency
-                    }
-                } else {
-                    _uiState.value.selectedCurrency
-                }
-
+            // Load all active subscriptions and react to currency changes
+            combine(
+                subscriptionRepository.getActiveSubscriptions(),
+                baseCurrency
+            ) { subscriptions, targetCurrency ->
                 // Check if we need to refresh rates for subscription currencies
                 val subscriptionCurrencies = subscriptions.map { it.currency }.distinct()
                 if (subscriptionCurrencies.any { it != targetCurrency }) {
@@ -314,23 +321,54 @@ class HomeViewModel @Inject constructor(
                     }
                 }
 
-                _uiState.value = _uiState.value.copy(
-                    upcomingSubscriptions = subscriptions,
-                    upcomingSubscriptionsTotal = totalAmount,
-                    upcomingSubscriptionsCurrency = targetCurrency
-                )
-            }
+                _uiState.update {
+                    it.copy(
+                        upcomingSubscriptions = subscriptions,
+                        upcomingSubscriptionsTotal = totalAmount,
+                        upcomingSubscriptionsCurrency = targetCurrency
+                    )
+                }
+            }.collectLatest { }
         }
 
         viewModelScope.launch {
-            // Load active budgets for current month
+            // Load active budgets for current month and react to currency changes
             val yearMonth = YearMonth.now()
-            budgetRepository.getBudgetsWithSpendingForMonth(yearMonth.year, yearMonth.monthValue)
-                .collect { budgets ->
-                    _uiState.value = _uiState.value.copy(
-                        activeBudgets = budgets
-                    )
+            combine(
+                budgetRepository.getBudgetsWithSpendingForMonth(yearMonth.year, yearMonth.monthValue),
+                baseCurrency
+            ) { budgets, targetCurrency ->
+                // Convert budgets to match the selected main currency for display
+                val convertedBudgets = budgets.map { budgetWithSpending ->
+                    if (budgetWithSpending.budget.currency != targetCurrency) {
+                        val convertedAmount = currencyConversionService.convertAmount(
+                            budgetWithSpending.budget.amount,
+                            budgetWithSpending.budget.currency,
+                            targetCurrency
+                        ) ?: budgetWithSpending.budget.amount
+
+                        val convertedSpending = currencyConversionService.convertAmount(
+                            budgetWithSpending.currentSpending,
+                            budgetWithSpending.budget.currency,
+                            targetCurrency
+                        ) ?: budgetWithSpending.currentSpending
+
+                        budgetWithSpending.copy(
+                            budget = budgetWithSpending.budget.copy(
+                                amount = convertedAmount,
+                                currency = targetCurrency
+                            ),
+                            currentSpending = convertedSpending
+                        )
+                    } else {
+                        budgetWithSpending
+                    }
                 }
+                
+                _uiState.update { 
+                    it.copy(activeBudgets = convertedBudgets)
+                }
+            }.collectLatest { }
         }
 
         viewModelScope.launch {
@@ -712,7 +750,10 @@ class HomeViewModel @Inject constructor(
         // Auto-select primary currency if not already selected or if current currency no longer exists
         val currentSelectedCurrency = _uiState.value.selectedCurrency
         val selectedCurrency = if (!availableCurrencies.contains(currentSelectedCurrency) && availableCurrencies.isNotEmpty()) {
-            if (availableCurrencies.contains("INR")) "INR" else availableCurrencies.first()
+            when {
+                availableCurrencies.contains("INR") -> "INR"
+                else -> availableCurrencies.first()
+            }
         } else {
             currentSelectedCurrency
         }

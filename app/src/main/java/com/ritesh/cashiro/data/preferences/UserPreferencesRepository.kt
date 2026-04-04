@@ -144,6 +144,12 @@ constructor(@ApplicationContext private val context: Context) {
             preferences[PreferencesKeys.BASE_CURRENCY] ?: "INR"
         }
 
+    suspend fun updateBaseCurrency(currency: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BASE_CURRENCY] = currency
+        }
+    }
+
     val isDeveloperModeEnabled: Flow<Boolean> =
         context.dataStore.data.map { preferences ->
             preferences[PreferencesKeys.DEVELOPER_MODE_ENABLED] ?: false

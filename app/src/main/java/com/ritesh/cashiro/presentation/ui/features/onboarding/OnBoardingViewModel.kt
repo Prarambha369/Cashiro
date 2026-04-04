@@ -227,6 +227,8 @@ constructor(
                 // If only one account, set as main and proceed to profile
                 val account = accounts.first()
                 setAsMainAccount(account.bankName, account.accountLast4)
+                // Persist this account's currency as the app-wide base currency
+                userPreferencesRepository.updateBaseCurrency(account.currency)
                 nextStep()
             } else if (accounts.size > 1) {
                 // If multiple accounts, move to next step (handled in OnBoardingScreen based on results)
@@ -283,6 +285,8 @@ constructor(
             )
             
             setAsMainAccount(state.manualAccountName, state.manualAccountLast4)
+            // Persist the user-selected currency as the app-wide base currency
+            userPreferencesRepository.updateBaseCurrency(state.selectedCurrency)
             nextStep()
             _uiState.update { it.copy(isLoading = false) }
         }

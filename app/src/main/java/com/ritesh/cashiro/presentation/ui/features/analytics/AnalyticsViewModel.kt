@@ -9,6 +9,7 @@ import com.ritesh.cashiro.data.database.entity.TransactionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionType
 import com.ritesh.cashiro.data.repository.AccountBalanceRepository
 import com.ritesh.cashiro.data.repository.CategoryRepository
+import com.ritesh.cashiro.data.repository.CurrencyRepository
 import com.ritesh.cashiro.data.repository.SubcategoryRepository
 import com.ritesh.cashiro.data.repository.TransactionRepository
 import com.ritesh.cashiro.presentation.common.TimePeriod
@@ -19,6 +20,7 @@ import com.ritesh.cashiro.utils.CurrencyUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
@@ -31,6 +33,7 @@ class AnalyticsViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val subcategoryRepository: SubcategoryRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
+    private val currencyRepository: CurrencyRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     
@@ -42,6 +45,18 @@ class AnalyticsViewModel @Inject constructor(
 
     private val _selectedCurrency = MutableStateFlow("INR")
     val selectedCurrency: StateFlow<String> = _selectedCurrency.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            var lastBaseCurrency: String? = null
+            currencyRepository.baseCurrencyCode.collectLatest { mainAccountCurrency ->
+                if (lastBaseCurrency == null || mainAccountCurrency != lastBaseCurrency) {
+                    _selectedCurrency.value = mainAccountCurrency
+                    lastBaseCurrency = mainAccountCurrency
+                }
+            }
+        }
+    }
 
     // Store custom date range as epoch days to survive process death
     // Stored as Pair<Long, Long> (startEpochDay, endEpochDay) in SavedStateHandle

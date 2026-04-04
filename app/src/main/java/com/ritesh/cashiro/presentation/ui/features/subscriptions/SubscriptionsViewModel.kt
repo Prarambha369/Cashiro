@@ -20,6 +20,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import javax.inject.Inject
+import com.ritesh.cashiro.data.repository.CurrencyRepository
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.update
 
 @HiltViewModel
 class SubscriptionsViewModel @Inject constructor(
@@ -28,6 +32,7 @@ class SubscriptionsViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val subcategoryRepository: SubcategoryRepository,
     private val currencyConversionService: CurrencyConversionService,
+    private val currencyRepository: CurrencyRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     
@@ -50,20 +55,10 @@ class SubscriptionsViewModel @Inject constructor(
     
     private fun loadSubscriptions() {
         viewModelScope.launch {
-            subscriptionRepository.getActiveSubscriptions().collect { subscriptions ->
-                val mainAccountKey = sharedPrefs.getString("main_account", null)
-                val targetCurrency = if (mainAccountKey != null) {
-                    val parts = mainAccountKey.split("_")
-                    if (parts.size >= 2) {
-                        accountBalanceRepository.getLatestBalance(parts[0], parts[1])?.currency
-                            ?: "INR"
-                    } else {
-                        "INR"
-                    }
-                } else {
-                    "INR"
-                }
-
+            combine(
+                subscriptionRepository.getActiveSubscriptions(),
+                currencyRepository.baseCurrencyCode
+            ) { subscriptions, targetCurrency ->
                 val subscriptionCurrencies = subscriptions.map { it.currency }.distinct()
                 if (subscriptionCurrencies.any { it != targetCurrency }) {
                     currencyConversionService.refreshExchangeRatesForAccount(subscriptionCurrencies + targetCurrency)
@@ -81,14 +76,16 @@ class SubscriptionsViewModel @Inject constructor(
                     }
                 }
                 
-                _uiState.value = _uiState.value.copy(
-                    activeSubscriptions = subscriptions,
-                    totalMonthlyAmount = totalMonthlyAmount,
-                    totalYearlyAmount = totalMonthlyAmount * BigDecimal(12),
-                    targetCurrency = targetCurrency,
-                    isLoading = false
-                )
-            }
+                _uiState.update { 
+                    it.copy(
+                        activeSubscriptions = subscriptions,
+                        totalMonthlyAmount = totalMonthlyAmount,
+                        totalYearlyAmount = totalMonthlyAmount * BigDecimal(12),
+                        targetCurrency = targetCurrency,
+                        isLoading = false
+                    )
+                }
+            }.collectLatest { }
         }
     }
     
