@@ -14,6 +14,8 @@ import com.ritesh.cashiro.data.service.AttachmentService
 import com.ritesh.cashiro.domain.usecase.AddSubscriptionUseCase
 import com.ritesh.cashiro.domain.usecase.AddTransactionUseCase
 import com.ritesh.cashiro.domain.usecase.GetCategoriesUseCase
+import com.ritesh.cashiro.domain.usecase.UpdateSubscriptionUseCase
+import com.ritesh.cashiro.data.repository.SubscriptionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.math.BigDecimal
@@ -34,8 +36,9 @@ constructor(
     private val addSubscriptionUseCase: AddSubscriptionUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
     private val subcategoryRepository: SubcategoryRepository,
-    private val accountBalanceRepository:
-    AccountBalanceRepository,
+    private val accountBalanceRepository: AccountBalanceRepository,
+    private val subscriptionRepository: SubscriptionRepository,
+    private val updateSubscriptionUseCase: UpdateSubscriptionUseCase,
     val attachmentService: AttachmentService,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -343,6 +346,49 @@ constructor(
         _subscriptionAttachments.update { it - path }
     }
 
+    // Subscription Edit Loading
+    fun loadSubscriptionForEdit(id: Long) {
+        viewModelScope.launch {
+            try {
+                _subscriptionUiState.update { it.copy(isLoading = true) }
+                val subscription = subscriptionRepository.getSubscriptionById(id)
+                if (subscription != null) {
+                    _subscriptionUiState.update { state ->
+                        state.copy(
+                            subscriptionId = subscription.id,
+                            serviceName = subscription.merchantName,
+                            amount = subscription.amount.toString(),
+                            billingCycle = subscription.billingCycle ?: "Monthly",
+                            nextPaymentDate = subscription.nextPaymentDate ?: LocalDate.now(),
+                            category = subscription.category ?: "Subscription",
+                            subcategory = subscription.subcategory,
+                            currency = subscription.currency,
+                            notes = subscription.smsBody ?: "",
+                            isLoading = false
+                        )
+                    }
+                    
+                    // Pre-select account if possible
+                    accounts.filter { it.isNotEmpty() }.first().let { availableAccounts ->
+                        val matchedAccount = availableAccounts.find { 
+                            it.bankName == subscription.bankName
+                        }
+                        if (matchedAccount != null) {
+                            _subscriptionUiState.update { it.copy(selectedAccount = matchedAccount) }
+                        }
+                    }
+                    
+                    // Update subcategories for the loaded category
+                    updateSubscriptionSubcategories(subscription.category ?: "Subscription")
+                } else {
+                    _subscriptionUiState.update { it.copy(isLoading = false, error = "Subscription not found") }
+                }
+            } catch (e: Exception) {
+                _subscriptionUiState.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+    }
+
 
     // Subscription Tab Functions
     fun updateSubscriptionService(service: String) {
@@ -455,55 +501,69 @@ constructor(
 
                 val amount = BigDecimal(state.amount)
 
-                val transactionDate = state.nextPaymentDate.atTime(LocalTime.now())
-                
-                addTransactionUseCase.execute(
-                    amount = amount,
-                    merchant = state.serviceName.trim(),
-                    category = state.category,
-                    subcategory = state.subcategory,
-                    type = TransactionType.EXPENSE, // Subscriptions are expenses
-                    date = transactionDate,
-                    notes = state.notes.takeIf { it.isNotBlank() },
-                    isRecurring = true, // It is part of a subscription
-                    bankName = state.selectedAccount?.bankName,
-                    accountLast4 = state.selectedAccount?.accountLast4,
-                    currency = state.currency,
-                    sourceAccountId = state.selectedAccount?.id,
-                    billingCycle = state.billingCycle,
-                    createSubscription = false
-                )
-
-                val actualNextPaymentDate = calculateNextPaymentDate(state.nextPaymentDate, state.billingCycle)
-                Log.d("AddViewModel", "DEBUG_SUBSCRIPTION: fromDate=${state.nextPaymentDate}, billingCycle=${state.billingCycle}, today=${LocalDate.now()}, result=$actualNextPaymentDate")
-
-                Log.d("AddViewModel", "Saving subscription: selectedDate=${state.nextPaymentDate}, today=${LocalDate.now()}, result=$actualNextPaymentDate")
-
-                Log.d(
-                    "AddViewModel",
-                    "Calling addSubscriptionUseCase.execute with: " +
-                            "merchantName=${state.serviceName.trim()}, amount=$amount, " +
-                            "nextPaymentDate=$actualNextPaymentDate, billingCycle=${state.billingCycle}, " +
-                            "category=${state.category}"
-                )
-
-                val subscriptionId =
-                    addSubscriptionUseCase.execute(
-                        merchantName = state.serviceName.trim(),
+                if (state.subscriptionId != null) {
+                    // Update existing subscription
+                    val existingSubscription = subscriptionRepository.getSubscriptionById(state.subscriptionId)
+                    if (existingSubscription != null) {
+                        val updatedSubscription = existingSubscription.copy(
+                            merchantName = state.serviceName.trim(),
+                            amount = amount,
+                            nextPaymentDate = state.nextPaymentDate,
+                            billingCycle = state.billingCycle,
+                            category = state.category,
+                            subcategory = state.subcategory,
+                            bankName = state.selectedAccount?.bankName,
+                            currency = state.currency,
+                            smsBody = state.notes.takeIf { it.isNotBlank() },
+                            updatedAt = java.time.LocalDateTime.now()
+                        )
+                        updateSubscriptionUseCase.execute(updatedSubscription)
+                        Log.d("AddViewModel", "Subscription updated successfully: ${state.subscriptionId}")
+                    } else {
+                        throw Exception("Subscription not found for update")
+                    }
+                } else {
+                    // Create new subscription
+                    val transactionDate = state.nextPaymentDate.atTime(LocalTime.now())
+                    
+                    addTransactionUseCase.execute(
                         amount = amount,
-                        nextPaymentDate = actualNextPaymentDate,
-                        billingCycle = state.billingCycle,
+                        merchant = state.serviceName.trim(),
                         category = state.category,
                         subcategory = state.subcategory,
-                        bankName = state.selectedAccount?.bankName,
-                        autoRenewal = false, // Not implemented yet
-                        paymentReminder = false, // Not implemented yet
-                        currency = state.currency,
+                        type = TransactionType.EXPENSE, // Subscriptions are expenses
+                        date = transactionDate,
                         notes = state.notes.takeIf { it.isNotBlank() },
-                        lastPaidDate = state.nextPaymentDate
+                        isRecurring = true, // It is part of a subscription
+                        bankName = state.selectedAccount?.bankName,
+                        accountLast4 = state.selectedAccount?.accountLast4,
+                        currency = state.currency,
+                        sourceAccountId = state.selectedAccount?.id,
+                        billingCycle = state.billingCycle,
+                        createSubscription = false
                     )
 
-                Log.d("AddViewModel", "Subscription saved successfully with ID: $subscriptionId")
+                    val actualNextPaymentDate = calculateNextPaymentDate(state.nextPaymentDate, state.billingCycle)
+                    Log.d("AddViewModel", "DEBUG_SUBSCRIPTION: fromDate=${state.nextPaymentDate}, billingCycle=${state.billingCycle}, today=${LocalDate.now()}, result=$actualNextPaymentDate")
+
+                    val subscriptionId =
+                        addSubscriptionUseCase.execute(
+                            merchantName = state.serviceName.trim(),
+                            amount = amount,
+                            nextPaymentDate = actualNextPaymentDate,
+                            billingCycle = state.billingCycle,
+                            category = state.category,
+                            subcategory = state.subcategory,
+                            bankName = state.selectedAccount?.bankName,
+                            autoRenewal = false, // Not implemented yet
+                            paymentReminder = false, // Not implemented yet
+                            currency = state.currency,
+                            notes = state.notes.takeIf { it.isNotBlank() },
+                            lastPaidDate = state.nextPaymentDate
+                        )
+
+                    Log.d("AddViewModel", "Subscription saved successfully with ID: $subscriptionId")
+                }
                 onSuccess()
             } catch (e: Exception) {
                 Log.e("AddViewModel", "Error saving subscription", e)
@@ -609,6 +669,7 @@ data class TransactionUiState(
 }
 
 data class SubscriptionUiState(
+    val subscriptionId: Long? = null,
     val serviceName: String = "",
     val serviceError: String? = null,
     val amount: String = "",

@@ -59,6 +59,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,6 +67,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
@@ -109,6 +111,7 @@ import java.time.temporal.ChronoUnit
 fun SubscriptionsScreen(
     subscriptionsViewModel: SubscriptionsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
+    onEditSubscription: (Long) -> Unit = {},
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedContentScope: AnimatedVisibilityScope? = null
 ) {
@@ -197,7 +200,11 @@ fun SubscriptionsScreen(
                 categoryEntity = categoriesMap[selectedSubscription.category],
                 subcategoryEntity = subcategoriesMap[selectedSubscription.subcategory],
                 onDismiss = { subscriptionsViewModel.selectSubscription(null) },
-                onMarkAsPaid = { subscriptionsViewModel.markAsPaid(selectedSubscription) }
+                onMarkAsPaid = { subscriptionsViewModel.markAsPaid(selectedSubscription) },
+                onEdit = {
+                    subscriptionsViewModel.selectSubscription(null)
+                    onEditSubscription(selectedSubscription.id)
+                }
             )
         }
         LazyColumn(
@@ -241,6 +248,9 @@ fun SubscriptionsScreen(
                         categoryEntity = categoryEntity,
                         subcategoryEntity = subcategoryEntity,
                         onDelete = { subscriptionToDelete = subscription },
+                        onEdit = {
+                            onEditSubscription(subscription.id)
+                        },
                         onClick = { subscriptionsViewModel.selectSubscription(subscription) }
                     )
                 }
@@ -404,6 +414,7 @@ private fun SwipeableSubscriptionItem(
     categoryEntity: CategoryEntity? = null,
     subcategoryEntity: SubcategoryEntity? = null,
     onDelete: () -> Unit,
+    onEdit: () -> Unit,
     onClick: () -> Unit
 ) {
     var showSmsBody by remember { mutableStateOf(false) }
@@ -411,11 +422,22 @@ private fun SwipeableSubscriptionItem(
     val dismissState = rememberSwipeToDismissBoxState()
     var isInitialized by remember { mutableStateOf(false) }
 
-    // Handle dismissal event when the state changes to EndToStart
+    // Handle dismissal events
     LaunchedEffect(dismissState.currentValue) {
-        if (isInitialized && dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
-            onDelete()
-            dismissState.reset()
+        if (isInitialized) {
+            when (dismissState.currentValue) {
+                SwipeToDismissBoxValue.EndToStart -> {
+                    // Swiped Left -> Edit
+                    onEdit()
+                    dismissState.reset()
+                }
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    // Swiped Right -> Delete
+                    onDelete()
+                    dismissState.reset()
+                }
+                else -> {}
+            }
         }
         isInitialized = true
     }
@@ -429,23 +451,45 @@ private fun SwipeableSubscriptionItem(
 
     SwipeToDismissBox(
         state = dismissState,
-        enableDismissFromStartToEnd = false,
+        enableDismissFromStartToEnd = true,
         enableDismissFromEndToStart = true,
         backgroundContent = {
+            val direction = dismissState.dismissDirection
+            val color = when (direction) {
+                SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.error
+                SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.primary
+                else -> Color.Transparent
+            }
+            val alignment = when (direction) {
+                SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                else -> Alignment.Center
+            }
+            val icon = when (direction) {
+                SwipeToDismissBoxValue.StartToEnd -> Iconax.Bag
+                SwipeToDismissBoxValue.EndToStart -> Icons.Default.Edit
+                else -> Icons.Default.Edit
+            }
+            val label = when (direction) {
+                SwipeToDismissBoxValue.StartToEnd -> "Delete"
+                SwipeToDismissBoxValue.EndToStart -> "Edit"
+                else -> ""
+            }
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
-                        color = MaterialTheme.colorScheme.error,
+                        color = color,
                         shape = MaterialTheme.shapes.extraLarge
                     )
                     .padding(horizontal = Dimensions.Padding.content),
-                contentAlignment = Alignment.CenterEnd
+                contentAlignment = alignment
             ) {
                 Icon(
-                    imageVector = Iconax.Bag,
-                    contentDescription = "Hide",
-                    tint = MaterialTheme.colorScheme.onError
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = if (direction == SwipeToDismissBoxValue.StartToEnd) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary
                 )
             }
         },
@@ -634,7 +678,8 @@ private fun PaymentStatusBottomSheet(
     categoryEntity: CategoryEntity? = null,
     subcategoryEntity: SubcategoryEntity? = null,
     onDismiss: () -> Unit,
-    onMarkAsPaid: () -> Unit
+    onMarkAsPaid: () -> Unit,
+    onEdit: () -> Unit
 ) {
     var showSmsBody by remember { mutableStateOf(false) }
     val today = LocalDate.now()
@@ -654,11 +699,32 @@ private fun PaymentStatusBottomSheet(
                 .padding(bottom = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Track Payment",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Track Payment",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(0.5f))
+                        .clickable { onEdit() }
+                        .padding(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit Subscription",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
             
             Spacer(modifier = Modifier.height(16.dp))
             

@@ -43,6 +43,7 @@ fun SharedTransitionScope.AddScreen(
     onNavigateBack: () -> Unit = {},
     animatedVisibilityScope: AnimatedVisibilityScope,
     initialTab: Int = 0,
+    subscriptionId: Long? = null,
     blurEffects: Boolean,
 ) {
     val hazeState = remember { HazeState() }
@@ -53,8 +54,11 @@ fun SharedTransitionScope.AddScreen(
     val coroutineScope = rememberCoroutineScope()
 
     // Reset state when screen is opened to avoid stale data from previous entries
-    LaunchedEffect(Unit) {
+    LaunchedEffect(subscriptionId) {
         addViewModel.resetAllStates()
+        if (subscriptionId != null) {
+            addViewModel.loadSubscriptionForEdit(subscriptionId)
+        }
     }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
