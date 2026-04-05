@@ -3,6 +3,7 @@ package com.ritesh.cashiro.presentation.ui.features.transactions
 import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionEntity
 import java.math.BigDecimal
+import java.time.LocalDate
 
 data class TransactionDetailUiState(
     val transaction: TransactionEntity? = null,
@@ -20,6 +21,10 @@ data class TransactionDetailUiState(
     val isDeleting: Boolean = false,
     val deleteSuccess: Boolean = false,
     val subscription: SubscriptionEntity? = null,
-    val accountIconName: String? = null
+    val accountIconName: String? = null,
+    val isCustomCycle: Boolean = false,
+    val customCycleCount: Int = 1,
+    val customCycleUnit: String = "month",
+    val customCycleEndDate: LocalDate? = null
 )
 

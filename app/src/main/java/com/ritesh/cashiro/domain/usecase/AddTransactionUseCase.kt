@@ -1,5 +1,7 @@
 package com.ritesh.cashiro.domain.usecase
 
+import com.ritesh.cashiro.utils.SubscriptionUtils
+
 import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
 import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
 import com.ritesh.cashiro.data.database.entity.SubscriptionState
@@ -180,7 +182,7 @@ constructor(
 
         // If marked as recurring, create a subscription
         if (createSubscription && isRecurring && transactionId != -1L) {
-            val nextPaymentDate = calculateNextPaymentDate(date.toLocalDate(), billingCycle)
+            val nextPaymentDate = SubscriptionUtils.calculateNextPaymentDate(date.toLocalDate(), billingCycle)
 
             val subscription =
                     SubscriptionEntity(
@@ -202,34 +204,6 @@ constructor(
         }
     }
 
-    private fun calculateNextPaymentDate(
-        fromDate: LocalDate,
-        billingCycle: String?
-    ): LocalDate {
-        val today = LocalDate.now()
-        val cycle = billingCycle?.lowercase() ?: "monthly"
-        
-        // Start from first occurrence after fromDate
-        var nextDate = when (cycle) {
-            "weekly" -> fromDate.plusWeeks(1)
-            "quarterly" -> fromDate.plusMonths(3)
-            "semi-annual" -> fromDate.plusMonths(6)
-            "annual" -> fromDate.plusYears(1)
-            else -> fromDate.plusMonths(1) // covers "monthly" and defaults
-        }
-
-        // Catch up to today if the start date was long ago
-        while (nextDate.isBefore(today)) {
-            nextDate = when (cycle) {
-                "weekly" -> nextDate.plusWeeks(1)
-                "quarterly" -> nextDate.plusMonths(3)
-                "semi-annual" -> nextDate.plusMonths(6)
-                "annual" -> nextDate.plusYears(1)
-                else -> nextDate.plusMonths(1)
-            }
-        }
-        return nextDate
-    }
 
     private fun generateManualTransactionHash(
             amount: BigDecimal,

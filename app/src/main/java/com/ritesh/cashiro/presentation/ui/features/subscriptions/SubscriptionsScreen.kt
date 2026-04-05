@@ -91,6 +91,7 @@ import com.ritesh.cashiro.presentation.ui.components.LoadingCircle
 import com.ritesh.cashiro.presentation.ui.features.categories.NavigationContent
 import com.ritesh.cashiro.presentation.ui.icons.Bag
 import com.ritesh.cashiro.presentation.ui.icons.Calendar
+import com.ritesh.cashiro.presentation.ui.icons.Edit2
 import com.ritesh.cashiro.presentation.ui.icons.Iconax
 import com.ritesh.cashiro.presentation.ui.icons.VideoPlay
 import com.ritesh.cashiro.presentation.ui.theme.Dimensions
@@ -467,8 +468,8 @@ private fun SwipeableSubscriptionItem(
             }
             val icon = when (direction) {
                 SwipeToDismissBoxValue.StartToEnd -> Iconax.Bag
-                SwipeToDismissBoxValue.EndToStart -> Icons.Default.Edit
-                else -> Icons.Default.Edit
+                SwipeToDismissBoxValue.EndToStart -> Iconax.Edit2
+                else -> Iconax.Edit2
             }
             val label = when (direction) {
                 SwipeToDismissBoxValue.StartToEnd -> "Delete"
@@ -718,7 +719,7 @@ private fun PaymentStatusBottomSheet(
                         .padding(8.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Edit,
+                        imageVector =Iconax.Edit2,
                         contentDescription = "Edit Subscription",
                         modifier = Modifier.size(20.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant

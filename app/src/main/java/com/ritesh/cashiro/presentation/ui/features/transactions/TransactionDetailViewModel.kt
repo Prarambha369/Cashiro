@@ -1,5 +1,7 @@
 package com.ritesh.cashiro.presentation.ui.features.transactions
 
+import com.ritesh.cashiro.utils.SubscriptionUtils
+
 import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -168,11 +170,34 @@ class TransactionDetailViewModel @Inject constructor(
     }
 
     fun enterEditMode() {
+        val currentTransaction = _uiState.value.transaction
+        val billingCycle = currentTransaction?.billingCycle
+        
+        var isCustom = false
+        var count = 1
+        var unit = "month"
+        var endDate: LocalDate? = null
+
+        if (billingCycle?.startsWith("custom_") == true) {
+            isCustom = true
+            val parts = billingCycle.split("_")
+            count = parts.getOrNull(1)?.toIntOrNull() ?: 1
+            unit = parts.getOrNull(2) ?: "month"
+            val endDateStr = parts.getOrNull(3)
+            if (endDateStr != null && endDateStr != "forever") {
+                endDate = try { LocalDate.parse(endDateStr) } catch (e: Exception) { null }
+            }
+        }
+
         _uiState.update { state ->
             state.copy(
                 editableTransaction = state.transaction?.copy(),
                 isEditMode = true,
-                errorMessage = null
+                errorMessage = null,
+                isCustomCycle = isCustom,
+                customCycleCount = count,
+                customCycleUnit = unit,
+                customCycleEndDate = endDate
             )
         }
         // Initialize editable attachments from transaction
@@ -287,13 +312,29 @@ class TransactionDetailViewModel @Inject constructor(
                 editableTransaction = current?.copy(
                     isRecurring = isRecurring,
                     billingCycle = if (isRecurring) current.billingCycle ?: "Monthly" else null
-                )
+                ),
+                isCustomCycle = if (!isRecurring) false else state.isCustomCycle
             )
         }
     }
 
     fun updateBillingCycle(cycle: String) {
-        _uiState.update { it.copy(editableTransaction = it.editableTransaction?.copy(billingCycle = cycle)) }
+        _uiState.update { it.copy(
+            editableTransaction = it.editableTransaction?.copy(billingCycle = cycle),
+            isCustomCycle = cycle == "Custom"
+        ) }
+    }
+
+    fun updateSubscriptionCustomCycleCount(count: Int) {
+        _uiState.update { it.copy(customCycleCount = count) }
+    }
+
+    fun updateSubscriptionCustomCycleUnit(unit: String) {
+        _uiState.update { it.copy(customCycleUnit = unit) }
+    }
+
+    fun updateSubscriptionCustomCycleEndDate(date: LocalDate?) {
+        _uiState.update { it.copy(customCycleEndDate = date) }
     }
 
     fun updateAccountNumber(accountNumber: String?) {
@@ -358,9 +399,16 @@ class TransactionDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true) }
             try {
+                // Handle custom cycle serialization
+                val finalBillingCycle = if (state.isCustomCycle) {
+                    val endDateStr = state.customCycleEndDate?.toString() ?: "forever"
+                    "custom_${state.customCycleCount}_${state.customCycleUnit}_$endDateStr"
+                } else toSave.billingCycle
+
                 // Normalize merchant name before saving
                 val normalizedTransaction = toSave.copy(
                     merchantName = normalizeMerchantName(toSave.merchantName),
+                    billingCycle = finalBillingCycle,
                     updatedAt = LocalDateTime.now(),
                     attachments = attachmentService.joinAttachments(_editableAttachments.value)
                 )
@@ -506,7 +554,7 @@ class TransactionDetailViewModel @Inject constructor(
                 transaction.amount
             )
 
-            val nextPaymentDate = calculateNextPaymentDate(
+            val nextPaymentDate = SubscriptionUtils.calculateNextPaymentDate(
                 (transaction.dateTime ?: LocalDateTime.now()).toLocalDate(),
                 transaction.billingCycle
             )
@@ -548,19 +596,6 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
-    private fun calculateNextPaymentDate(
-        fromDate: LocalDate,
-        billingCycle: String?
-    ): LocalDate {
-        return when (billingCycle) {
-            "Weekly" -> fromDate.plusWeeks(1)
-            "Monthly" -> fromDate.plusMonths(1)
-            "Quarterly" -> fromDate.plusMonths(3)
-            "Semi-Annual" -> fromDate.plusMonths(6)
-            "Annual" -> fromDate.plusYears(1)
-            else -> fromDate.plusMonths(1)
-        }
-    }
 
     private suspend fun updateAccountBalances(
         oldTransaction: TransactionEntity,
