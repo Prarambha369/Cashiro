@@ -265,6 +265,30 @@ class TransactionRepository @Inject constructor(private val transactionDao: Tran
         }
     }
 
+    fun getCurrentYearBreakdownByCurrency(): Flow<Map<String, MonthlyBreakdown>> {
+        val now = LocalDate.now()
+        val startDate = now.withDayOfYear(1).atStartOfDay()
+        val endDate = now.atTime(23, 59, 59)
+
+        return transactionDao.getTransactionsBetweenDates(startDate, endDate).map { transactions ->
+            transactions.groupBy { it.currency }.mapValues { (_, currencyTransactions) ->
+                val income =
+                    currencyTransactions
+                        .filter { it.transactionType == TransactionType.INCOME }
+                        .fold(BigDecimal.ZERO) { acc, transaction ->
+                            acc + transaction.amount
+                        }
+                val expenses =
+                    currencyTransactions
+                        .filter { it.transactionType == TransactionType.EXPENSE }
+                        .fold(BigDecimal.ZERO) { acc, transaction ->
+                            acc + transaction.amount
+                        }
+                MonthlyBreakdown(total = income - expenses, income = income, expenses = expenses)
+            }
+        }
+    }
+
     fun getRecentTransactions(limit: Int = 5): Flow<List<TransactionEntity>> {
         return transactionDao.getAllTransactions().map { transactions -> transactions.take(limit) }
     }
