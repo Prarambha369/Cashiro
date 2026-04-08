@@ -43,7 +43,7 @@ class GPayPdfParser : PdfStatementParser {
             allRows.add(text.substring(start, end).replace(Regex("""\s+"""), " "))
         }
 
-        val amountRegex = Regex("""[₹Rs]\s*([0-9,]+(?:\.\d+)?)""", RegexOption.IGNORE_CASE)
+        val amountRegex = Regex("""(?:₹|Rs\.?)\s*([0-9,]+(?:\.\d+)?)""", RegexOption.IGNORE_CASE)
 
         for (row in allRows) {
             val dateMatch = dateRegex.find(row) ?: continue
@@ -184,7 +184,7 @@ class PhonePePdfParser : PdfStatementParser {
             Log.v("PDF_PARSER_DEBUG", "PhonePe Row $i: $rowText")
         }
 
-        val amountRegex = Regex("""[₹Rs]\s*([0-9,]+(?:\.\d+)?)""", RegexOption.IGNORE_CASE)
+        val amountRegex = Regex("""(?:₹|Rs\.?)\s*([0-9,]+(?:\.\d+)?)""", RegexOption.IGNORE_CASE)
 
         for (row in allRows) {
             val dateMatch = dateRegex.find(row) ?: continue
@@ -249,9 +249,9 @@ class PhonePePdfParser : PdfStatementParser {
             // Non-greedy merchant extraction
             // Handles "Transact ion ID" typo and merged separators
             val merchantMatch = if (isIncome) {
-                Regex("""(?:Received from|Credited by|Paid by)\s+(.+?)(?=\s+(?:Transact\s*ion|UTR|CREDIT|DEBIT|$))""", RegexOption.IGNORE_CASE).find(row)
+                Regex("""(?:Received from|Credited by|Paid by|From)\s+(.+?)(?=\s+(?:Transact\s*ion|UTR|CREDIT|DEBIT|₹|Rs|$))""", RegexOption.IGNORE_CASE).find(row)
             } else {
-                Regex("""(?:Paid to|ZOMATO|Blinkit|Department of Posts|New zam zam)\s+(.+?)(?=\s+(?:Transact\s*ion|UTR|CREDIT|DEBIT|$))""", RegexOption.IGNORE_CASE).find(row)
+                Regex("""(?:Paid to|To|ZOMATO|Blinkit|Department of Posts|New zam zam)\s+(.+?)(?=\s+(?:Transact\s*ion|UTR|CREDIT|DEBIT|₹|Rs|$))""", RegexOption.IGNORE_CASE).find(row)
             }
             
             // Fallback for merchant if the explicit "Paid to" etc prefix is merged with amount

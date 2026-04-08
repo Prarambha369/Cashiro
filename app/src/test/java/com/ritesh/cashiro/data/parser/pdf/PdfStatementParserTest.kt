@@ -156,4 +156,31 @@ class PdfStatementParserTest {
         assertEquals(TransactionType.EXPENSE, transactions[1].type)
         assertEquals("T2602041740099617814750", transactions[1].reference)
     }
+
+    @Test
+    fun `PhonePePdfParser does not pick up date values as amounts for months with r or s`() {
+        val parser = PhonePePdfParser()
+        // April has 'r', October has 'r', August has 's'
+        val text = """
+            October 22, 2025 03:31 pm   Paid to JAMES
+            Transaction ID: T123
+            UTR No. 456
+            Paid by 0054XXXXXXXXX8690   DEBIT   ₹300
+            
+            August 20, 2025 07:37 pm   Received from ARYAN
+            Transaction ID: T456
+            UTR No. 789
+            Credited to 0054XXXXXXXXX8690   CREDIT   ₹45
+        """.trimIndent()
+
+        val transactions = parser.parse(text)
+
+        assertEquals(2, transactions.size)
+
+        // October case: If bug existed, it might have picked '22' or '2025' as amount
+        assertTrue("Amount should be 300, not date part", BigDecimal("300").compareTo(transactions[0].amount) == 0)
+        
+        // August case: If bug existed, it might have picked '20' or '2025' as amount
+        assertTrue("Amount should be 45, not date part", BigDecimal("45").compareTo(transactions[1].amount) == 0)
+    }
 }
