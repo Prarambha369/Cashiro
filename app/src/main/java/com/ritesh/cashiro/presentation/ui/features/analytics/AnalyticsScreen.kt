@@ -89,7 +89,6 @@ import com.ritesh.cashiro.presentation.ui.components.SectionHeader
 import com.ritesh.cashiro.presentation.ui.components.TransactionItem
 import com.ritesh.cashiro.presentation.ui.components.toShape
 import com.ritesh.cashiro.presentation.ui.icons.Chart2
-import com.ritesh.cashiro.presentation.ui.icons.Diagram
 import com.ritesh.cashiro.presentation.ui.icons.Grid2
 import com.ritesh.cashiro.presentation.ui.icons.Iconax
 import com.ritesh.cashiro.presentation.ui.icons.Menu
@@ -138,7 +137,7 @@ fun SharedTransitionScope.AnalyticsScreen(
     var selectedBreakdownType by remember { mutableStateOf(BreakdownType.PIE) }
     
     // Calculate active filter count
-    val activeFilterCount = if (transactionTypeFilter != TransactionTypeFilter.EXPENSE) 1 else 0
+    val activeFilterCount = if (transactionTypeFilter.contains(TransactionTypeFilter.ALL)) 0 else transactionTypeFilter.size
 
     // Cache expensive operations
     val timePeriods = remember { TimePeriod.entries }
@@ -255,10 +254,10 @@ fun SharedTransitionScope.AnalyticsScreen(
                                 }
                                 items(TransactionTypeFilter.entries) { typeFilter ->
                                     FilterChip(
-                                        selected = transactionTypeFilter == typeFilter,
-                                        onClick = { analyticsViewModel.setTransactionTypeFilter(typeFilter) },
+                                        selected = transactionTypeFilter.contains(typeFilter),
+                                        onClick = { analyticsViewModel.toggleTransactionTypeFilter(typeFilter) },
                                         label = { Text(typeFilter.label) },
-                                        leadingIcon = if (transactionTypeFilter == typeFilter) {
+                                        leadingIcon = if (transactionTypeFilter.contains(typeFilter)) {
                                             {
                                                 TypeFilterIcon(typeFilter)
                                             }
@@ -271,7 +270,7 @@ fun SharedTransitionScope.AnalyticsScreen(
                                         ),
                                         border = FilterChipDefaults.filterChipBorder(
                                             borderWidth = 0.dp,
-                                            selected = transactionTypeFilter == typeFilter,
+                                            selected = transactionTypeFilter.contains(typeFilter),
                                             enabled = true
                                         ),
                                     )
@@ -467,7 +466,7 @@ fun SharedTransitionScope.AnalyticsScreen(
                                         SpendingLineChart(
                                             data = uiState.spendingTrend,
                                             currency = uiState.currency,
-                                            typeFilter = transactionTypeFilter
+                                            typeFilters = transactionTypeFilter
                                         )
                                     }
                                     ChartType.BAR ->  AnimatedVisibility(
@@ -478,7 +477,7 @@ fun SharedTransitionScope.AnalyticsScreen(
                                         SpendingBarChart(
                                             data = uiState.spendingTrend,
                                             currency = uiState.currency,
-                                            typeFilter = transactionTypeFilter
+                                            typeFilters = transactionTypeFilter
                                         )
                                     }
                                     ChartType.HEATMAP ->  AnimatedVisibility(
@@ -614,7 +613,7 @@ fun SharedTransitionScope.AnalyticsScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) { index, size, merchant ->
                             val position = ListItemPosition.from(index, size)
-                            TransactionItem(
+                            this@AnalyticsScreen.TransactionItem(
                                 merchantName = merchant.name,
                                 amount = merchant.amount,
                                 amountOverride = CurrencyFormatter.formatCurrency(merchant.amount, uiState.currency),
@@ -644,7 +643,9 @@ fun SharedTransitionScope.AnalyticsScreen(
                                     end = Dimensions.Padding.content,
                                 ),
                                 animatedContentScope = animatedContentScope,
-                                sharedElementKey = "merchant_${merchant.name}"
+                                sharedElementKey = "merchant_${merchant.name}",
+                                convertedAmount = uiState.convertedMerchantAmounts[merchant.name],
+                                mainCurrency = uiState.baseCurrency
                             )
                         }
                     }
@@ -848,9 +849,9 @@ private fun EmptyAnalyticsState(
 
 @Composable
 private fun CurrencyFilterRow(
-    selectedCurrency: String,
+    selectedCurrency: String?,
     availableCurrencies: List<String>,
-    onCurrencySelected: (String) -> Unit,
+    onCurrencySelected: (String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyRow(
@@ -863,7 +864,13 @@ private fun CurrencyFilterRow(
         items(availableCurrencies) { currency ->
             FilterChip(
                 selected = selectedCurrency == currency,
-                onClick = { onCurrencySelected(currency) },
+                onClick = { 
+                    if (selectedCurrency == currency) {
+                        onCurrencySelected(null)
+                    } else {
+                        onCurrencySelected(currency) 
+                    }
+                },
                 label = { Text(currency) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,

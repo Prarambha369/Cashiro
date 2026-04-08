@@ -65,7 +65,7 @@ import kotlin.math.abs
 fun SpendingLineChart(
     data: List<BalancePoint>,
     currency: String,
-    typeFilter: TransactionTypeFilter = TransactionTypeFilter.EXPENSE
+    typeFilters: Set<TransactionTypeFilter> = setOf(TransactionTypeFilter.EXPENSE)
 ) {
     if (data.isEmpty()) return
     val themeColors = MaterialTheme.colorScheme
@@ -96,13 +96,10 @@ fun SpendingLineChart(
             .padding(vertical = Spacing.md),
         data = listOf(
             Line(
-                label = when (typeFilter) {
-                    TransactionTypeFilter.INCOME -> "Income"
-                    TransactionTypeFilter.EXPENSE -> "Spending"
-                    TransactionTypeFilter.TRANSFER -> "Transfer"
-                    TransactionTypeFilter.INVESTMENT -> "Invested"
-                    TransactionTypeFilter.CREDIT -> "Credited"
-                    else -> "Spending"
+                label = if (typeFilters.contains(TransactionTypeFilter.ALL) || typeFilters.size > 2) {
+                    "Total"
+                } else {
+                    typeFilters.joinToString(" & ") { it.label }
                 },
                 values = cashFlowData,
                 color = SolidColor(themeColors.primary),
@@ -189,7 +186,7 @@ fun SpendingLineChart(
 fun SpendingBarChart(
     data: List<BalancePoint>,
     currency: String,
-    typeFilter: TransactionTypeFilter = TransactionTypeFilter.EXPENSE
+    typeFilters: Set<TransactionTypeFilter> = setOf(TransactionTypeFilter.EXPENSE)
 ) {
     if (data.isEmpty()) return
     val themeColors = MaterialTheme.colorScheme
@@ -212,13 +209,10 @@ fun SpendingBarChart(
                 label = label,
                 values = listOf(
                     Bars.Data(
-                        label = when (typeFilter) {
-                            TransactionTypeFilter.INCOME -> "Income"
-                            TransactionTypeFilter.EXPENSE -> "Spending"
-                            TransactionTypeFilter.TRANSFER -> "Transfer"
-                            TransactionTypeFilter.INVESTMENT -> "Invested"
-                            TransactionTypeFilter.CREDIT -> "Credited"
-                            else -> "Spending"
+                        label = if (typeFilters.contains(TransactionTypeFilter.ALL) || typeFilters.size > 2) {
+                            "Total"
+                        } else {
+                            typeFilters.joinToString(" & ") { it.label }
                         },
                         value = point.balance.toDouble(),
                         color = SolidColor(themeColors.primary.copy(alpha = 0.8f))

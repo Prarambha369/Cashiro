@@ -66,8 +66,8 @@ class SubscriptionsViewModel @Inject constructor(
                     currencyConversionService.refreshExchangeRatesForAccount(subscriptionCurrencies + targetCurrency)
                 }
 
-                val totalMonthlyAmount = subscriptions.sumOf { subscription ->
-                    if (subscription.currency == targetCurrency) {
+                val convertedAmounts = subscriptions.associate { subscription ->
+                    subscription.id to if (subscription.currency == targetCurrency) {
                         subscription.amount
                     } else {
                         currencyConversionService.convertAmount(
@@ -77,6 +77,8 @@ class SubscriptionsViewModel @Inject constructor(
                         ) ?: subscription.amount
                     }
                 }
+
+                val totalMonthlyAmount = convertedAmounts.values.sumOf { it }
                 
                 _uiState.update { 
                     it.copy(
@@ -84,6 +86,7 @@ class SubscriptionsViewModel @Inject constructor(
                         totalMonthlyAmount = totalMonthlyAmount,
                         totalYearlyAmount = totalMonthlyAmount * BigDecimal(12),
                         targetCurrency = targetCurrency,
+                        convertedAmounts = convertedAmounts,
                         isLoading = false
                     )
                 }

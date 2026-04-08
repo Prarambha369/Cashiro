@@ -2,7 +2,6 @@ package com.ritesh.cashiro.presentation.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -11,7 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.SettingsEthernet
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,7 +21,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.ritesh.cashiro.presentation.ui.theme.Dimensions
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
 import com.ritesh.cashiro.presentation.ui.theme.expense_dark
 import com.ritesh.cashiro.presentation.ui.theme.expense_light
@@ -41,8 +38,6 @@ fun TransactionTotalsCard(
     currency: String,
     title: String? = null,
     isEstimated: Boolean = false,
-    availableCurrenciesCount: Int = 0,
-    onCurrencyClick: () -> Unit = {},
     isLoading: Boolean = false,
 ) {
     val incomeAlpha by animateFloatAsState(
@@ -72,7 +67,7 @@ fun TransactionTotalsCard(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             ),
-            shape = RoundedCornerShape(Spacing.xxl),
+            shape = RoundedCornerShape(Spacing.lg),
             contentPadding = Spacing.sm
         ) {
             Column(
@@ -92,9 +87,9 @@ fun TransactionTotalsCard(
                                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                                 shape = RoundedCornerShape(
                                     topEnd = Spacing.xs,
-                                    topStart = Spacing.xxl,
+                                    topStart = Spacing.md,
                                     bottomEnd = Spacing.xs,
-                                    bottomStart = Spacing.xxl)
+                                    bottomStart = Spacing.md)
                             )
                             .padding(Spacing.sm),
                         contentAlignment = Alignment.Center
@@ -191,9 +186,9 @@ fun TransactionTotalsCard(
                             .background(
                                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                                 shape = RoundedCornerShape(
-                                    topEnd = Spacing.xxl,
+                                    topEnd = Spacing.md,
                                     topStart = Spacing.xs,
-                                    bottomEnd = Spacing.xxl,
+                                    bottomEnd = Spacing.md,
                                     bottomStart = Spacing.xs
                                 )
                             )
@@ -222,39 +217,7 @@ fun TransactionTotalsCard(
                 }
             }
         }
-        
-        // Currency Selector Button (Overlay)
-        if (availableCurrenciesCount > 1) {
-            Surface(
-                onClick = onCurrencyClick,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(top = Spacing.xxl)
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(Dimensions.Radius.sm),
-                color = MaterialTheme.colorScheme.tertiaryContainer,
-                border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = currency,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                    )
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
-        }
+
     }
 }
 

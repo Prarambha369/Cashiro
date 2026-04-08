@@ -26,15 +26,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.rounded.Deselect
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.SelectAll
-import androidx.compose.material.icons.rounded.SwapHoriz
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -54,7 +48,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -71,6 +64,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
@@ -82,13 +76,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ritesh.cashiro.presentation.common.TimePeriod
-import com.ritesh.cashiro.presentation.common.TransactionTypeFilter
 import com.ritesh.cashiro.presentation.effects.BlurredAnimatedVisibility
 import com.ritesh.cashiro.presentation.effects.overScrollVertical
 import com.ritesh.cashiro.presentation.effects.rememberOverscrollFlingBehavior
 import com.ritesh.cashiro.presentation.ui.components.CashiroCard
-import com.ritesh.cashiro.presentation.ui.components.CategoryChip
-import com.ritesh.cashiro.presentation.ui.components.CollapsibleFilterRow
 import com.ritesh.cashiro.presentation.ui.components.CurrencySelectionBottomSheet
 import com.ritesh.cashiro.presentation.ui.components.CustomTitleTopAppBar
 import com.ritesh.cashiro.presentation.ui.components.DateRangePickerDialog
@@ -102,10 +93,10 @@ import com.ritesh.cashiro.presentation.ui.components.TransactionTotalsCard
 import com.ritesh.cashiro.presentation.ui.components.toShape
 import com.ritesh.cashiro.presentation.ui.features.categories.NavigationContent
 import com.ritesh.cashiro.presentation.ui.icons.Bag
-import com.ritesh.cashiro.presentation.ui.icons.Card
 import com.ritesh.cashiro.presentation.ui.icons.CloseCircle
+import com.ritesh.cashiro.presentation.ui.icons.Folder2
 import com.ritesh.cashiro.presentation.ui.icons.Iconax
-import com.ritesh.cashiro.presentation.ui.icons.Information
+import com.ritesh.cashiro.presentation.ui.icons.Menu
 import com.ritesh.cashiro.presentation.ui.icons.ReceiptItem
 import com.ritesh.cashiro.presentation.ui.icons.Search
 import com.ritesh.cashiro.presentation.ui.theme.Dimensions
@@ -147,6 +138,7 @@ fun SharedTransitionScope.TransactionsScreen(
     val currencyGroupedTotals by transactionsViewModel.currencyGroupedTotals.collectAsState()
     val availableCurrencies by transactionsViewModel.availableCurrencies.collectAsState()
     val selectedCurrency by transactionsViewModel.selectedCurrency.collectAsState()
+    val baseCurrency by transactionsViewModel.baseCurrency.collectAsState()
     val sortOption by transactionsViewModel.sortOption.collectAsState()
     val smsScanMonths by transactionsViewModel.smsScanMonths.collectAsState()
     val customDateRange by transactionsViewModel.customDateRange.collectAsState()
@@ -156,8 +148,9 @@ fun SharedTransitionScope.TransactionsScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    var showAdvancedFilters by remember { mutableStateOf(false) }
+    var showMainMenu by remember { mutableStateOf(false) }
     var showSortMenu by remember { mutableStateOf(false) }
+    var showFilterSheet by remember { mutableStateOf(false) }
     var showDateRangePicker by remember { mutableStateOf(false) }
     var showCurrencySheet by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
@@ -190,10 +183,10 @@ fun SharedTransitionScope.TransactionsScreen(
         }
     }
     
-    // Calculate active filter count for advanced filters
+    // Calculate active filter count for filters
     val activeFilterCount = listOf(
-        transactionTypeFilter != TransactionTypeFilter.ALL,
-        categoryFilter != null
+        transactionTypeFilter.isNotEmpty(),
+        categoryFilter.isNotEmpty()
     ).count { it }
 
     // Remember scroll position across navigation
@@ -447,10 +440,10 @@ fun SharedTransitionScope.TransactionsScreen(
                                     )
                                 }
                             }
-                            // Sort button
+                            // More options button
                             Box {
                                 IconButton(
-                                    onClick = { showSortMenu = true },
+                                    onClick = { showMainMenu = true },
                                     modifier = Modifier
                                         .size(48.dp)
                                         .clip(MaterialTheme.shapes.medium)
@@ -458,8 +451,43 @@ fun SharedTransitionScope.TransactionsScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Rounded.MoreHoriz,
-                                        contentDescription = "Sort",
+                                        contentDescription = "More Options",
                                         tint = MaterialTheme.colorScheme.onSurface.copy(0.5f)
+                                    )
+                                }
+
+                                DropdownMenu(
+                                    expanded = showMainMenu,
+                                    onDismissRequest = { showMainMenu = false },
+                                    shape = MaterialTheme.shapes.large
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Filter") },
+                                        onClick = { showFilterSheet = true; showMainMenu = false },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Iconax.Folder2,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(20.dp),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    )
+                                    HorizontalDivider(
+                                        thickness = 1.5.dp,
+                                        color = MaterialTheme.colorScheme.surface
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Sort") },
+                                        onClick = { showSortMenu = true; showMainMenu = false },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Iconax.Menu,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(20.dp),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
                                     )
                                 }
 
@@ -503,12 +531,12 @@ fun SharedTransitionScope.TransactionsScreen(
                                 }
                             }
                         }
-
                     },
                     label = {
                         Text(
-                            text = if (categoryFilter != null) "Search in $categoryFilter..."
-                            else "Search transactions",
+                            text = if (categoryFilter.isNotEmpty()) {
+                                "Search in ${categoryFilter.joinToString(", ")}..."
+                            } else "Search transactions",
                             maxLines = 1,
                             textAlign = TextAlign.Center,
                             overflow = TextOverflow.Ellipsis,
@@ -571,71 +599,7 @@ fun SharedTransitionScope.TransactionsScreen(
                 }
             }
 
-            // Collapsible Advanced Filters
-            CollapsibleFilterRow(
-                isExpanded = showAdvancedFilters,
-                activeFilterCount = activeFilterCount,
-                onToggle = { showAdvancedFilters = !showAdvancedFilters },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                // Transaction Type Filter Chips
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                ) {
-                    items(TransactionTypeFilter.entries) { typeFilter ->
-                        FilterChip(
-                            selected = transactionTypeFilter == typeFilter,
-                            onClick = { transactionsViewModel.setTransactionTypeFilter(typeFilter) },
-                            label = { Text(typeFilter.label) },
-                            leadingIcon = if (transactionTypeFilter == typeFilter) {
-                                {
-                                    when (typeFilter) {
-                                        TransactionTypeFilter.INCOME -> Icon(
-                                            Icons.AutoMirrored.Filled.TrendingUp,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(Dimensions.Icon.small)
-                                        )
-                                        TransactionTypeFilter.EXPENSE -> Icon(
-                                            Icons.AutoMirrored.Filled.TrendingDown,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(Dimensions.Icon.small)
-                                        )
-                                        TransactionTypeFilter.CREDIT -> Icon(
-                                            Iconax.Card,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(Dimensions.Icon.small)
-                                        )
-                                        TransactionTypeFilter.TRANSFER -> Icon(
-                                            Icons.Rounded.SwapHoriz,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(Dimensions.Icon.small)
-                                        )
-                                        TransactionTypeFilter.INVESTMENT -> Icon(
-                                            Icons.AutoMirrored.Filled.ShowChart,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(Dimensions.Icon.small)
-                                        )
-                                        else -> null
-                                    }
-                                }
-                            } else null,
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                selectedLabelColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(0.7f),
-                                labelColor = MaterialTheme.colorScheme.onSurface
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                borderWidth = 0.dp,
-                                selected = transactionTypeFilter == typeFilter,
-                                enabled = true
-                            ),
-                        )
-                    }
-                }
-            }
+            Spacer(modifier = Modifier.height(Spacing.sm))
 
             // Transaction List
             when {
@@ -669,63 +633,17 @@ fun SharedTransitionScope.TransactionsScreen(
                         flingBehavior = rememberOverscrollFlingBehavior { listState },
 
                     ) {
-                        item {
-                            // Totals Card - Moved after filters
+                        stickyHeader {
+                            // Totals Card
                             TransactionTotalsCard(
                                 income = filteredTotals.income,
                                 expenses = filteredTotals.expenses,
                                 netBalance = filteredTotals.netBalance,
-                                currency = selectedCurrency,
-                                availableCurrenciesCount = availableCurrencies.size,
-                                onCurrencyClick = { showCurrencySheet = true },
+                                currency = baseCurrency,
                                 isLoading = uiState.isLoading,
                             )
 
-                            // Category Filter Chip
-                            categoryFilter?.let { category ->
-                                LazyRow(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = Spacing.xs),
-                                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                                ) {
-                                    item {
-                                        FilterChip(
-                                            selected = true,
-                                            onClick = { /* No action on click, use trailing icon to clear */ },
-                                            label = { Text(category) },
-                                            leadingIcon = {
-                                                categoriesMap[category]?.let { categoryEntity ->
-                                                    CategoryChip(
-                                                        category = categoryEntity,
-                                                        showText = false,
-                                                        modifier = Modifier.padding(start = 4.dp)
-                                                    )
-                                                }
-                                            },
-                                            trailingIcon = {
-                                                IconButton(
-                                                    onClick = { transactionsViewModel.clearCategoryFilter() },
-                                                    modifier = Modifier.size(18.dp)
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Iconax.CloseCircle,
-                                                        contentDescription = "Clear category filter",
-                                                        modifier = Modifier.size(18.dp)
-                                                    )
-                                                }
-                                            },
-                                            colors = FilterChipDefaults.filterChipColors(
-                                                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                                selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(0.7f),
-                                                labelColor = MaterialTheme.colorScheme.onSurface
-                                            ),
-                                            modifier = Modifier
-                                        )
-                                    }
-                                }
-                            }
+
                         }
                         // Iterate through date groups in order
                         listOf(
@@ -736,11 +654,41 @@ fun SharedTransitionScope.TransactionsScreen(
                         ).forEach { dateGroup ->
                             uiState.groupedTransactions[dateGroup]?.let { transactions ->
                                 // Date group header
-                                item {
-                                    SectionHeader(
-                                        title = dateGroup.label,
-                                        modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.sm, start = Spacing.md)
-                                    )
+                                stickyHeader {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                        modifier = Modifier
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    listOf(
+                                                        MaterialTheme.colorScheme.surface,
+                                                        MaterialTheme.colorScheme.surface,
+                                                        MaterialTheme.colorScheme.surface,
+                                                        Color.Transparent
+                                                    )
+                                                )
+                                            )
+                                            .padding(
+                                                top = Spacing.md,
+                                                bottom = Spacing.md,
+                                                start = Spacing.sm
+                                            )
+
+                                    ) {
+                                        Spacer(
+                                            modifier =
+                                                Modifier
+                                                    .height(16.dp)
+                                                    .width(4.dp)
+                                                    .background(
+                                                        MaterialTheme.colorScheme.tertiary,
+                                                        RoundedCornerShape(14.dp)
+                                                    )
+
+                                        )
+                                        SectionHeader(title = dateGroup.label)
+                                    }
                                 }
 
                                 // Transactions in this group
@@ -769,7 +717,9 @@ fun SharedTransitionScope.TransactionsScreen(
                                                 transactionsViewModel.toggleSelectionMode()
                                                 transactionsViewModel.toggleTransactionSelection(transaction.id)
                                             }
-                                        }
+                                        },
+                                        convertedAmount = uiState.convertedAmounts[transaction.id],
+                                        mainCurrency = baseCurrency
                                     )
                                 }
                             }
@@ -819,6 +769,13 @@ fun SharedTransitionScope.TransactionsScreen(
             selectedTransactionIds = selectedTransactionIds,
             blurEffects = blurEffects,
             hazeState = hazeState
+        )
+    }
+
+    if (showFilterSheet) {
+        TransactionsFilterBottomSheet(
+            viewModel = transactionsViewModel,
+            onDismiss = { showFilterSheet = false }
         )
     }
 }

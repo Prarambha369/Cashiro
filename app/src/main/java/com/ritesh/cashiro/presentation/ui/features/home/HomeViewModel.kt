@@ -168,7 +168,10 @@ class HomeViewModel @Inject constructor(
         // Observe base currency changes
         viewModelScope.launch {
             baseCurrency.collect { mainAccountCurrency ->
-                _uiState.update { it.copy(selectedCurrency = mainAccountCurrency) }
+                _uiState.update { it.copy(
+                    selectedCurrency = mainAccountCurrency,
+                    baseCurrency = mainAccountCurrency
+                ) }
             }
         }
 
@@ -288,13 +291,24 @@ class HomeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            // Load recent transactions (last 3)
-            transactionRepository.getRecentTransactions(limit = 3).collect { transactions ->
-                _uiState.value = _uiState.value.copy(
+            // Load recent transactions (last 3) and react to base currency changes
+            combine(
+                transactionRepository.getRecentTransactions(limit = 3),
+                baseCurrency
+            ) { transactions, mainCurrency ->
+                // Calculate converted amounts for shown transactions if transaction currency differs from base (main) currency
+                val converted = transactions
+                    .filter { it.currency != mainCurrency }
+                    .associate { tx ->
+                        tx.id to (currencyConversionService.convertAmount(tx.amount, tx.currency, mainCurrency) ?: tx.amount)
+                    }
+                
+                _uiState.update { it.copy(
                     recentTransactions = transactions,
+                    convertedAmounts = converted,
                     isLoading = false
-                )
-            }
+                ) }
+            }.collectLatest { }
         }
 
         viewModelScope.launch {

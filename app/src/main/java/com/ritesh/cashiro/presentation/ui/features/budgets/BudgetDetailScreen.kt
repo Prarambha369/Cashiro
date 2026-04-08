@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
-import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -371,7 +370,7 @@ fun SharedTransitionScope.BudgetDetailScreen(
                             val accountKey = "${transaction.bankName}_${transaction.accountNumber}"
                             val account = accountsMap[accountKey]
                             
-                            TransactionItem(
+                            this@BudgetDetailScreen.TransactionItem(
                                 transaction = transaction,
                                 categoryEntity = categoriesMap[transaction.category],
                                 subcategoryEntity = transaction.subcategory?.let { subcategoriesMap[it] },
@@ -382,7 +381,9 @@ fun SharedTransitionScope.BudgetDetailScreen(
                                 modifier = Modifier.padding(horizontal = Spacing.md),
                                 animatedContentScope = animatedContentScope,
                                 shape = position.toShape(),
-                                sharedElementKey = "budget_txn_${transaction.id}"
+                                sharedElementKey = "budget_txn_${transaction.id}",
+                                convertedAmount = uiState.convertedAmounts[transaction.id],
+                                mainCurrency = uiState.baseCurrency
                             )
                         }
                     }

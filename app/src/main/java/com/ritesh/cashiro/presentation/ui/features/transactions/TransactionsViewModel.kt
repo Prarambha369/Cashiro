@@ -22,6 +22,7 @@ import com.ritesh.cashiro.data.preferences.UserPreferencesRepository
 import com.ritesh.cashiro.data.repository.AccountBalanceRepository
 import com.ritesh.cashiro.data.repository.CurrencyRepository
 import com.ritesh.cashiro.data.repository.SubcategoryRepository
+import com.ritesh.cashiro.data.currency.CurrencyConversionService
 import com.ritesh.cashiro.utils.CurrencyUtils
 import com.ritesh.cashiro.utils.DeviceEncryption
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -45,6 +46,7 @@ class TransactionsViewModel @Inject constructor(
     private val accountBalanceRepository: AccountBalanceRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val currencyRepository: CurrencyRepository,
+    private val currencyConversionService: CurrencyConversionService,
     private val savedStateHandle: SavedStateHandle,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -55,17 +57,36 @@ class TransactionsViewModel @Inject constructor(
     private val _selectedPeriod = MutableStateFlow(TimePeriod.THIS_MONTH)
     val selectedPeriod: StateFlow<TimePeriod> = _selectedPeriod.asStateFlow()
     
-    private val _categoryFilter = MutableStateFlow<String?>(null)
-    val categoryFilter: StateFlow<String?> = _categoryFilter.asStateFlow()
+    private val _categoryFilter = MutableStateFlow<Set<String>>(emptySet())
+    val categoryFilter: StateFlow<Set<String>> = _categoryFilter.asStateFlow()
+
+    private val _subcategoryFilter = MutableStateFlow<Set<String>>(emptySet())
+    val subcategoryFilter: StateFlow<Set<String>> = _subcategoryFilter.asStateFlow()
+
+    private val _amountRangeFilter = MutableStateFlow<Pair<BigDecimal, BigDecimal>?>(null)
+    val amountRangeFilter: StateFlow<Pair<BigDecimal, BigDecimal>?> = _amountRangeFilter.asStateFlow()
+
+    private val _accountsFilter = MutableStateFlow<Set<String>>(emptySet())
+    val accountsFilter: StateFlow<Set<String>> = _accountsFilter.asStateFlow()
+
+    private val _currenciesFilter = MutableStateFlow<Set<String>>(emptySet())
+    val currenciesFilter: StateFlow<Set<String>> = _currenciesFilter.asStateFlow()
     
-    private val _transactionTypeFilter = MutableStateFlow(TransactionTypeFilter.ALL)
-    val transactionTypeFilter: StateFlow<TransactionTypeFilter> = _transactionTypeFilter.asStateFlow()
+    private val _transactionTypeFilter = MutableStateFlow<Set<TransactionTypeFilter>>(emptySet())
+    val transactionTypeFilter: StateFlow<Set<TransactionTypeFilter>> = _transactionTypeFilter.asStateFlow()
     
     private val _sortOption = MutableStateFlow(SortOption.DATE_NEWEST)
     val sortOption: StateFlow<SortOption> = _sortOption.asStateFlow()
 
     private val _selectedCurrency = MutableStateFlow("INR") // Default to INR
     val selectedCurrency: StateFlow<String> = _selectedCurrency.asStateFlow()
+
+    val baseCurrency: StateFlow<String> = currencyRepository.baseCurrencyCode
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = "INR"
+        )
 
     // Store custom date range as epoch days to survive process death
     // Stored as Pair<Long, Long> (startEpochDay, endEpochDay) in SavedStateHandle
@@ -136,19 +157,33 @@ class TransactionsViewModel @Inject constructor(
         )
 
     // Computed property for current selected currency totals
-    val filteredTotals: StateFlow<FilteredTotals> = combine(
-        _currencyGroupedTotals,
-        _selectedCurrency
-    ) { groupedTotals, currency ->
-        val currencyTotals = groupedTotals.getTotalsForCurrency(currency)
+    val filteredTotals: StateFlow<FilteredTotals> = _uiState.map { state ->
+        var income = BigDecimal.ZERO
+        var expenses = BigDecimal.ZERO
+        var credit = BigDecimal.ZERO
+        var transfer = BigDecimal.ZERO
+        var investment = BigDecimal.ZERO
+
+        state.transactions.forEach { tx ->
+            val valAmount = state.convertedAmounts[tx.id] ?: tx.amount
+            when (tx.transactionType) {
+                TransactionType.INCOME -> income += valAmount
+                TransactionType.EXPENSE -> expenses += valAmount
+                TransactionType.CREDIT -> credit += valAmount
+                TransactionType.TRANSFER -> transfer += valAmount
+                TransactionType.INVESTMENT -> investment += valAmount
+                else -> {}
+            }
+        }
+        val netBalance = income - expenses
         FilteredTotals(
-            income = currencyTotals.income,
-            expenses = currencyTotals.expenses,
-            credit = currencyTotals.credit,
-            transfer = currencyTotals.transfer,
-            investment = currencyTotals.investment,
-            netBalance = currencyTotals.netBalance,
-            transactionCount = currencyTotals.transactionCount
+            income = income,
+            expenses = expenses,
+            credit = credit,
+            transfer = transfer,
+            investment = investment,
+            netBalance = netBalance,
+            transactionCount = state.transactions.size
         )
     }.stateIn(
         scope = viewModelScope,
@@ -202,6 +237,17 @@ class TransactionsViewModel @Inject constructor(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyMap()
+        )
+        
+    // Calculate the absolute maximum transaction amount across all transactions
+    val maxTransactionAmount: StateFlow<Float> = transactionRepository.getAllTransactions()
+        .map { transactions ->
+            transactions.maxOfOrNull { it.amount.toDouble() }?.toFloat() ?: 0f
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 0f
         )
     
     // SMS scan period for info banner
@@ -263,10 +309,15 @@ class TransactionsViewModel @Inject constructor(
                     searchQuery.debounce(300).map { "search" },
                     selectedPeriod.map { "period" },
                     categoryFilter.map { "category" },
+                    subcategoryFilter.map { "subcategory" },
+                    amountRangeFilter.map { "amount" },
+                    accountsFilter.map { "accounts" },
+                    currenciesFilter.map { "currencies" },
                     transactionTypeFilter.map { "typeFilter" },
                     selectedCurrency.map { "currency" },
                     sortOption.map { "sort" },
-                    customDateRange.map { "customDate" }
+                    customDateRange.map { "customDate" },
+                    currencyRepository.baseCurrencyCode.map { "baseCurrency" }
                 )
             }
             .transformLatest { trigger ->
@@ -274,24 +325,35 @@ class TransactionsViewModel @Inject constructor(
                 val query = searchQuery.value
                 val period = selectedPeriod.value
                 val category = categoryFilter.value
+                val subcategory = subcategoryFilter.value
+                val amountRange = amountRangeFilter.value
+                val accounts = accountsFilter.value
+                val filterCurrencies = currenciesFilter.value
                 val typeFilter = transactionTypeFilter.value
                 val currency = selectedCurrency.value
+                val baseCurrencyCode = currencyRepository.baseCurrencyCode.first()
                 val sort = sortOption.value
-
-                // Get filtered transactions
-                getFilteredTransactions(query, period, category, typeFilter)
-                    .collect { transactions ->
-                        // Filter by currency
-                        val currencyFilteredTransactions = transactions.filter {
-                            it.currency.equals(currency, ignoreCase = true)
-                        }
-                        emit(sortTransactions(currencyFilteredTransactions, sort))
-                    }
+ 
+                 // Get filtered transactions
+                 getFilteredTransactions(query, period, category, subcategory, amountRange, accounts, filterCurrencies, typeFilter)
+                     .collect { transactions ->
+                         // No longer filtering by selectedCurrency. Show all unless explicitly filtered via filter sheet
+                         val currencyFilteredTransactions = transactions
+                         
+                         // Calculate converted amounts for shown transactions if transaction currency differs from base (main) currency
+                         val converted = currencyFilteredTransactions.filter { !it.currency.equals(baseCurrencyCode, ignoreCase = true) }
+                             .associate { tx ->
+                                 tx.id to currencyConversionService.convertAmount(tx.amount, tx.currency, baseCurrencyCode)
+                             }
+                         
+                         emit(Pair(sortTransactions(currencyFilteredTransactions, sort), converted))
+                     }
             }
-            .onEach { transactions ->
+            .onEach { (transactions, converted) ->
                 _uiState.value = _uiState.value.copy(
                     transactions = transactions,
                     groupedTransactions = groupTransactionsByDate(transactions),
+                    convertedAmounts = converted,
                     isLoading = false
                 )
                 // Calculate totals for filtered transactions
@@ -322,16 +384,71 @@ class TransactionsViewModel @Inject constructor(
     }
     
     fun setCategoryFilter(category: String) {
-        println("DEBUG: Setting category filter to: '$category'")
-        _categoryFilter.value = category
+        val current = _categoryFilter.value
+        _categoryFilter.value = if (current.contains(category)) {
+            current - category
+        } else {
+            current + category
+        }
     }
     
     fun clearCategoryFilter() {
-        _categoryFilter.value = null
+        _categoryFilter.value = emptySet()
+    }
+
+    fun setSubcategoryFilter(subcategory: String?) {
+        if (subcategory == null) {
+            _subcategoryFilter.value = emptySet()
+            return
+        }
+        val current = _subcategoryFilter.value
+        _subcategoryFilter.value = if (current.contains(subcategory)) {
+            current - subcategory
+        } else {
+            current + subcategory
+        }
+    }
+
+    fun toggleAccountFilter(accountKey: String) {
+        val current = _accountsFilter.value
+        _accountsFilter.value = if (current.contains(accountKey)) {
+            current - accountKey
+        } else {
+            current + accountKey
+        }
+    }
+
+    fun toggleCurrencyFilter(currencyCode: String) {
+        val current = _currenciesFilter.value
+        _currenciesFilter.value = if (current.contains(currencyCode)) {
+            current - currencyCode
+        } else {
+            current + currencyCode
+        }
+    }
+
+    fun setAmountRangeFilter(min: BigDecimal, max: BigDecimal) {
+        _amountRangeFilter.value = Pair(min, max)
+    }
+
+    fun clearExtendedFilters() {
+        _subcategoryFilter.value = emptySet()
+        _amountRangeFilter.value = null
+        _accountsFilter.value = emptySet()
+        _currenciesFilter.value = emptySet()
     }
     
     fun setTransactionTypeFilter(filter: TransactionTypeFilter) {
-        _transactionTypeFilter.value = filter
+        if (filter == TransactionTypeFilter.ALL) {
+            _transactionTypeFilter.value = emptySet()
+            return
+        }
+        val current = _transactionTypeFilter.value
+        _transactionTypeFilter.value = if (current.contains(filter)) {
+            current - filter
+        } else {
+            current + filter
+        }
     }
     
     fun setSortOption(option: SortOption) {
@@ -451,6 +568,7 @@ class TransactionsViewModel @Inject constructor(
     fun resetFilters() {
         hasAppliedInitialFilters = false
         clearCategoryFilter()
+        clearExtendedFilters()
         updateSearchQuery("")
         clearCustomDateRange()
         selectPeriod(TimePeriod.THIS_MONTH)
@@ -478,7 +596,7 @@ class TransactionsViewModel @Inject constructor(
                 val decoded = if (it.contains("+") || it.contains("%")) {
                     URLDecoder.decode(it, "UTF-8")
                 } else it
-                setCategoryFilter(decoded)
+                _categoryFilter.value = setOf(decoded)
             }
 
             merchant?.let {
@@ -508,7 +626,7 @@ class TransactionsViewModel @Inject constructor(
                     "INVESTMENT" -> TransactionTypeFilter.INVESTMENT
                     else -> TransactionTypeFilter.ALL
                 }
-                setTransactionTypeFilter(typeFilter)
+                _transactionTypeFilter.value = if (typeFilter == TransactionTypeFilter.ALL) emptySet() else setOf(typeFilter)
             }
 
             // Only set currency if it's provided (from navigation)
@@ -536,7 +654,7 @@ class TransactionsViewModel @Inject constructor(
             val decoded = if (it.contains("+") || it.contains("%")) {
                 URLDecoder.decode(it, "UTF-8")
             } else it
-            setCategoryFilter(decoded)
+            _categoryFilter.value = setOf(decoded)
         }
 
         merchant?.let {
@@ -566,7 +684,7 @@ class TransactionsViewModel @Inject constructor(
                 "INVESTMENT" -> TransactionTypeFilter.INVESTMENT
                 else -> TransactionTypeFilter.ALL
             }
-            setTransactionTypeFilter(typeFilter)
+            _transactionTypeFilter.value = if (typeFilter == TransactionTypeFilter.ALL) emptySet() else setOf(typeFilter)
         }
 
         // Only set currency if it's provided (from navigation)
@@ -576,16 +694,15 @@ class TransactionsViewModel @Inject constructor(
     private fun getFilteredTransactions(
         searchQuery: String,
         period: TimePeriod,
-        category: String?,
-        typeFilter: TransactionTypeFilter
+        category: Set<String>,
+        subcategory: Set<String>,
+        amountRange: Pair<BigDecimal, BigDecimal>?,
+        accounts: Set<String>,
+        filterCurrencies: Set<String>,
+        typeFilter: Set<TransactionTypeFilter>
     ): Flow<List<TransactionEntity>> {
-        // Start with the base flow based on category filter
-        val baseFlow = if (category != null) {
-            println("DEBUG: Filtering by category: '$category'")
-            transactionRepository.getTransactionsByCategory(category)
-        } else {
-            transactionRepository.getAllTransactions()
-        }
+        // Start with the base flow
+        val baseFlow = transactionRepository.getAllTransactions()
         
         // Apply period filter
         val periodFilteredFlow = when (period) {
@@ -633,21 +750,43 @@ class TransactionsViewModel @Inject constructor(
         
         // Apply transaction type filter
         val typeFilteredFlow = periodFilteredFlow.map { transactions ->
-            when (typeFilter) {
-                TransactionTypeFilter.ALL -> transactions
-                TransactionTypeFilter.INCOME -> transactions.filter { it.transactionType == TransactionType.INCOME }
-                TransactionTypeFilter.EXPENSE -> transactions.filter { it.transactionType == TransactionType.EXPENSE }
-                TransactionTypeFilter.CREDIT -> transactions.filter { it.transactionType == TransactionType.CREDIT }
-                TransactionTypeFilter.TRANSFER -> transactions.filter { it.transactionType == TransactionType.TRANSFER }
-                TransactionTypeFilter.INVESTMENT -> transactions.filter { it.transactionType == TransactionType.INVESTMENT }
+            if (typeFilter.isEmpty()) {
+                transactions
+            } else {
+                transactions.filter { tx ->
+                    typeFilter.any { filter ->
+                        when (filter) {
+                            TransactionTypeFilter.ALL -> true
+                            TransactionTypeFilter.INCOME -> tx.transactionType == TransactionType.INCOME
+                            TransactionTypeFilter.EXPENSE -> tx.transactionType == TransactionType.EXPENSE
+                            TransactionTypeFilter.CREDIT -> tx.transactionType == TransactionType.CREDIT
+                            TransactionTypeFilter.TRANSFER -> tx.transactionType == TransactionType.TRANSFER
+                            TransactionTypeFilter.INVESTMENT -> tx.transactionType == TransactionType.INVESTMENT
+                        }
+                    }
+                }
+            }
+        }
+
+        // Apply new extended filters (Category, Subcategory, Amount Range, Accounts, Currencies)
+        val extendedFilteredFlow = typeFilteredFlow.map { transactions ->
+            transactions.filter { tx ->
+                val matchesCategory = category.isEmpty() || (tx.category != null && category.contains(tx.category))
+                val matchesSubcat = subcategory.isEmpty() || (tx.subcategory != null && subcategory.contains(tx.subcategory))
+                val matchesAmount = amountRange == null || (tx.amount >= amountRange.first && tx.amount <= amountRange.second)
+                val txAccountKey = "${tx.bankName}_${tx.accountNumber}"
+                val matchesAccount = accounts.isEmpty() || accounts.contains(txAccountKey)
+                val matchesCurrencyOpts = filterCurrencies.isEmpty() || filterCurrencies.contains(tx.currency)
+                
+                matchesCategory && matchesSubcat && matchesAmount && matchesAccount && matchesCurrencyOpts
             }
         }
         
         // Apply search filter
         return if (searchQuery.isBlank()) {
-            typeFilteredFlow
+            extendedFilteredFlow
         } else {
-            typeFilteredFlow.map { transactions ->
+            extendedFilteredFlow.map { transactions ->
                 transactions.filter { transaction ->
                     // Check merchant name and description
                     val matchesMerchant = transaction.merchantName.contains(searchQuery, ignoreCase = true)

@@ -13,10 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.rounded.SwapHoriz
-import com.ritesh.cashiro.presentation.ui.components.CashiroCheckbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -52,6 +49,10 @@ import com.ritesh.cashiro.utils.CurrencyFormatter
 import com.ritesh.cashiro.utils.formatAmount
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
+import androidx.core.graphics.toColorInt
+import com.ritesh.cashiro.presentation.ui.icons.Calendar
+import com.ritesh.cashiro.presentation.ui.icons.DocumentText2
+import com.ritesh.cashiro.presentation.ui.icons.Paperclip2
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -80,13 +81,14 @@ fun SharedTransitionScope.TransactionItem(
     isSelectionMode: Boolean = false,
     isSelected: Boolean = false,
     onSelectionToggle: () -> Unit = {},
-    onLongClick: () -> Unit = {}
+    onLongClick: () -> Unit = {},
+    convertedAmount: BigDecimal? = null,
+    mainCurrency: String? = null
 ) {
     val finalMerchantName = merchantName ?: transaction?.merchantName ?: ""
     val finalAmount = amount ?: transaction?.amount ?: BigDecimal.ZERO
     val finalType = transactionType ?: transaction?.transactionType ?: TransactionType.EXPENSE
     val isRecurring = transaction?.isRecurring ?: false
-
     val isDark = isSystemInDarkTheme()
     val amountColor = amountColorOverride ?: remember(finalType, isRecurring, isDark) {
         when (finalType) {
@@ -98,12 +100,20 @@ fun SharedTransitionScope.TransactionItem(
         }
     }
 
-    val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("MMM d • h:mm a") }
+    val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("MMM d") }
     val defaultSubtitle = remember(transaction?.dateTime) { 
         transaction?.dateTime?.format(dateTimeFormatter) ?: "" 
     }
     val amountText = remember(transaction, amountOverride, finalAmount) {
         amountOverride ?: transaction?.formatAmount() ?: finalAmount.toString()
+    }
+
+    val dateTagColor = remember(transaction?.dateTime,) {
+        val colors = listOf(income_dark, expense_dark, credit_dark, transfer_dark, investment_dark)
+
+        val dateHash = transaction?.dateTime?.toLocalDate()?.hashCode() ?: 0
+        val index = Math.abs(dateHash) % colors.size
+        colors[index]
     }
 
     val itemModifier = modifier.then(
@@ -163,14 +173,6 @@ fun SharedTransitionScope.TransactionItem(
             if (subtitleOverride != null) {
                 add(subtitleOverride)
             } else {
-                if (transaction != null) {
-                    when (finalType) {
-                        TransactionType.CREDIT -> add("Credit Card")
-                        TransactionType.TRANSFER -> add("Transfer")
-                        TransactionType.INVESTMENT -> add("Investment")
-                        else -> {}
-                    }
-                }
                 if (defaultSubtitle.isNotEmpty()) {
                     add(defaultSubtitle)
                 }
@@ -207,59 +209,178 @@ fun SharedTransitionScope.TransactionItem(
                 )
             },
             supporting = {
-                Text(
-                    text = subtitleParts.joinToString(" • "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.85f)
-                )
-            },
-            leading = leadingContent,
-            trailing = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    modifier = Modifier.basicMarquee()
                 ) {
-                    if (subtitleOverride == null) {
-                        when (finalType) {
-                            TransactionType.CREDIT -> Icon(
-                                Iconax.Card,
-                                contentDescription = "Credit Card",
-                                modifier = Modifier.size(Dimensions.Icon.small),
-                                tint = if (!isSystemInDarkTheme()) credit_light else credit_dark
-                            )
-                            TransactionType.TRANSFER -> Icon(
-                                Icons.Rounded.SwapHoriz,
-                                contentDescription = "Transfer",
-                                modifier = Modifier.size(Dimensions.Icon.small),
-                                tint = if (!isSystemInDarkTheme()) transfer_light else transfer_dark
-                            )
-                            TransactionType.INVESTMENT -> Icon(
-                                Icons.AutoMirrored.Filled.ShowChart,
-                                contentDescription = "Investment",
-                                modifier = Modifier.size(Dimensions.Icon.small),
-                                tint = if (!isSystemInDarkTheme()) investment_light else investment_dark
-                            )
-                            TransactionType.INCOME -> Icon(
-                                Icons.AutoMirrored.Filled.TrendingUp,
-                                contentDescription = "Income",
-                                modifier = Modifier.size(Dimensions.Icon.small),
-                                tint = if (!isSystemInDarkTheme()) income_light else income_dark
-                            )
-                            TransactionType.EXPENSE -> Icon(
-                                Icons.AutoMirrored.Filled.TrendingDown,
-                                contentDescription = "Expense",
-                                modifier = Modifier.size(Dimensions.Icon.small),
-                                tint = if (!isSystemInDarkTheme()) expense_light else expense_dark
+                    var needsSeparator = false
+                    
+                    @Composable
+                    fun TagSeparator() {
+                        if (needsSeparator) {
+                            Text(
+                                text = "•",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.5f)
                             )
                         }
                     }
 
-                    Text(
-                        text = amountText,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = amountColor
-                    )
+                    // Date Tag
+                    if (subtitleOverride == null && defaultSubtitle.isNotEmpty()) {
+                        TagSeparator()
+                        SubtitleTag(
+                            icon = {
+                                Icon(
+                                    imageVector = Iconax.Calendar,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(10.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.85f)
+                                )
+                            },
+                            text = defaultSubtitle,
+                            color = dateTagColor,
+                        )
+                        needsSeparator = true
+                    }
+
+                    // Category Tag
+                    categoryEntity?.let { category ->
+                        TagSeparator()
+                        SubtitleTag(
+                            text = category.name,
+                            color = try {
+                                Color(category.color.toColorInt())
+                            } catch (e: Exception) {
+                                MaterialTheme.colorScheme.primary
+                            }
+                        )
+                        needsSeparator = true
+                    }
+
+                    if (subtitleOverride != null) {
+                        TagSeparator()
+                        Text(
+                            text = subtitleOverride,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.5f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        needsSeparator = true
+                    } else {
+                        // Recurring Tag
+                        if (isRecurring) {
+                            TagSeparator()
+                            SubtitleTag(
+                                text = "Recurring",
+                                color = Color(0xFF5B54D6)
+                            )
+                            needsSeparator = true
+                        }
+
+
+                        // Balance Tag
+                        balanceAfter?.let { balance ->
+                            TagSeparator()
+                            SubtitleTag(
+                                text = "Bal: ${CurrencyFormatter.formatCurrency(balance, balanceCurrency ?: "INR")}",
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                            needsSeparator = true
+                        }
+
+                        // Description Indicator
+                        if (transaction?.description?.isNotBlank() == true) {
+                            TagSeparator()
+                            Icon(
+                                imageVector = Iconax.DocumentText2,
+                                contentDescription = "Has description",
+                                modifier = Modifier.size(12.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
+                            )
+                            needsSeparator = true
+                        }
+
+                        // Attachments Indicator
+                        if (transaction?.attachments?.isNotBlank() == true) {
+                            TagSeparator()
+                            Icon(
+                                imageVector = Iconax.Paperclip2,
+                                contentDescription = "Has attachments",
+                                modifier = Modifier.size(12.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
+                            )
+                            needsSeparator = true
+                        }
+                    }
+                }
+            },
+            leading = leadingContent,
+            trailing = {
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    ) {
+                        if (subtitleOverride == null) {
+                            when (finalType) {
+                                TransactionType.CREDIT -> Icon(
+                                    Iconax.Card,
+                                    contentDescription = "Credit Card",
+                                    modifier = Modifier.size(Dimensions.Icon.small),
+                                    tint = if (!isSystemInDarkTheme()) credit_light else credit_dark
+                                )
+
+                                TransactionType.TRANSFER -> Icon(
+                                    Icons.Rounded.SwapHoriz,
+                                    contentDescription = "Transfer",
+                                    modifier = Modifier.size(Dimensions.Icon.small),
+                                    tint = if (!isSystemInDarkTheme()) transfer_light else transfer_dark
+                                )
+
+                                TransactionType.INVESTMENT -> Icon(
+                                    Icons.AutoMirrored.Filled.ShowChart,
+                                    contentDescription = "Investment",
+                                    modifier = Modifier.size(Dimensions.Icon.small),
+                                    tint = if (!isSystemInDarkTheme()) investment_light else investment_dark
+                                )
+
+                                TransactionType.INCOME -> Icon(
+                                    Icons.AutoMirrored.Filled.TrendingUp,
+                                    contentDescription = "Income",
+                                    modifier = Modifier.size(Dimensions.Icon.small),
+                                    tint = if (!isSystemInDarkTheme()) income_light else income_dark
+                                )
+
+                                TransactionType.EXPENSE -> Icon(
+                                    Icons.AutoMirrored.Filled.TrendingDown,
+                                    contentDescription = "Expense",
+                                    modifier = Modifier.size(Dimensions.Icon.small),
+                                    tint = if (!isSystemInDarkTheme()) expense_light else expense_dark
+                                )
+                            }
+                        }
+                        Text(
+                            text = amountText,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = amountColor
+                        )
+                    }
+
+                    if (convertedAmount != null && mainCurrency != null && transaction?.currency != mainCurrency) {
+                        Text(
+                            text = "≈ ${CurrencyFormatter.formatCurrency(convertedAmount, mainCurrency)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            fontWeight = FontWeight.Normal
+                        )
+                    }
                 }
             },
             onClick = {
@@ -277,3 +398,5 @@ fun SharedTransitionScope.TransactionItem(
         )
     }
 }
+
+

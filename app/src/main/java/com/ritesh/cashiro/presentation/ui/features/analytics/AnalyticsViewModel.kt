@@ -26,6 +26,7 @@ import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
+import com.ritesh.cashiro.data.currency.CurrencyConversionService
 
 @HiltViewModel
 class AnalyticsViewModel @Inject constructor(
@@ -34,24 +35,25 @@ class AnalyticsViewModel @Inject constructor(
     private val subcategoryRepository: SubcategoryRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val currencyRepository: CurrencyRepository,
+    private val currencyConversionService: CurrencyConversionService,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     
     private val _selectedPeriod = MutableStateFlow(TimePeriod.THIS_MONTH)
     val selectedPeriod: StateFlow<TimePeriod> = _selectedPeriod.asStateFlow()
     
-    private val _transactionTypeFilter = MutableStateFlow(TransactionTypeFilter.EXPENSE)
-    val transactionTypeFilter: StateFlow<TransactionTypeFilter> = _transactionTypeFilter.asStateFlow()
+    private val _transactionTypeFilter = MutableStateFlow<Set<TransactionTypeFilter>>(setOf(TransactionTypeFilter.EXPENSE))
+    val transactionTypeFilter: StateFlow<Set<TransactionTypeFilter>> = _transactionTypeFilter.asStateFlow()
 
-    private val _selectedCurrency = MutableStateFlow("INR")
-    val selectedCurrency: StateFlow<String> = _selectedCurrency.asStateFlow()
+    private val _selectedCurrency = MutableStateFlow<String?>(null)
+    val selectedCurrency: StateFlow<String?> = _selectedCurrency.asStateFlow()
 
     init {
         viewModelScope.launch {
             var lastBaseCurrency: String? = null
             currencyRepository.baseCurrencyCode.collectLatest { mainAccountCurrency ->
                 if (lastBaseCurrency == null || mainAccountCurrency != lastBaseCurrency) {
-                    _selectedCurrency.value = mainAccountCurrency
+                    // Do not auto-select. Default is null to show "All"
                     lastBaseCurrency = mainAccountCurrency
                 }
             }
@@ -87,16 +89,24 @@ class AnalyticsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val uiState: StateFlow<AnalyticsUiState> = combine(
+    private val filterStateFlow = combine(
         _selectedPeriod,
         customDateRange,
         _transactionTypeFilter,
-        _selectedCurrency,
-        accountBalanceRepository.getAllLatestBalances() // Add account balances here
-    ) { period, customRange, typeFilter, currency, allAccounts ->
-        FilterState(period, customRange, typeFilter, currency) to allAccounts
-    }.flatMapLatest { (filterState, allAccounts) ->
+        _selectedCurrency
+    ) { period, customRange, typeFilter, currency ->
+        FilterState(period, customRange, typeFilter, currency)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val uiState: StateFlow<AnalyticsUiState> = combine(
+        filterStateFlow,
+        accountBalanceRepository.getAllLatestBalances(),
+        currencyRepository.baseCurrencyCode
+    ) { filterState, allAccounts, baseCurrency ->
+        filterState to Pair(allAccounts, baseCurrency)
+    }.flatMapLatest { (filterState, data) ->
+        val (allAccounts, baseCurrency) = data
         val accountsMap = allAccounts.associateBy { it.accountLast4 } // Create accountsMap here
 
         val dateRange = if (filterState.period == TimePeriod.CUSTOM) {
@@ -122,52 +132,76 @@ class AnalyticsViewModel @Inject constructor(
             transactionRepository.getTransactionsBetweenDates(
                 startDate = dateRange.first,
                 endDate = dateRange.second
-            ).flatMapLatest { allTransactions ->
+            ).flatMapLatest { allTransactions: List<TransactionEntity> ->
                 // Update available currencies using standard sorting (INR first, then alphabetical)
                 val allCurrencies = CurrencyUtils.sortCurrencies(
                     allTransactions.map { it.currency }.distinct()
                 )
                 _availableCurrencies.value = allCurrencies
 
-                // Auto-select primary currency if not already selected or if current currency no longer exists
                 val currentSelectedCurrency = filterState.currency
-                if (!allCurrencies.contains(currentSelectedCurrency) && allCurrencies.isNotEmpty()) {
-                    _selectedCurrency.value = if (allCurrencies.contains("INR")) "INR" else allCurrencies.first()
+                if (currentSelectedCurrency != null && !allCurrencies.contains(currentSelectedCurrency) && allCurrencies.isNotEmpty()) {
+                    _selectedCurrency.value = null
                 }
 
                 // Use database-level filtering for better performance
-                // Convert TransactionTypeFilter to TransactionType for database query
-                val dbTransactionType = when (filterState.typeFilter) {
-                    TransactionTypeFilter.ALL -> null // null means no type filter at DB level
-                    TransactionTypeFilter.INCOME -> TransactionType.INCOME
-                    TransactionTypeFilter.EXPENSE -> TransactionType.EXPENSE
-                    TransactionTypeFilter.CREDIT -> TransactionType.CREDIT
-                    TransactionTypeFilter.TRANSFER -> TransactionType.TRANSFER
-                    TransactionTypeFilter.INVESTMENT -> TransactionType.INVESTMENT
-                }
+                // Convert TransactionTypeFilter to TransactionType for memory filtering
+                val dbTransactionTypes = filterState.typeFilter.mapNotNull { type ->
+                    when (type) {
+                        TransactionTypeFilter.ALL -> null
+                        TransactionTypeFilter.INCOME -> TransactionType.INCOME
+                        TransactionTypeFilter.EXPENSE -> TransactionType.EXPENSE
+                        TransactionTypeFilter.CREDIT -> TransactionType.CREDIT
+                        TransactionTypeFilter.TRANSFER -> TransactionType.TRANSFER
+                        TransactionTypeFilter.INVESTMENT -> TransactionType.INVESTMENT
+                    }
+                }.toSet()
 
-                // Load filtered transactions from database
-                transactionRepository.getTransactionsFiltered(
+                // Load filtered transactions from database across ALL currencies
+                transactionRepository.getTransactionsBetweenDates(
                     startDate = dateRange.first,
-                    endDate = dateRange.second,
-                    currency = filterState.currency,
-                    transactionType = dbTransactionType
-                )
-            }.map { filteredTransactions ->
+                    endDate = dateRange.second
+                ).map { list ->
+                    // Apply transaction type filter
+                    val typeFiltered = if (filterState.typeFilter.contains(TransactionTypeFilter.ALL)) {
+                        list
+                    } else {
+                        list.filter { it.transactionType in dbTransactionTypes }
+                    }
 
-                // Calculate total
-                val totalSpending = filteredTransactions.sumOf { it.amount.toDouble() }.toBigDecimal()
+                    val targetCurrency = filterState.currency ?: baseCurrency
+                    // If a specific currency is chosen, filter down to it. Otherwise, keep all.
+                    val currencyTargetList = if (filterState.currency != null) {
+                        typeFiltered.filter { it.currency == filterState.currency }
+                    } else {
+                        typeFiltered
+                    }
+
+                    // Convert all transaction amounts to the target currency
+                    currencyTargetList.map { tx ->
+                        if (tx.currency != targetCurrency) {
+                            val convertedAmt = currencyConversionService.convertAmount(tx.amount, tx.currency, targetCurrency) ?: tx.amount
+                            tx.copy(amount = convertedAmt, currency = targetCurrency)
+                        } else {
+                            tx
+                        }
+                    }
+                }
+            }.map { filteredTransactions: List<TransactionEntity> ->
+
+                // Calculate total precisely
+                val totalSpending = filteredTransactions.fold(BigDecimal.ZERO) { acc, tx -> acc.add(tx.amount) }
 
                 // Group by category
                 val categoryBreakdown = filteredTransactions
                     .groupBy { it.category ?: "Miscellaneous" }
                     .map { (categoryName, txns) ->
-                        val categoryTotal = txns.sumOf { it.amount.toDouble() }.toBigDecimal()
+                        val categoryTotal = txns.fold(BigDecimal.ZERO) { acc, tx -> acc.add(tx.amount) }
                         CategoryData(
                             name = categoryName,
                             amount = categoryTotal,
-                            percentage = if (totalSpending > BigDecimal.ZERO) {
-                                (categoryTotal.divide(totalSpending, 4, RoundingMode.HALF_UP) * BigDecimal(100)).toFloat()
+                            percentage = if (totalSpending.signum() > 0) {
+                                (categoryTotal.divide(totalSpending, 4, RoundingMode.HALF_UP).multiply(BigDecimal(100))).toFloat()
                             } else 0f,
                             transactionCount = txns.size
                         )
@@ -186,7 +220,7 @@ class AnalyticsViewModel @Inject constructor(
 
                         MerchantData(
                             name = merchant,
-                            amount = txns.sumOf { it.amount.toDouble() }.toBigDecimal(),
+                            amount = txns.fold(BigDecimal.ZERO) { acc, tx -> acc.add(tx.amount) },
                             transactionCount = txns.size,
                             isSubscription = txns.any { it.isRecurring },
                             categoryName = primaryCategory,
@@ -208,6 +242,18 @@ class AnalyticsViewModel @Inject constructor(
                 // Get top category info
                 val topCategory = categoryBreakdown.firstOrNull()
 
+                // Calculate converted totals for top merchants if needed
+                val currentCurrency = filterState.currency
+                val merchantConversions = if (currentCurrency != null && currentCurrency != baseCurrency) {
+                    merchantBreakdown.associate { merchant ->
+                        merchant.name to (currencyConversionService.convertAmount(
+                            merchant.amount,
+                            currentCurrency,
+                            baseCurrency
+                        ) ?: merchant.amount)
+                    }
+                } else emptyMap()
+
                 AnalyticsUiState(
                     totalSpending = totalSpending,
                     categoryBreakdown = categoryBreakdown,
@@ -216,9 +262,11 @@ class AnalyticsViewModel @Inject constructor(
                     averageAmount = averageAmount,
                     topCategory = topCategory?.name,
                     topCategoryPercentage = topCategory?.percentage ?: 0f,
-                    currency = filterState.currency,
+                    currency = filterState.currency ?: baseCurrency,
+                    baseCurrency = baseCurrency,
                     isLoading = false,
-                    spendingTrend = calculateSpendingTrend(filteredTransactions, dateRange.first, dateRange.second)
+                    spendingTrend = calculateSpendingTrend(filteredTransactions, dateRange.first, dateRange.second, filterState.currency ?: baseCurrency),
+                    convertedMerchantAmounts = merchantConversions
                 )
             }
         }
@@ -232,11 +280,26 @@ class AnalyticsViewModel @Inject constructor(
         _selectedPeriod.value = period
     }
 
-    fun setTransactionTypeFilter(filter: TransactionTypeFilter) {
-        _transactionTypeFilter.value = filter
+    fun toggleTransactionTypeFilter(filter: TransactionTypeFilter) {
+        val current = _transactionTypeFilter.value
+        if (filter == TransactionTypeFilter.ALL) {
+            _transactionTypeFilter.value = setOf(TransactionTypeFilter.ALL)
+        } else {
+            val newSet = current.toMutableSet()
+            newSet.remove(TransactionTypeFilter.ALL)
+            if (newSet.contains(filter)) {
+                newSet.remove(filter)
+            } else {
+                newSet.add(filter)
+            }
+            if (newSet.isEmpty()) {
+                newSet.add(TransactionTypeFilter.ALL)
+            }
+            _transactionTypeFilter.value = newSet
+        }
     }
 
-    fun selectCurrency(currency: String) {
+    fun selectCurrency(currency: String?) {
         _selectedCurrency.value = currency
     }
 
@@ -272,12 +335,11 @@ class AnalyticsViewModel @Inject constructor(
     private fun calculateSpendingTrend(
         transactions: List<TransactionEntity>,
         startDate: LocalDate,
-        endDate: LocalDate
+        endDate: LocalDate,
+        currency: String
     ): List<BalancePoint> {
         val selectedPeriod = _selectedPeriod.value
         val trend = mutableListOf<BalancePoint>()
-
-        val currency = transactions.firstOrNull()?.currency ?: _selectedCurrency.value
 
         when {
             selectedPeriod == TimePeriod.ALL || selectedPeriod == TimePeriod.CURRENT_FY -> {
@@ -302,7 +364,7 @@ class AnalyticsViewModel @Inject constructor(
                         val transactionsForYear = transactions.filter {
                             !it.dateTime.toLocalDate().isBefore(currentYear) && !it.dateTime.toLocalDate().isAfter(endOfYear)
                         }
-                        val totalAmount = transactionsForYear.sumOf { it.amount.toDouble() }.toBigDecimal()
+                        val totalAmount = transactionsForYear.fold(BigDecimal.ZERO) { acc, tx -> acc.add(tx.amount) }
 
                         trend.add(
                             BalancePoint(
@@ -323,7 +385,7 @@ class AnalyticsViewModel @Inject constructor(
                         val transactionsForMonth = transactions.filter {
                             !it.dateTime.toLocalDate().isBefore(currentMonth) && !it.dateTime.toLocalDate().isAfter(endOfMonth)
                         }
-                        val totalAmount = transactionsForMonth.sumOf { it.amount.toDouble() }.toBigDecimal()
+                        val totalAmount = transactionsForMonth.fold(BigDecimal.ZERO) { acc, tx -> acc.add(tx.amount) }
 
                         trend.add(
                             BalancePoint(
@@ -342,7 +404,7 @@ class AnalyticsViewModel @Inject constructor(
                 var currentDate = startDate
                 while (!currentDate.isAfter(endDate) && !currentDate.isAfter(LocalDate.now())) {
                     val transactionsForDay = transactionsByDate[currentDate] ?: emptyList()
-                    val totalAmount = transactionsForDay.sumOf { it.amount.toDouble() }.toBigDecimal()
+                    val totalAmount = transactionsForDay.fold(BigDecimal.ZERO) { acc, tx -> acc.add(tx.amount) }
 
                     trend.add(
                         BalancePoint(

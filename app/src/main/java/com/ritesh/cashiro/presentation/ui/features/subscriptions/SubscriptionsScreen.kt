@@ -106,6 +106,16 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import androidx.core.graphics.toColorInt
+import com.ritesh.cashiro.presentation.ui.components.SubtitleTag
+import com.ritesh.cashiro.presentation.ui.theme.credit_dark
+import com.ritesh.cashiro.presentation.ui.theme.credit_light
+import com.ritesh.cashiro.presentation.ui.theme.income_dark
+import com.ritesh.cashiro.presentation.ui.theme.income_light
+import com.ritesh.cashiro.presentation.ui.theme.investment_dark
+import com.ritesh.cashiro.presentation.ui.theme.investment_light
+import com.ritesh.cashiro.presentation.ui.theme.transfer_dark
+import com.ritesh.cashiro.presentation.ui.theme.transfer_light
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -248,6 +258,8 @@ fun SubscriptionsScreen(
                         subscription = subscription,
                         categoryEntity = categoryEntity,
                         subcategoryEntity = subcategoryEntity,
+                        convertedAmount = uiState.convertedAmounts[subscription.id],
+                        targetCurrency = uiState.targetCurrency,
                         onDelete = { subscriptionToDelete = subscription },
                         onEdit = {
                             onEditSubscription(subscription.id)
@@ -414,6 +426,8 @@ private fun SwipeableSubscriptionItem(
     subscription: SubscriptionEntity,
     categoryEntity: CategoryEntity? = null,
     subcategoryEntity: SubcategoryEntity? = null,
+    convertedAmount: BigDecimal? = null,
+    targetCurrency: String? = null,
     onDelete: () -> Unit,
     onEdit: () -> Unit,
     onClick: () -> Unit
@@ -543,78 +557,89 @@ private fun SwipeableSubscriptionItem(
                             )
                             
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // SMS indicator if available
-                                if (!subscription.smsBody.isNullOrBlank()) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.Chat,
-                                        contentDescription = "SMS available",
-                                        modifier = Modifier.size(14.dp),
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                                
-                                // Calculate the actual next payment date
                                 val today = LocalDate.now()
                                 val subscriptionDate = subscription.nextPaymentDate
-                                
-                                // Handle null date
-                                if (subscriptionDate == null) {
-                                    Text(
-                                        text = "• No date set",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                } else {
+
+                                // Date Tag
+                                if (subscriptionDate != null) {
                                     val daysUntilNext = ChronoUnit.DAYS.between(today, subscriptionDate)
-                                
-                                    Icon(
-                                        imageVector = Iconax.Calendar,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(14.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    
                                     val isOverdue = subscriptionDate.isBefore(today) && 
                                                    (subscription.lastPaidDate == null || subscription.lastPaidDate!!.isBefore(subscriptionDate))
 
-                                    Text(
+                                    val dateTagColor = remember(subscriptionDate) {
+                                        val colors = listOf(income_dark, expense_dark, credit_dark, transfer_dark, investment_dark)
+                                        val dateHash = subscriptionDate.hashCode()
+                                        val index = Math.abs(dateHash) % colors.size
+                                        colors[index]
+                                    }
+
+                                    SubtitleTag(
+                                        icon = {
+                                            Icon(
+                                                imageVector = Iconax.Calendar,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(10.dp),
+                                                tint = (if (isOverdue || daysUntilNext <= 3) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant).copy(0.85f)
+                                            )
+                                        },
                                         text = when {
                                             isOverdue -> "Overdue"
                                             daysUntilNext == 0L -> "Due today"
                                             daysUntilNext == 1L -> "Due tomorrow"
                                             daysUntilNext in 2..7 -> "Due in $daysUntilNext days"
-                                            else -> subscriptionDate.format(
-                                                DateTimeFormatter.ofPattern("MMM d")
-                                            )
+                                            else -> subscriptionDate.format(DateTimeFormatter.ofPattern("MMM d"))
                                         },
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = when {
-                                            isOverdue || daysUntilNext <= 3 -> MaterialTheme.colorScheme.error
-                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                        },
-                                        fontWeight = if (isOverdue) FontWeight.Bold else FontWeight.Normal
+                                        color = if (isOverdue || daysUntilNext <= 3) MaterialTheme.colorScheme.error else dateTagColor
                                     )
                                 }
-                                
-                                subscription.category?.let { category ->
-                                    Text(
-                                        text = "• $category",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+
+                                // Category Tag
+                                categoryEntity?.let { category ->
+                                    SubtitleTag(
+                                        text = category.name,
+                                        color = try {
+                                            Color(category.color.toColorInt())
+                                        } catch (e: Exception) {
+                                            MaterialTheme.colorScheme.primary
+                                        }
+                                    )
+                                }
+
+                                // SMS indicator if available
+                                if (!subscription.smsBody.isNullOrBlank()) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Chat,
+                                        contentDescription = "SMS available",
+                                        modifier = Modifier.size(12.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
                                     )
                                 }
                             }
                         }
                         
-                        Text(
-                            text = subscription.formatAmount(),
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (!isSystemInDarkTheme()) expense_light else expense_dark
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = subscription.formatAmount(),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (!isSystemInDarkTheme()) expense_light else expense_dark
+                            )
+
+                            if (convertedAmount != null && targetCurrency != null && subscription.currency != targetCurrency) {
+                                Text(
+                                    text = "≈ ${CurrencyFormatter.formatCurrency(convertedAmount, targetCurrency)}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    fontWeight = FontWeight.Normal
+                                )
+                            }
+                        }
                     }
                 }
                 

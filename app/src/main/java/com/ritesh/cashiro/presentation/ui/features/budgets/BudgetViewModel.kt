@@ -23,6 +23,7 @@ import javax.inject.Inject
 import com.ritesh.cashiro.data.currency.CurrencyConversionService
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
 
 
 @HiltViewModel
@@ -45,6 +46,15 @@ class BudgetViewModel @Inject constructor(
     init {
         loadBudgets()
         loadAccounts()
+        observeBaseCurrency()
+    }
+
+    private fun observeBaseCurrency() {
+        viewModelScope.launch {
+            currencyRepository.baseCurrencyCode.collect { currency ->
+                _uiState.update { it.copy(baseCurrency = currency) }
+            }
+        }
     }
 
     private fun loadAccounts() {
@@ -164,9 +174,21 @@ class BudgetViewModel @Inject constructor(
             } else budget
 
             transactionCollectionJob = viewModelScope.launch {
-                budgetRepository.getTransactionsForBudget(collectionBudget).collect { transactions ->
-                    _uiState.update { it.copy(selectedBudgetTransactions = transactions) }
-                }
+                combine(
+                    budgetRepository.getTransactionsForBudget(collectionBudget),
+                    currencyRepository.baseCurrencyCode
+                ) { transactions, mainCurrency ->
+                    val converted = transactions
+                        .filter { it.currency != mainCurrency }
+                        .associate { tx ->
+                            tx.id to (currencyConversionService.convertAmount(tx.amount, tx.currency, mainCurrency) ?: tx.amount)
+                        }
+                    
+                    _uiState.update { it.copy(
+                        selectedBudgetTransactions = transactions,
+                        convertedAmounts = converted
+                    ) }
+                }.collectLatest { }
             }
         }
     }

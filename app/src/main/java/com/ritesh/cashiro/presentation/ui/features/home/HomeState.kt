@@ -43,4 +43,6 @@ data class HomeUiState(
     val activeBudgets: List<BudgetWithSpending> = emptyList(),
     val balanceHistory: List<BalancePoint> = emptyList(),
     val transactionHeatmap: Map<java.time.LocalDate, Int> = emptyMap(),
+    val convertedAmounts: Map<Long, BigDecimal> = emptyMap(),
+    val baseCurrency: String = "INR",
 )

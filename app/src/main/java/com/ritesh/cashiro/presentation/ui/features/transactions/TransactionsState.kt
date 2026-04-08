@@ -8,6 +8,7 @@ import java.math.BigDecimal
 data class TransactionsUiState(
     val transactions: List<TransactionEntity> = emptyList(),
     val groupedTransactions: Map<DateGroup, List<TransactionEntity>> = emptyMap(),
+    val convertedAmounts: Map<Long, BigDecimal> = emptyMap(),
     val isLoading: Boolean = true
 )
 

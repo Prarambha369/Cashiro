@@ -20,6 +20,8 @@ data class BudgetUiState(
     val categoryLimitsWithSpending: List<CategoryLimitWithSpending> = emptyList(),
     val selectedBudgetTransactions: List<TransactionEntity> = emptyList(),
     val allAccounts: List<AccountBalanceEntity> = emptyList(),
+    val convertedAmounts: Map<Long, BigDecimal> = emptyMap(),
+    val baseCurrency: String = "INR",
     val error: String? = null
 )
 
