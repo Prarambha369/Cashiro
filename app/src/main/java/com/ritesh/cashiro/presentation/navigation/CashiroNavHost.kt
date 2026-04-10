@@ -646,6 +646,7 @@ fun CashiroNavHost(
                     animatedVisibilityScope = this@AnimatedVisibility,
                     initialTab = addTransaction.initialTab,
                     subscriptionId = addTransaction.subscriptionId,
+                    transactionType = addTransaction.type,
                     blurEffects = themeUiState.blurEffects,
                 )
             }

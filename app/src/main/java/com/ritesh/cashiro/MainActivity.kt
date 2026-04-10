@@ -41,6 +41,12 @@ import kotlin.getValue
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
+    companion object {
+        const val ACTION_ADD_TRANSACTION = "com.ritesh.cashiro.action.ADD_TRANSACTION"
+        const val ACTION_ADD_SUBSCRIPTION = "com.ritesh.cashiro.action.ADD_SUBSCRIPTION"
+        const val ACTION_ADD_TRANSFER = "com.ritesh.cashiro.action.ADD_TRANSFER"
+    }
+
     private val themeViewModel: ThemeViewModel by viewModels()
     private val appLockViewModel: AppLockViewModel by viewModels()
     
@@ -49,6 +55,14 @@ class MainActivity : FragmentActivity() {
 
     // Transaction ID to edit when launched from notification
     var editTransactionId by mutableStateOf<Long?>(null)
+        private set
+
+    // Initial tab to show in Add Screen (0 for Transaction, 1 for Subscription)
+    var addTransactionTab by mutableStateOf<Int?>(null)
+        private set
+
+    // Initial transaction type to pre-select
+    var addTransactionType by mutableStateOf<String?>(null)
         private set
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,8 +81,8 @@ class MainActivity : FragmentActivity() {
 //            window.isStatusBarContrastEnforced = false
         }
 
-        // Handle intent if activity is launched from notification
-        handleEditIntent(intent)
+        // Handle intent if activity is launched from notification or shortcut/tile
+        handleIntent(intent)
 
         // Schedule daily reminders
         lifecycleScope.launch {
@@ -79,6 +93,12 @@ class MainActivity : FragmentActivity() {
             CashiroApp(
                 editTransactionId = editTransactionId,
                 onEditComplete = { editTransactionId = null },
+                addTransactionTab = addTransactionTab,
+                addTransactionType = addTransactionType,
+                onAddComplete = { 
+                    addTransactionTab = null
+                    addTransactionType = null
+                },
                 appLockViewModel = appLockViewModel,
                 themeViewModel = themeViewModel,
             )
@@ -88,14 +108,26 @@ class MainActivity : FragmentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         // Handle intent when activity is already running
-        handleEditIntent(intent)
+        handleIntent(intent)
     }
 
-    private fun handleEditIntent(intent: Intent?) {
-        if (intent?.action == SmsBroadcastReceiver.ACTION_EDIT_TRANSACTION) {
-            val transactionId = intent.getLongExtra(SmsBroadcastReceiver.EXTRA_TRANSACTION_ID, -1)
-            if (transactionId != -1L) {
-                editTransactionId = transactionId
+    private fun handleIntent(intent: Intent?) {
+        when (intent?.action) {
+            SmsBroadcastReceiver.ACTION_EDIT_TRANSACTION -> {
+                val transactionId = intent.getLongExtra(SmsBroadcastReceiver.EXTRA_TRANSACTION_ID, -1)
+                if (transactionId != -1L) {
+                    editTransactionId = transactionId
+                }
+            }
+            ACTION_ADD_TRANSACTION -> {
+                addTransactionTab = 0
+            }
+            ACTION_ADD_SUBSCRIPTION -> {
+                addTransactionTab = 1
+            }
+            ACTION_ADD_TRANSFER -> {
+                addTransactionTab = 0
+                addTransactionType = "TRANSFER"
             }
         }
     }

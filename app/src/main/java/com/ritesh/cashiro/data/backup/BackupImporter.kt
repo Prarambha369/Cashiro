@@ -172,25 +172,25 @@ class BackupImporter @Inject constructor(
                 
                 // Import all data
                 backup.database.categories.forEach { category ->
-                    database.categoryDao().insertCategory(category)
+                    database.categoryDao().insertCategory(category.sanitize())
                     importedCategories++
                 }
                 
                 backup.database.transactions.forEach { transaction ->
-                    database.transactionDao().insertTransaction(transaction)
+                    database.transactionDao().insertTransaction(transaction.sanitize())
                     importedTransactions++
                 }
                 
                 backup.database.cards.forEach { card ->
-                    database.cardDao().insertCard(card)
+                    database.cardDao().insertCard(card.sanitize())
                 }
                 
                 backup.database.accountBalances.forEach { balance ->
-                    database.accountBalanceDao().insertBalance(balance)
+                    database.accountBalanceDao().insertBalance(balance.sanitize())
                 }
                 
                 backup.database.subscriptions.forEach { subscription ->
-                    database.subscriptionDao().insertSubscription(subscription)
+                    database.subscriptionDao().insertSubscription(subscription.sanitize())
                 }
                 
                 backup.database.merchantMappings.forEach { mapping ->
@@ -206,7 +206,7 @@ class BackupImporter @Inject constructor(
                 }
                 
                 backup.database.budgets.forEach { budget ->
-                    database.budgetDao().insertBudget(budget)
+                    database.budgetDao().insertBudget(budget.sanitize())
                 }
 
                 backup.database.budgetCategoryLimits.forEach { limit ->
@@ -214,7 +214,7 @@ class BackupImporter @Inject constructor(
                 }
                 
                 backup.database.subcategories.forEach { subcategory ->
-                    database.subcategoryDao().insertSubcategory(subcategory)
+                    database.subcategoryDao().insertSubcategory(subcategory.sanitize())
                 }
 
                 backup.database.rules.forEach { rule ->
@@ -264,26 +264,28 @@ class BackupImporter @Inject constructor(
                 
                 // Import categories (merge by name)
                 backup.database.categories.forEach { category ->
-                    val existingCategory = database.categoryDao().getCategoryByName(category.name)
+                    val sanitizedCategory = category.sanitize()
+                    val existingCategory = database.categoryDao().getCategoryByName(sanitizedCategory.name)
                     if (existingCategory == null) {
                         // Generate new ID for imported category
-                        val newCategory = category.copy(id = 0)
+                        val newCategory = sanitizedCategory.copy(id = 0)
                         val newId = database.categoryDao().insertCategory(newCategory)
-                        categoryIdMap[category.id] = newId
+                        categoryIdMap[sanitizedCategory.id] = newId
                         importedCategories++
                     } else {
-                        categoryIdMap[category.id] = existingCategory.id
+                        categoryIdMap[sanitizedCategory.id] = existingCategory.id
                     }
                 }
 
                 // Import subcategories (merge by name within category)
                 backup.database.subcategories.forEach { subcategory ->
-                    val newCategoryId = categoryIdMap[subcategory.categoryId] ?: return@forEach
+                    val sanitizedSubcategory = subcategory.sanitize()
+                    val newCategoryId = categoryIdMap[sanitizedSubcategory.categoryId] ?: return@forEach
                     val existingSubcategories = database.subcategoryDao().getSubcategoriesByCategoryId(newCategoryId).first()
-                    val alreadyExists = existingSubcategories.any { it.name == subcategory.name }
+                    val alreadyExists = existingSubcategories.any { it.name == sanitizedSubcategory.name }
                     
                     if (!alreadyExists) {
-                        val newSubcategory = subcategory.copy(id = 0, categoryId = newCategoryId)
+                        val newSubcategory = sanitizedSubcategory.copy(id = 0, categoryId = newCategoryId)
                         database.subcategoryDao().insertSubcategory(newSubcategory)
                     }
                 }
@@ -293,15 +295,16 @@ class BackupImporter @Inject constructor(
 
                 // Import transactions (merge by hash)
                 backup.database.transactions.forEach { backupTxn ->
-                    val existingTxn = existingTransactionsMap[backupTxn.transactionHash]
+                    val sanitizedTxn = backupTxn.sanitize()
+                    val existingTxn = existingTransactionsMap[sanitizedTxn.transactionHash]
                     if (existingTxn == null) {
                         // New transaction, insert it
-                        val newTransaction = backupTxn.copy(id = 0)
+                        val newTransaction = sanitizedTxn.copy(id = 0)
                         val newId = database.transactionDao().insertTransaction(newTransaction)
-                        transactionIdMap[backupTxn.id] = newId
+                        transactionIdMap[sanitizedTxn.id] = newId
                         importedTransactions++
                     } else {
-                        transactionIdMap[backupTxn.id] = existingTxn.id
+                        transactionIdMap[sanitizedTxn.id] = existingTxn.id
                         // Transaction exists locally. Should we update it with backup data?
                         // If backupTxn has a newer updatedAt or different fields, update local
                         
@@ -311,19 +314,19 @@ class BackupImporter @Inject constructor(
                         
                         val shouldUpdate = when {
                             // Case 1: Backup has a newer edit than local
-                            backupTxn.updatedAt.isAfter(existingTxn.updatedAt) -> true
+                            sanitizedTxn.updatedAt.isAfter(existingTxn.updatedAt) -> true
                             
                             // Case 2: Local is just a fresh scan (identical updatedAt/dateTime) 
                             // but backup has an actual edit (updatedAt > dateTime)
-                            backupTxn.updatedAt.isAfter(backupTxn.dateTime) && 
+                            sanitizedTxn.updatedAt.isAfter(sanitizedTxn.dateTime) && 
                                     !existingTxn.updatedAt.isAfter(existingTxn.dateTime) -> true
                             
                             // Otherwise, keep local
                             else -> false
                         }
-
+ 
                         if (shouldUpdate) {
-                            val updatedTxn = backupTxn.copy(id = existingTxn.id)
+                            val updatedTxn = sanitizedTxn.copy(id = existingTxn.id)
                             database.transactionDao().updateTransaction(updatedTxn)
                             importedTransactions++
                         } else {
@@ -375,9 +378,10 @@ class BackupImporter @Inject constructor(
         val existingCardKeys = existingCards.map { "${it.bankName}_${it.cardLast4}" }.toSet()
         
         cards.forEach { card ->
-            val key = "${card.bankName}_${card.cardLast4}"
+            val sanitizedCard = card.sanitize()
+            val key = "${sanitizedCard.bankName}_${sanitizedCard.cardLast4}"
             if (!existingCardKeys.contains(key)) {
-                val newCard = card.copy(id = 0)
+                val newCard = sanitizedCard.copy(id = 0)
                 database.cardDao().insertCard(newCard)
             }
         }
@@ -389,7 +393,7 @@ class BackupImporter @Inject constructor(
     private suspend fun importAccountBalancesWithMerge(balances: List<AccountBalanceEntity>) {
         // For balances, we'll import all as they represent historical data
         balances.forEach { balance ->
-            val newBalance = balance.copy(id = 0)
+            val newBalance = balance.sanitize().copy(id = 0)
             database.accountBalanceDao().insertBalance(newBalance)
         }
     }
@@ -402,9 +406,10 @@ class BackupImporter @Inject constructor(
         val existingKeys = existingSubscriptions.map { "${it.merchantName}_${it.amount}" }.toSet()
         
         subscriptions.forEach { subscription ->
-            val key = "${subscription.merchantName}_${subscription.amount}"
+            val sanitizedSubscription = subscription.sanitize()
+            val key = "${sanitizedSubscription.merchantName}_${sanitizedSubscription.amount}"
             if (!existingKeys.contains(key)) {
-                val newSubscription = subscription.copy(id = 0)
+                val newSubscription = sanitizedSubscription.copy(id = 0)
                 database.subscriptionDao().insertSubscription(newSubscription)
             }
         }
@@ -435,10 +440,11 @@ class BackupImporter @Inject constructor(
         val idMap = mutableMapOf<Long, Long>()
 
         budgets.forEach { budget ->
-            val key = "${budget.name}_${budget.year}_${budget.month}"
+            val sanitizedBudget = budget.sanitize()
+            val key = "${sanitizedBudget.name}_${sanitizedBudget.year}_${sanitizedBudget.month}"
             if (!existingKeys.contains(key)) {
-                val oldId = budget.id
-                val newBudget = budget.copy(id = 0)
+                val oldId = sanitizedBudget.id
+                val newBudget = sanitizedBudget.copy(id = 0)
                 val newId = database.budgetDao().insertBudget(newBudget)
                 
                 if (oldId != 0L) {
