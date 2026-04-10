@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -56,10 +57,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import com.ritesh.cashiro.R
 import com.ritesh.cashiro.data.preferences.AccentColor
+import com.ritesh.cashiro.data.preferences.AppIcon
 import com.ritesh.cashiro.data.preferences.AppFont
 import com.ritesh.cashiro.data.preferences.NavigationBarStyle
 import com.ritesh.cashiro.data.preferences.ThemeStyle
+import com.ritesh.cashiro.utils.IconSwitchingUtils
 import com.ritesh.cashiro.presentation.effects.BlurredAnimatedVisibility
 import com.ritesh.cashiro.presentation.effects.overScrollVertical
 import com.ritesh.cashiro.presentation.ui.components.CustomTitleTopAppBar
@@ -156,6 +162,7 @@ fun AppearanceScreen(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val hazeState = remember { HazeState() }
+    val context = LocalContext.current
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -516,6 +523,61 @@ fun AppearanceScreen(
                                 isSingle = themeUiState.isDarkTheme == false
                             )
                         }
+                    }
+                }
+
+                // App Logo Section
+                SectionHeader(
+                    title = "App Logo",
+                    modifier = Modifier.padding(start = Spacing.xl, top = Spacing.md)
+                )
+
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = Spacing.md),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                ) {
+                    item {
+                        AppLogoOption(
+                            name = "Original",
+                            icon = AppIcon.ORIGINAL,
+                            backgroundColor = Color(0xFF1F1F1F),
+                            drawableResId = R.drawable.cashiro_original,
+                            isSelected = themeUiState.currentAppIcon == AppIcon.ORIGINAL,
+                            onClick = {
+                                themeViewModel.updateAppIcon(AppIcon.ORIGINAL).invokeOnCompletion {
+                                    IconSwitchingUtils.switchAppIcon(context, AppIcon.ORIGINAL)
+                                }
+                            }
+                        )
+                    }
+                    item {
+                        AppLogoOption(
+                            name = "Anarchy",
+                            icon = AppIcon.ANARCHY,
+                            backgroundColor = Color(0xFFF5EEE5),
+                            drawableResId = R.drawable.cashiro_anarchy,
+                            isSelected = themeUiState.currentAppIcon == AppIcon.ANARCHY,
+                            onClick = {
+                                themeViewModel.updateAppIcon(AppIcon.ANARCHY).invokeOnCompletion {
+                                    IconSwitchingUtils.switchAppIcon(context, AppIcon.ANARCHY)
+                                }
+                            }
+                        )
+                    }
+                    item {
+                        AppLogoOption(
+                            name = "Zenith",
+                            icon = AppIcon.ZENITH,
+                            backgroundColor = Color(0xFFE6E6E6),
+                            drawableResId = R.drawable.cashiro_zenith,
+                            isSelected = themeUiState.currentAppIcon == AppIcon.ZENITH,
+                            onClick = {
+                                themeViewModel.updateAppIcon(AppIcon.ZENITH).invokeOnCompletion {
+                                    IconSwitchingUtils.switchAppIcon(context, AppIcon.ZENITH)
+                                }
+                            }
+                        )
                     }
                 }
 
@@ -927,6 +989,67 @@ fun ColorSchemeBox(
                     accent,
                     RoundedCornerShape(Spacing.xs)
                 )
+            )
+        }
+    }
+}
+
+@Composable
+fun AppLogoOption(
+    name: String,
+    icon: AppIcon,
+    backgroundColor: Color,
+    drawableResId: Int,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        modifier = Modifier
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            )
+            .padding(vertical = Spacing.sm)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .clip(RoundedCornerShape(Dimensions.Radius.lg))
+                .background(backgroundColor),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(id = drawableResId),
+                contentDescription = null,
+                modifier = Modifier.size(84.dp)
+            )
+            
+            if (isSelected) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .border(
+                            width = 3.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(Dimensions.Radius.lg)
+                        )
+                )
+            }
+        }
+        
+        Surface(
+            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+            shape = CircleShape
+        ) {
+            Text(
+                text = name,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(horizontal = Spacing.md, vertical = 4.dp)
             )
         }
     }

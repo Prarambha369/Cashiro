@@ -197,7 +197,10 @@ data class ThemePreferences(
     val hidePillIndicator: Boolean? = null,
 
     @SerializedName("blur_effects")
-    val blurEffects: Boolean? = null
+    val blurEffects: Boolean? = null,
+
+    @SerializedName("app_icon")
+    val appIcon: String? = null
 )
 
 /**

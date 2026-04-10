@@ -76,6 +76,7 @@ constructor(@ApplicationContext private val context: Context) {
         val HIDE_PILL_INDICATOR = booleanPreferencesKey("hide_pill_indicator")
         val BLUR_EFFECTS = booleanPreferencesKey("blur_effects")
         val IS_SAMPLE_DATA_SEEDED = booleanPreferencesKey("is_sample_data_seeded")
+        val APP_ICON = stringPreferencesKey("app_icon")
     }
 
     val userPreferences: Flow<UserPreferences> =
@@ -135,7 +136,14 @@ constructor(@ApplicationContext private val context: Context) {
                 hideNavigationLabels = preferences[PreferencesKeys.HIDE_NAVIGATION_LABELS] ?: false,
                 hidePillIndicator = preferences[PreferencesKeys.HIDE_PILL_INDICATOR] ?: false,
                 blurEffects = preferences[PreferencesKeys.BLUR_EFFECTS] ?: (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S),
-                isSampleDataSeeded = preferences[PreferencesKeys.IS_SAMPLE_DATA_SEEDED] ?: false
+                isSampleDataSeeded = preferences[PreferencesKeys.IS_SAMPLE_DATA_SEEDED] ?: false,
+                appIcon = try {
+                    AppIcon.valueOf(
+                        preferences[PreferencesKeys.APP_ICON] ?: AppIcon.ORIGINAL.name
+                    )
+                } catch (e: Exception) {
+                    AppIcon.ORIGINAL
+                }
             )
         }
 
@@ -619,6 +627,12 @@ constructor(@ApplicationContext private val context: Context) {
             preferences[PreferencesKeys.IS_SAMPLE_DATA_SEEDED] = seeded
         }
     }
+
+    suspend fun updateAppIcon(icon: AppIcon) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.APP_ICON] = icon.name
+        }
+    }
 }
 
 data class UserPreferences(
@@ -643,5 +657,6 @@ data class UserPreferences(
         val hideNavigationLabels: Boolean = false,
         val hidePillIndicator: Boolean = false,
         val blurEffects: Boolean = true,
-        val isSampleDataSeeded: Boolean = false
+        val isSampleDataSeeded: Boolean = false,
+        val appIcon: AppIcon = AppIcon.ORIGINAL
 )

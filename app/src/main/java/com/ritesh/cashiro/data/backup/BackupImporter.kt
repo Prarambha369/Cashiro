@@ -12,6 +12,7 @@ import com.ritesh.cashiro.data.preferences.NavigationBarStyle
 import com.ritesh.cashiro.data.preferences.AppFont
 import com.ritesh.cashiro.data.preferences.ThemeStyle
 import com.ritesh.cashiro.data.preferences.AccentColor
+import com.ritesh.cashiro.data.preferences.AppIcon
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -551,6 +552,15 @@ class BackupImporter @Inject constructor(
 
         preferences.theme.blurEffects?.let {
             userPreferencesRepository.updateBlurEffects(it)
+        }
+
+        preferences.theme.appIcon?.let { iconName ->
+            try {
+                val icon = AppIcon.valueOf(iconName)
+                userPreferencesRepository.updateAppIcon(icon)
+            } catch (e: Exception) {
+                // Ignore invalid icon
+            }
         }
 
         // Profile Preferences
