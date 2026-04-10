@@ -1,13 +1,11 @@
 package com.ritesh.cashiro.presentation.ui.features.transactions
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyRow
@@ -17,9 +15,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,19 +24,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
-import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
-import com.ritesh.cashiro.data.database.entity.CategoryEntity
-import com.ritesh.cashiro.data.database.entity.TransactionType
 import com.ritesh.cashiro.presentation.common.TransactionTypeFilter
 import com.ritesh.cashiro.presentation.effects.BlurredAnimatedVisibility
 import com.ritesh.cashiro.presentation.ui.components.AccountFilterChip
-import com.ritesh.cashiro.presentation.ui.components.BrandIcon
 import com.ritesh.cashiro.presentation.ui.components.CurrencyCard
 import com.ritesh.cashiro.presentation.ui.features.accounts.NumberPad
 import com.ritesh.cashiro.presentation.ui.theme.Dimensions
@@ -50,7 +41,6 @@ import com.ritesh.cashiro.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.Locale
-import com.ritesh.cashiro.presentation.ui.icons.Calendar
 import com.ritesh.cashiro.presentation.ui.icons.Category2
 import com.ritesh.cashiro.presentation.ui.icons.Iconax
 import com.ritesh.cashiro.presentation.ui.icons.ReceiptEdit
@@ -188,13 +178,14 @@ fun TransactionsFilterBottomSheet(
                                 FilterCategoryItem(
                                     name = category.name,
                                     color = color.copy(alpha = 0.2f),
-                                    iconRes = if (category.iconResId != 0) category.iconResId else null,
+                                    iconResId = category.iconResId,
+                                    iconName = category.iconName,
                                     iconVector = Iconax.Category2,
                                     isSelected = categoryFilter.contains(category.name),
                                     onClick = {
                                         viewModel.setCategoryFilter(category.name)
                                         // Optional: Clear subcategories that don't belong to any selected category anymore
-                                        // But for now, we'll keep the subcategories selected until explicitly cleared
+                                        //  keep the subcategories selected until explicitly cleared
                                     }
                                 )
                             }
@@ -243,7 +234,8 @@ fun TransactionsFilterBottomSheet(
                                     FilterCategoryItem(
                                         name = subcat.name,
                                         color = color.copy(alpha = 0.2f),
-                                        iconRes = if (subcat.iconResId != 0) subcat.iconResId else null,
+                                        iconResId = subcat.iconResId,
+                                        iconName = subcat.iconName,
                                         iconVector = Iconax.Category2,
                                         isSelected = subcategoryFilter.contains(subcat.name),
                                         onClick = { viewModel.setSubcategoryFilter(subcat.name) },
@@ -600,14 +592,26 @@ fun TransactionsFilterBottomSheet(
 private fun FilterCategoryItem(
     name: String,
     color: Color,
-    iconRes: Int? = null,
+    iconResId: Int = 0,
+    iconName: String? = null,
     iconVector: ImageVector? = null,
     isSelected: Boolean,
     onClick: () -> Unit,
     isSmall: Boolean = false
 ) {
+    val context = LocalContext.current
     val size = if (isSmall) 54.dp else 66.dp
     val iconSize = if (isSmall) 44.dp else 58.dp
+
+    val resolvedResId = remember(iconName, iconResId) {
+        if (!iconName.isNullOrEmpty()) {
+            val res = IconResolutionUtils.nameToResId(context, iconName)
+            if (res != 0) res else IconResolutionUtils.getSafeResId(context, iconResId, 0)
+        } else {
+            IconResolutionUtils.getSafeResId(context, iconResId, 0)
+        }
+    }
+
     
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -622,9 +626,9 @@ private fun FilterCategoryItem(
                 .clickable(onClick = onClick),
             contentAlignment = Alignment.Center
         ) {
-            if (iconRes != null && iconRes != 0) {
+            if (resolvedResId != 0) {
                 Icon(
-                    painter = painterResource(id = iconRes),
+                    painter = painterResource(id = resolvedResId),
                     contentDescription = name,
                     modifier = Modifier.size(iconSize).padding(4.dp),
                     tint =  Color.Unspecified

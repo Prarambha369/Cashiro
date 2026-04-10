@@ -27,18 +27,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.EventRepeat
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.SubdirectoryArrowRight
-import androidx.compose.material.icons.filled.Subscriptions
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Error
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.BottomSheetDefaults
@@ -46,7 +36,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -67,18 +56,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.material3.Surface
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -107,13 +91,11 @@ import java.time.format.DateTimeFormatter
 import androidx.core.graphics.toColorInt
 import com.ritesh.cashiro.presentation.effects.BlurredAnimatedVisibility
 import com.ritesh.cashiro.presentation.ui.components.CustomBillingCycleCard
-import com.ritesh.cashiro.presentation.ui.components.DashedLine
 import com.ritesh.cashiro.presentation.ui.icons.Box2
 import com.ritesh.cashiro.presentation.ui.icons.Calendar
 import com.ritesh.cashiro.presentation.ui.icons.Information
-import com.ritesh.cashiro.presentation.ui.icons.RefreshArrow01
-import com.ritesh.cashiro.presentation.ui.icons.RefreshCircle
 import com.ritesh.cashiro.presentation.ui.icons.VideoTime
+import com.ritesh.cashiro.utils.IconResolutionUtils
 import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -412,6 +394,7 @@ fun SubscriptionTabContent(
                         BrandIcon(
                             merchantName = uiState.selectedAccount?.bankName ?: "",
                             accountIconResId = uiState.selectedAccount?.iconResId ?: 0,
+                            accountIconName = uiState.selectedAccount?.iconName,
                             size = 24.dp,
                             showBackground = false
                         )
@@ -466,9 +449,19 @@ fun SubscriptionTabContent(
                             bottomEnd = 16.dp
                         ),
                     leadingIcon = {
-                        if (selectedCategoryObj != null && selectedCategoryObj.iconResId != 0) {
+                        val context = LocalContext.current
+                        val resolvedResId = remember(selectedCategoryObj) {
+                            selectedCategoryObj?.let { cat ->
+                                if (!cat.iconName.isNullOrEmpty()) {
+                                    val res = IconResolutionUtils.nameToResId(context, cat.iconName)
+                                    if (res != 0) res else cat.iconResId
+                                } else cat.iconResId
+                            } ?: 0
+                        }
+
+                        if (resolvedResId != 0) {
                             Icon(
-                                painter = painterResource(id = selectedCategoryObj.iconResId),
+                                painter = painterResource(id = resolvedResId),
                                 contentDescription = null,
                                 tint = Color.Unspecified,
                                 modifier = Modifier.size(24.dp)
@@ -508,19 +501,29 @@ fun SubscriptionTabContent(
                         readOnly = true,
                         label = { Text("Subcategory") },
                         leadingIcon = {
-                            if (selectedSubcategoryObj2 != null && selectedSubcategoryObj2.iconResId != 0) {
-                                Icon(
-                                    painter = painterResource(id = selectedSubcategoryObj2.iconResId),
-                                    contentDescription = null,
-                                    tint = Color.Unspecified,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            } else {
-                                Icon(
-                                    Icons.Default.SubdirectoryArrowRight,
-                                    contentDescription = null
-                                )
-                            }
+                                val context = LocalContext.current
+                                val resolvedResId = remember(selectedSubcategoryObj2) {
+                                    selectedSubcategoryObj2?.let { sub ->
+                                        if (!sub.iconName.isNullOrEmpty()) {
+                                            val res = IconResolutionUtils.nameToResId(context, sub.iconName)
+                                            if (res != 0) res else sub.iconResId
+                                        } else sub.iconResId
+                                    } ?: 0
+                                }
+
+                                if (resolvedResId != 0) {
+                                    Icon(
+                                        painter = painterResource(id = resolvedResId),
+                                        contentDescription = null,
+                                        tint = Color.Unspecified,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                } else {
+                                    Icon(
+                                        Icons.Default.SubdirectoryArrowRight,
+                                        contentDescription = null
+                                    )
+                                }
                         },
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth(),

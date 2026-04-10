@@ -42,6 +42,7 @@ import com.ritesh.cashiro.presentation.ui.theme.Dimensions
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
 import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
 import com.ritesh.cashiro.presentation.ui.components.ColorPickerContent
+import com.ritesh.cashiro.R
 import com.ritesh.cashiro.utils.IconResolutionUtils
 import androidx.compose.ui.platform.LocalContext
 
@@ -59,12 +60,20 @@ fun EditSubcategorySheet(
     val context = LocalContext.current
     var name by remember { mutableStateOf(subcategory?.name ?: "") }
     var colorHex by remember { mutableStateOf(subcategory?.color ?: categoryColor) }
-    var iconResId by remember {
-        mutableIntStateOf(subcategory?.iconResId ?: categoryIconResId)
+    var iconName by remember(subcategory) {
+        mutableStateOf(
+            subcategory?.iconName?.takeIf { it.isNotEmpty() }
+                ?: IconResolutionUtils.resIdToName(context, subcategory?.iconResId ?: categoryIconResId)
+                    .takeIf { it.isNotEmpty() } ?: "type_food_dining"
+        )
     }
-    var iconName by remember {
-        mutableStateOf(subcategory?.iconName ?: IconResolutionUtils.resIdToName(context, iconResId))
+    var iconResId by remember(iconName) {
+        mutableIntStateOf(
+            IconResolutionUtils.nameToResId(context, iconName)
+                .takeIf { it != 0 } ?: R.drawable.type_food_dining
+        )
     }
+
 
     var showIconSelector by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }

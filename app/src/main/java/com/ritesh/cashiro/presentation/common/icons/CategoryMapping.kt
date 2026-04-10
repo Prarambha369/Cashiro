@@ -1126,6 +1126,7 @@ object IconProvider {
      * Priority: Brand Icon > Subcategory Icon > Category Icon > CategoryMapping > Miscellaneous
      */
     fun getIconForTransaction(
+        context: Context? = null,
         merchantName: String,
         categoryEntity: CategoryEntity? = null,
         subcategoryEntity: SubcategoryEntity? = null,
@@ -1141,9 +1142,15 @@ object IconProvider {
 
         // subcategory icon
         subcategoryEntity?.let { subcat ->
-            if (subcat.iconResId != 0) {
+            val resId = if (!subcat.iconName.isNullOrEmpty()) {
+                IconResolutionUtils.nameToResId(context, subcat.iconName)
+            } else {
+                IconResolutionUtils.getSafeResId(context ?: return@let null, subcat.iconResId, 0)
+            }
+
+            if (resId != 0) {
                 return IconResource.TintedResIcon(
-                    resId = subcat.iconResId,
+                    resId = resId,
                     tint = Color(android.graphics.Color.parseColor(subcat.color))
                 )
             }
@@ -1161,9 +1168,15 @@ object IconProvider {
 
         // category icon from entity
         categoryEntity?.let { cat ->
-            if (cat.iconResId != 0) {
+            val resId = if (!cat.iconName.isNullOrEmpty()) {
+                IconResolutionUtils.nameToResId(context, cat.iconName)
+            } else {
+                IconResolutionUtils.getSafeResId(context ?: return@let null, cat.iconResId, 0)
+            }
+
+            if (resId != 0) {
                 return IconResource.TintedResIcon(
-                    resId = cat.iconResId,
+                    resId = resId,
                     tint = Color(android.graphics.Color.parseColor(cat.color))
                 )
             }
@@ -1192,17 +1205,25 @@ object IconProvider {
 
         // account icon - Fallback
         if (!accountIconName.isNullOrEmpty()) {
-            val resId = IconResolutionUtils.nameToResId(null, accountIconName)
+            val resId = IconResolutionUtils.nameToResId(context, accountIconName)
             if (resId != 0) {
                 return IconResource.DrawableResource(resId)
             }
         }
         if (accountIconResId != 0) {
-            return IconResource.TintedResIcon(
-                resId = accountIconResId,
-                tint = Color.Unspecified // Use original colors of the resource
-            )
+            val safeResId = IconResolutionUtils.getSafeResId(context ?: return@getIconForTransaction IconResource.TintedResIcon(
+                resId = CategoryMapping.categories["Miscellaneous"]!!.iconResId,
+                tint = CategoryMapping.categories["Miscellaneous"]!!.color
+            ), accountIconResId, 0)
+            
+            if (safeResId != 0) {
+                return IconResource.TintedResIcon(
+                    resId = safeResId,
+                    tint = Color.Unspecified // Use original colors of the resource
+                )
+            }
         }
+
 
         // Final fallback: Use Miscellaneous icon
         val categoryInfo = CategoryMapping.categories["Miscellaneous"]!!

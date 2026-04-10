@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
@@ -39,8 +40,10 @@ fun AccountFilterChip(
     ) {
 
         Box(modifier = Modifier.fillMaxWidth()) {
+            val context = LocalContext.current
             val iconResource = remember(account.bankName, account.iconResId, account.iconName) {
                 IconProvider.getIconForTransaction(
+                    context = context,
                     merchantName = account.bankName,
                     accountIconResId = account.iconResId,
                     accountIconName = account.iconName

@@ -70,8 +70,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -97,6 +97,7 @@ import com.ritesh.cashiro.presentation.ui.icons.Shop
 import com.ritesh.cashiro.presentation.ui.theme.Dimensions
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
 import com.ritesh.cashiro.utils.CurrencyFormatter
+import com.ritesh.cashiro.utils.IconResolutionUtils
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.delay
 import java.time.ZoneOffset
@@ -396,6 +397,7 @@ fun TransactionTabContent(
                                     BrandIcon(
                                         merchantName = uiState.selectedAccount?.bankName ?: "",
                                         accountIconResId = uiState.selectedAccount?.iconResId ?: 0,
+                                        accountIconName = uiState.selectedAccount?.iconName,
                                         size = 24.dp,
                                         showBackground = false
                                     )
@@ -450,6 +452,7 @@ fun TransactionTabContent(
                                     BrandIcon(
                                         merchantName = uiState.targetAccount?.bankName ?: "",
                                         accountIconResId = uiState.targetAccount?.iconResId ?: 0,
+                                        accountIconName = uiState.targetAccount?.iconName,
                                         size = 24.dp,
                                         showBackground = false
                                     )
@@ -527,9 +530,19 @@ fun TransactionTabContent(
                                 },
                         shape = RoundedCornerShape(16.dp),
                         leadingIcon = {
-                            if (selectedCategoryObj != null && selectedCategoryObj.iconResId != 0) {
+                            val context = LocalContext.current
+                            val resolvedResId = remember(selectedCategoryObj) {
+                                selectedCategoryObj?.let { cat ->
+                                    if (!cat.iconName.isNullOrEmpty()) {
+                                        val res = IconResolutionUtils.nameToResId(context, cat.iconName)
+                                        if (res != 0) res else cat.iconResId
+                                    } else cat.iconResId
+                                } ?: 0
+                            }
+
+                            if (resolvedResId != 0) {
                                 Icon(
-                                    painter = painterResource(id = selectedCategoryObj.iconResId),
+                                    painter = painterResource(id = resolvedResId),
                                     contentDescription = null,
                                     tint = Color.Unspecified,
                                     modifier = Modifier.size(24.dp)
@@ -591,6 +604,7 @@ fun TransactionTabContent(
                             BrandIcon(
                                 merchantName = uiState.selectedAccount?.bankName ?: "",
                                 accountIconResId = uiState.selectedAccount?.iconResId ?: 0,
+                                accountIconName = uiState.selectedAccount?.iconName,
                                 size = 24.dp,
                                 showBackground = false
                             )
@@ -645,9 +659,19 @@ fun TransactionTabContent(
                                 bottomEnd = 16.dp
                             ),
                         leadingIcon = {
-                            if (selectedCategoryObj != null && selectedCategoryObj.iconResId != 0) {
+                            val context = LocalContext.current
+                            val resolvedResId = remember(selectedCategoryObj) {
+                                selectedCategoryObj?.let { cat ->
+                                    if (!cat.iconName.isNullOrEmpty()) {
+                                        val res = IconResolutionUtils.nameToResId(context, cat.iconName)
+                                        if (res != 0) res else cat.iconResId
+                                    } else cat.iconResId
+                                } ?: 0
+                            }
+
+                            if (resolvedResId != 0) {
                                 Icon(
-                                    painter = painterResource(id = selectedCategoryObj.iconResId),
+                                    painter = painterResource(id = resolvedResId),
                                     contentDescription = null,
                                     tint = Color.Unspecified,
                                     modifier = Modifier.size(24.dp)
@@ -687,9 +711,19 @@ fun TransactionTabContent(
                             readOnly = true,
                             label = { Text("Subcategory") },
                             leadingIcon = {
-                                if (selectedSubcategoryObj != null && selectedSubcategoryObj.iconResId != 0) {
+                                val context = LocalContext.current
+                                val resolvedResId = remember(selectedSubcategoryObj) {
+                                    selectedSubcategoryObj?.let { sub ->
+                                        if (!sub.iconName.isNullOrEmpty()) {
+                                            val res = IconResolutionUtils.nameToResId(context, sub.iconName)
+                                            if (res != 0) res else sub.iconResId
+                                        } else sub.iconResId
+                                    } ?: 0
+                                }
+
+                                if (resolvedResId != 0) {
                                     Icon(
-                                        painter = painterResource(id = selectedSubcategoryObj.iconResId),
+                                        painter = painterResource(id = resolvedResId),
                                         contentDescription = null,
                                         tint = Color.Unspecified,
                                         modifier = Modifier.size(24.dp)
@@ -750,9 +784,19 @@ fun TransactionTabContent(
                     readOnly = true,
                     label = { Text("Subcategory") },
                     leadingIcon = {
-                        if (selectedSubcategoryObj != null && selectedSubcategoryObj.iconResId != 0) {
+                        val context = LocalContext.current
+                        val resolvedResId = remember(selectedSubcategoryObj) {
+                            selectedSubcategoryObj?.let { sub ->
+                                if (!sub.iconName.isNullOrEmpty()) {
+                                    val res = IconResolutionUtils.nameToResId(context, sub.iconName)
+                                    if (res != 0) res else sub.iconResId
+                                } else sub.iconResId
+                            } ?: 0
+                        }
+
+                        if (resolvedResId != 0) {
                             Icon(
-                                painter = painterResource(id = selectedSubcategoryObj.iconResId),
+                                painter = painterResource(id = resolvedResId),
                                 contentDescription = null,
                                 tint = Color.Unspecified,
                                 modifier = Modifier.size(24.dp)

@@ -18,6 +18,7 @@ import com.ritesh.cashiro.data.database.entity.CategoryEntity
 import com.ritesh.cashiro.R
 import androidx.core.graphics.toColorInt
 import com.ritesh.cashiro.presentation.effects.BlurredAnimatedVisibility
+import com.ritesh.cashiro.utils.IconResolutionUtils
 
 @Composable
 fun CategoryChip(
@@ -31,7 +32,19 @@ fun CategoryChip(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start
     ) {
-        val iconResId = if (category.iconResId != 0) category.iconResId else R.drawable.type_food_dining
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val iconResId = if (category.iconName.isNotEmpty()) {
+            IconResolutionUtils.nameToResId(context, category.iconName)
+                .takeIf { it != 0 } ?: R.drawable.type_food_dining
+        } else {
+            com.ritesh.cashiro.utils.IconResolutionUtils.getSafeResId(
+                context, 
+                category.iconResId, 
+                R.drawable.type_food_dining
+            )
+        }
+
+
         if (onClick != null) {
             IconButton(
                 onClick = onClick,

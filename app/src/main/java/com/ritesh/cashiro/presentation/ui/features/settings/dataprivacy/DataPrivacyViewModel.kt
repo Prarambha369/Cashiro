@@ -188,11 +188,55 @@ class DataPrivacyViewModel @Inject constructor(
                     )
                 }
 
+                // Enrich transactions with duplicate detection
+                val transactionItems = parsedTransactions.map { parsed ->
+                    val dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(parsed.timestamp), ZoneId.systemDefault())
+                    val potentialDuplicates = transactionRepository.findPotentialDuplicates(
+                        amount = parsed.amount,
+                        startDate = dateTime.minusMinutes(15),
+                        endDate = dateTime.plusMinutes(15)
+                    )
+
+                    // Match logic: same amount AND (ref id match OR account last-4 match)
+                    val duplicateMatch = potentialDuplicates.find { existing ->
+                        // 1. Technical Reference (UTR/UPI) match - Highest confidence
+                        val parsedUtr = parsed.reference?.replace(Regex("""\D"""), "")
+                        if (!parsedUtr.isNullOrEmpty()) {
+                            val existingUtr = extractUtr(existing.smsBody) ?: extractUtr(existing.description)
+                            if (existingUtr == parsedUtr) return@find true
+                        }
+                        
+                        // 2. Account match refinement (last 4 digits)
+                        val existingAcc = existing.accountNumber
+                        val parsedAcc = parsed.accountLast4
+                        
+                        if (existingAcc == null || parsedAcc == null) {
+                            // If we can't verify account (e.g. manual/missing), we match by amount + date (from query)
+                            return@find true
+                        }
+
+                        // Compare strictly by last 4 digits (digit-only)
+                        val existingDigits = existingAcc.replace(Regex("""\D"""), "")
+                        val parsedDigits = parsedAcc.replace(Regex("""\D"""), "")
+                        val existingLast4 = existingDigits.takeLast(4)
+                        val parsedLast4 = parsedDigits.takeLast(4)
+                        if (existingLast4 == parsedLast4 && existingLast4.isNotEmpty()) return@find true
+                        
+                        false
+                    }
+
+                    PdfTransactionImportItem(
+                        parsed = parsed,
+                        duplicateMatch = duplicateMatch
+                    )
+                }
+
                 _uiState.update {
                     it.copy(
                         isPdfProcessing = false,
                         pdfAnalysisResult = PdfAnalysisResult(
                             pendingTransactions = parsedTransactions,
+                            transactionItems = transactionItems,
                             transactionCount = parsedTransactions.size,
                             accountMatches = accountMatches
                         )
@@ -206,7 +250,10 @@ class DataPrivacyViewModel @Inject constructor(
     }
 
 
-    fun confirmPdfImport(decisions: Map<String, AccountImportDecision>) {
+    fun confirmPdfImport(
+        accountDecisions: Map<String, AccountImportDecision>,
+        transactionDecisions: Map<Int, TransactionImportDecision>
+    ) {
         val analysis = _uiState.value.pdfAnalysisResult ?: return
         viewModelScope.launch {
             try {
@@ -217,7 +264,7 @@ class DataPrivacyViewModel @Inject constructor(
 
                 var newAccountsCreated = false
                 for (match in analysis.accountMatches) {
-                    val decision = decisions[match.last4] ?: AccountImportDecision.MERGE_WITH_EXISTING
+                    val decision = accountDecisions[match.last4] ?: AccountImportDecision.MERGE_WITH_EXISTING
                     val accountPair: Pair<String, String> = if (decision == AccountImportDecision.MERGE_WITH_EXISTING && match.existingAccount != null) {
                         match.existingAccount.bankName to match.last4
                     } else {
@@ -227,7 +274,8 @@ class DataPrivacyViewModel @Inject constructor(
                             accountLast4 = match.last4,
                             balance = java.math.BigDecimal.ZERO,
                             timestamp = LocalDateTime.now(),
-                            sourceType = "PDF_IMPORT"
+                            sourceType = "PDF_IMPORT",
+                            iconName = "type_finance_bank"
                         )
                         // Only insert if not already existing for that last4+bank combo.
                         val existing = accountBalanceRepository.getLatestBalance(match.bankNameInPdf, match.last4)
@@ -241,8 +289,20 @@ class DataPrivacyViewModel @Inject constructor(
                 }
 
                 var importedCount = 0
-                analysis.pendingTransactions.forEach { parsed ->
+                analysis.transactionItems.forEachIndexed { index, item ->
+                    val decision = transactionDecisions[index] ?: item.initialDecision
+                    if (decision == TransactionImportDecision.SKIP) return@forEachIndexed
+
+                    val parsed = item.parsed
+
+                    // Handle Override logic: Delete existing transaction if it's a duplicate and user wants to override
+                    if (decision == TransactionImportDecision.OVERRIDE_EXISTING && item.duplicateMatch != null) {
+                        transactionRepository.deleteTransaction(item.duplicateMatch, hardDelete = true)
+                    }
+
                     val hash = generateHash(parsed.smsBody, parsed.amount.toString(), parsed.timestamp)
+                    
+                    // Check if already exists (incase another transaction in same PDF has same hash, though unlikely)
                     if (transactionRepository.getTransactionByHash(hash) == null) {
                         val resolved = parsed.accountLast4?.let { resolvedAccounts[it] }
                         val transaction = TransactionEntity(
@@ -273,7 +333,7 @@ class DataPrivacyViewModel @Inject constructor(
 
                         if (blockingRule != null) {
                             Log.d("DataPrivacyViewModel", "Transaction blocked by rule: ${blockingRule.name}")
-                            return@forEach
+                            return@forEachIndexed
                         }
 
                         // Apply non-blocking rules
@@ -331,5 +391,12 @@ class DataPrivacyViewModel @Inject constructor(
     
     fun clearExportedFile() {
         _uiState.update { it.copy(exportedBackupFile = null) }
+    }
+
+    private fun extractUtr(text: String?): String? {
+        if (text == null) return null
+        // Matches UPI: 123 456... or UTR No. 123 456... etc (allowing spaces in digits)
+        val utrRegex = Regex("""(?:UPI[:\s]*|UTR\s+No\.?[:\s]*|Ref\s+No\.?[:\s]*|ID[:\s]*)([\d\s]+)""", RegexOption.IGNORE_CASE)
+        return utrRegex.find(text)?.groupValues?.get(1)?.replace(Regex("""\D"""), "")
     }
 }

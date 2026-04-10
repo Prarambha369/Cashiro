@@ -17,11 +17,30 @@ object IconResolutionUtils {
     fun resIdToName(context: Context, resId: Int): String {
         if (resId == 0) return ""
         return try {
-            context.resources.getResourceEntryName(resId)
+            // Also verify it's a drawable/mipmap to be safe
+            val type = context.resources.getResourceTypeName(resId)
+            if (type == "drawable" || type == "mipmap") {
+                context.resources.getResourceEntryName(resId)
+            } else ""
         } catch (e: Exception) {
             ""
         }
     }
+
+    /**
+     * Checks if a resource ID exists and is a drawable/mipmap.
+     * Returns the same resId if valid, otherwise returns fallbackResId.
+     */
+    fun getSafeResId(context: Context, resId: Int, fallbackResId: Int): Int {
+        if (resId == 0) return fallbackResId
+        return try {
+            val type = context.resources.getResourceTypeName(resId)
+            if (type == "drawable" || type == "mipmap") resId else fallbackResId
+        } catch (e: Exception) {
+            fallbackResId
+        }
+    }
+
 
     /**
      * Resolves a resource name string back to its current resource ID.

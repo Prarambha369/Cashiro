@@ -62,12 +62,20 @@ fun EditCategorySheet(
     var name by remember { mutableStateOf(category?.name ?: "") }
     var description by remember { mutableStateOf(category?.description ?: "") }
     var colorHex by remember { mutableStateOf(category?.color ?: "#33B5E5") }
-    var iconResId by remember {
-        mutableIntStateOf(category?.iconResId ?: R.drawable.type_food_dining)
+    var iconName by remember(category) {
+        mutableStateOf(
+            category?.iconName?.takeIf { it.isNotEmpty() }
+                ?: IconResolutionUtils.resIdToName(context, category?.iconResId ?: R.drawable.type_food_dining)
+                    .takeIf { it.isNotEmpty() } ?: "type_food_dining"
+        )
     }
-    var iconName by remember {
-        mutableStateOf(category?.iconName ?: IconResolutionUtils.resIdToName(context, iconResId))
+    var iconResId by remember(iconName) {
+        mutableIntStateOf(
+            IconResolutionUtils.nameToResId(context, iconName)
+                .takeIf { it != 0 } ?: R.drawable.type_food_dining
+        )
     }
+
     var isIncome by remember { mutableStateOf(category?.isIncome ?: false) }
 
     var showIconSelector by remember { mutableStateOf(false) }

@@ -162,7 +162,7 @@ class PhonePePdfParser : PdfStatementParser {
         // Flexible Date Regex for PhonePe statements
         // Matches "Feb 06, 2026" or "06 Feb, 2026"
         // Permissive separator between hours/minutes (e.g. "04??26 pm" or "04:26 pm")
-        val dateRegex = Regex("""(\d{1,2}\s+[A-Za-z]{3,10},?\s+\d{4}|[A-Za-z]{3,10}\s+\d{1,2},?\s+\d{4})\s*(\d{1,2}[^\d\n\r]{1,5}\d{2}\s*[ap]m)""", RegexOption.IGNORE_CASE)
+        val dateRegex = Regex("""(\d{1,2}\s+[A-Za-z]{3,10},?\s*\d{4}|[A-Za-z]{3,10}\s+\d{1,2},?\s*\d{4})\s*(\d{1,2}[^\d\n\r]{1,5}\d{2}\s*[ap]m)""", RegexOption.IGNORE_CASE)
         
         val matches = dateRegex.findAll(text).toList()
         Log.d("PDF_PARSER_DEBUG", "Found ${matches.size} date matches for PhonePe")
@@ -192,8 +192,11 @@ class PhonePePdfParser : PdfStatementParser {
             val timeStr = dateMatch.groupValues[2]
             
             val dateTime = try {
+                // Normalize 4-letter month abbeviation "Sept" -> "Sep" before parsing
+                val normalizedDateStr = dateStr
+                    .replace(Regex("""\bSept\b""", RegexOption.IGNORE_CASE), "Sep")
                 val cleanedTime = timeStr.replace(Regex("""[^0-9\s[ap]m]+""", RegexOption.IGNORE_CASE), ":")
-                val combined = "$dateStr $cleanedTime".replace(Regex("""\s+"""), " ")
+                val combined = "$normalizedDateStr $cleanedTime".replace(Regex("""\s+"""), " ")
                 
                 // Try various formatters
                 val patterns = listOf(
@@ -235,12 +238,19 @@ class PhonePePdfParser : PdfStatementParser {
                 continue
             }
             
+            // Primary: look for ₹ or Rs. symbol
             val amountMatch = amountRegex.find(row)
-            if (amountMatch == null) {
+            var amountStr = amountMatch?.groupValues?.get(1)?.replace(",", "")
+            // Fallback: for Gift Card credits and similar where amount has no ₹ symbol
+            // e.g. the amount column just has a plain number at end of line
+            if (amountStr == null) {
+                val plainAmountMatch = Regex("""\b([0-9]+(?:\.[0-9]{1,2})?)\s*$""").find(row)
+                amountStr = plainAmountMatch?.groupValues?.get(1)
+            }
+            if (amountStr == null) {
                 Log.w("PDF_PARSER_DEBUG", "No amount found in row: $row")
                 continue
             }
-            val amountStr = amountMatch.groupValues[1].replace(",", "")
             val amount = BigDecimal(amountStr)
             
             val isIncome = row.contains("CREDIT", ignoreCase = true)
@@ -249,9 +259,10 @@ class PhonePePdfParser : PdfStatementParser {
             // Non-greedy merchant extraction
             // Handles "Transact ion ID" typo and merged separators
             val merchantMatch = if (isIncome) {
-                Regex("""(?:Received from|Credited by|Paid by|From)\s+(.+?)(?=\s+(?:Transact\s*ion|UTR|CREDIT|DEBIT|₹|Rs|$))""", RegexOption.IGNORE_CASE).find(row)
+                // Covers: "Received from X", "Credited by X", "Cashback from X", "From X"
+                Regex("""(?:Received from|Cashback from|Credited by|Paid by|From)\s+(.+?)(?=\s+(?:Transact\s*ion|UTR|CREDIT|DEBIT|₹|Rs|$))""", RegexOption.IGNORE_CASE).find(row)
             } else {
-                Regex("""(?:Paid to|To|ZOMATO|Blinkit|Department of Posts|New zam zam)\s+(.+?)(?=\s+(?:Transact\s*ion|UTR|CREDIT|DEBIT|₹|Rs|$))""", RegexOption.IGNORE_CASE).find(row)
+                Regex("""(?:Paid to)\s+(.+?)(?=\s+(?:Transact\s*ion|UTR|CREDIT|DEBIT|₹|Rs|$))""", RegexOption.IGNORE_CASE).find(row)
             }
             
             // Fallback for merchant if the explicit "Paid to" etc prefix is merged with amount
@@ -272,8 +283,8 @@ class PhonePePdfParser : PdfStatementParser {
             
             val transIdMatch = Regex("""Transact\s*ion\s+ID\s*[:\s]*([A-Z0-9]+)""", RegexOption.IGNORE_CASE).find(row)
             val transId = transIdMatch?.groupValues?.get(1)
-            val utrNoMatch = Regex("""UTR\s+No\.\s*[:\s]*(\d+)""", RegexOption.IGNORE_CASE).find(row)
-            val utrNo = utrNoMatch?.groupValues?.get(1)
+            val utrNoMatch = Regex("""UTR\s+No\.\s*[:\s]*([\d\s]+)""", RegexOption.IGNORE_CASE).find(row)
+            val utrNo = utrNoMatch?.groupValues?.get(1)?.replace(Regex("""\D"""), "")
             
             val originalMessage = buildString {
                 if (isIncome) {
@@ -302,7 +313,7 @@ class PhonePePdfParser : PdfStatementParser {
                     amount = amount,
                     type = type,
                     merchant = merchant,
-                    reference = transId,
+                    reference = utrNo ?: transId,
                     accountLast4 = accountLast4,
                     bankName = "PhonePe",
                     smsBody = originalMessage,

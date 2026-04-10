@@ -233,4 +233,16 @@ interface TransactionDao {
 
     @Query("SELECT COUNT(*) FROM transactions WHERE is_deleted = 0 AND category = :category")
     suspend fun getTransactionCountByCategory(category: String): Int
+
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE is_deleted = 0
+        AND date_time BETWEEN :startDate AND :endDate
+    """
+    )
+    suspend fun findPotentialDuplicates(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): List<TransactionEntity>
 }

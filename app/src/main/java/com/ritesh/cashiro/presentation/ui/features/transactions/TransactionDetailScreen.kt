@@ -165,6 +165,7 @@ import com.ritesh.cashiro.presentation.ui.icons.Wallet3
 import com.ritesh.cashiro.presentation.ui.theme.Dimensions
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
 import com.ritesh.cashiro.utils.CurrencyFormatter
+import com.ritesh.cashiro.utils.IconResolutionUtils
 import com.ritesh.cashiro.utils.SubscriptionUtils
 import com.ritesh.cashiro.utils.formatAmount
 import dev.chrisbanes.haze.HazeState
@@ -1520,9 +1521,19 @@ private fun CategoryDropdown(
                 bottomEnd = 16.dp,
                 bottomStart = 16.dp),
             leadingIcon = {
-                if (selectedCategoryObj != null && selectedCategoryObj.iconResId != 0) {
+                val context = LocalContext.current
+                val resolvedResId = remember(selectedCategoryObj) {
+                    selectedCategoryObj?.let { cat ->
+                        if (!cat.iconName.isNullOrEmpty()) {
+                            val res = IconResolutionUtils.nameToResId(context, cat.iconName)
+                            if (res != 0) res else cat.iconResId
+                        } else cat.iconResId
+                    } ?: 0
+                }
+
+                if (resolvedResId != 0) {
                     Icon(
-                        painter = painterResource(id = selectedCategoryObj.iconResId),
+                        painter = painterResource(id = resolvedResId),
                         contentDescription = null,
                         tint = Color.Unspecified,
                         modifier = Modifier.size(24.dp)
@@ -1560,9 +1571,19 @@ private fun CategoryDropdown(
                 readOnly = true,
                 label = { Text("Subcategory") },
                 leadingIcon = {
-                    if (selectedSubcategoryObj != null && selectedSubcategoryObj.iconResId != 0) {
+                    val context = LocalContext.current
+                    val resolvedResId = remember(selectedSubcategoryObj) {
+                        selectedSubcategoryObj?.let { sub ->
+                            if (!sub.iconName.isNullOrEmpty()) {
+                                val res = IconResolutionUtils.nameToResId(context, sub.iconName)
+                                if (res != 0) res else sub.iconResId
+                            } else sub.iconResId
+                        } ?: 0
+                    }
+
+                    if (resolvedResId != 0) {
                         Icon(
-                            painter = painterResource(id = selectedSubcategoryObj.iconResId),
+                            painter = painterResource(id = resolvedResId),
                             contentDescription = null,
                             tint = Color.Unspecified,
                             modifier = Modifier.size(24.dp)
@@ -1989,7 +2010,8 @@ private fun TransactionReceipt(
                                 category = transaction.category,
                                 size = 20.dp,
                                 tint = null, // Original colors
-                                iconResId = categoryEntity?.iconResId ?: 0
+                                iconResId = categoryEntity?.iconResId ?: 0,
+                                iconName = categoryEntity?.iconName
                             )
                         },
                         subIcon = {
@@ -1998,7 +2020,8 @@ private fun TransactionReceipt(
                                     category = transaction.subcategory,
                                     size = 20.dp,
                                     tint = null, // Original colors
-                                    iconResId = subcategoryEntity?.iconResId ?: 0
+                                    iconResId = subcategoryEntity?.iconResId ?: 0,
+                                    iconName = subcategoryEntity?.iconName
                                 )
                             }
                         },

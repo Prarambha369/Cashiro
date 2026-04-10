@@ -351,4 +351,13 @@ class TransactionRepository @Inject constructor(private val transactionDao: Tran
     suspend fun getTransactionCountByCategory(category: String): Int {
         return transactionDao.getTransactionCountByCategory(category)
     }
+
+    suspend fun findPotentialDuplicates(
+        amount: BigDecimal,
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): List<TransactionEntity> {
+        return transactionDao.findPotentialDuplicates(startDate, endDate)
+            .filter { it.amount.compareTo(amount) == 0 }
+    }
 }

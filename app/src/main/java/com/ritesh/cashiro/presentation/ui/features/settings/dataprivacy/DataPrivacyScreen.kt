@@ -22,10 +22,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.rounded.PictureAsPdf
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -512,14 +508,14 @@ fun DataPrivacyScreen(
         )
     }
 
-    // PDF Bank Confirmation dialog
+    // PDF Import Review BottomSheet (Unified review of accounts and transactions)
     uiState.pdfAnalysisResult?.let { result ->
-        PdfImportConfirmationDialog(
+        PdfImportSheet(
             analysisResult = result,
-            onConfirm = { decisions -> viewModel.confirmPdfImport(decisions) },
-            onCancel = { viewModel.dismissPdfImport() },
-            blurEffects = blurEffects,
-            hazeState = hazeState
+            onConfirm = { transactionDecisions, accountDecisions -> 
+                viewModel.confirmPdfImport(accountDecisions, transactionDecisions)
+            },
+            onDismiss = { viewModel.dismissPdfImport() }
         )
     }
 }
