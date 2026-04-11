@@ -195,3 +195,117 @@ val Macchiato_Blue_tertiary = Color(0xFFB0D989)
 val Macchiato_Lavender = Color(0xFF979FE7)
 val Macchiato_Lavender_secondary = Color(0xFFE7979F)
 val Macchiato_Lavender_tertiary = Color(0xFF9FE797)
+
+// Rosé Pine Dawn Colors (Light)
+val Dawn_Rose = Color(0xFFD7827E)
+val Dawn_Rose_secondary = Color(0xFFD4A373)
+val Dawn_Rose_tertiary = Color(0xFFC49B9B)
+
+val Dawn_Iris = Color(0xFF907AA9)
+val Dawn_Iris_secondary = Color(0xFF7E9CB9)
+val Dawn_Iris_tertiary = Color(0xFFB4637A)
+
+val Dawn_Pine = Color(0xFF286983)
+val Dawn_Pine_secondary = Color(0xFF56949F)
+val Dawn_Pine_tertiary = Color(0xFF3B8686)
+
+val Dawn_Gold = Color(0xFFEA9D34)
+val Dawn_Gold_secondary = Color(0xFFD7827E)
+val Dawn_Gold_tertiary = Color(0xFFC4956A)
+
+val Dawn_Love = Color(0xFFB4637A)
+val Dawn_Love_secondary = Color(0xFFD7827E)
+val Dawn_Love_tertiary = Color(0xFF907AA9)
+
+val Dawn_Foam = Color(0xFF56949F)
+val Dawn_Foam_secondary = Color(0xFF286983)
+val Dawn_Foam_tertiary = Color(0xFF6E9A6E)
+
+val Dawn_Muted = Color(0xFF797593)
+val Dawn_Muted_secondary = Color(0xFF9893A5)
+val Dawn_Muted_tertiary = Color(0xFF6E6A86)
+
+val Dawn_Subtle = Color(0xFF908CAA)
+val Dawn_Subtle_secondary = Color(0xFF797593)
+val Dawn_Subtle_tertiary = Color(0xFFA39FBF)
+
+val Dawn_Text = Color(0xFF575279)
+val Dawn_Text_secondary = Color(0xFF6E6A86)
+val Dawn_Text_tertiary = Color(0xFF4A4568)
+
+val Dawn_Highlight = Color(0xFFC4A7E7)
+val Dawn_Highlight_secondary = Color(0xFF907AA9)
+val Dawn_Highlight_tertiary = Color(0xFFB4A0D1)
+
+val Dawn_Surface = Color(0xFF6E6A86)
+val Dawn_Surface_secondary = Color(0xFF797593)
+val Dawn_Surface_tertiary = Color(0xFF575279)
+
+val Dawn_Overlay = Color(0xFF9893A5)
+val Dawn_Overlay_secondary = Color(0xFF908CAA)
+val Dawn_Overlay_tertiary = Color(0xFF7E7A96)
+
+// Rosé Pine Main Colors (Dark)
+val RosePine_Rose = Color(0xFFEBBCBA)
+val RosePine_Rose_secondary = Color(0xFFF6C177)
+val RosePine_Rose_tertiary = Color(0xFFE0AFA0)
+
+val RosePine_Iris = Color(0xFFC4A7E7)
+val RosePine_Iris_secondary = Color(0xFF9CCFD8)
+val RosePine_Iris_tertiary = Color(0xFFEB6F92)
+
+val RosePine_Pine = Color(0xFF31748F)
+val RosePine_Pine_secondary = Color(0xFF9CCFD8)
+val RosePine_Pine_tertiary = Color(0xFF569F9F)
+
+val RosePine_Gold = Color(0xFFF6C177)
+val RosePine_Gold_secondary = Color(0xFFEBBCBA)
+val RosePine_Gold_tertiary = Color(0xFFE0B08A)
+
+val RosePine_Love = Color(0xFFEB6F92)
+val RosePine_Love_secondary = Color(0xFFEBBCBA)
+val RosePine_Love_tertiary = Color(0xFFC4A7E7)
+
+val RosePine_Foam = Color(0xFF9CCFD8)
+val RosePine_Foam_secondary = Color(0xFF31748F)
+val RosePine_Foam_tertiary = Color(0xFF8EC9A0)
+
+val RosePine_Muted = Color(0xFF6E6A86)
+val RosePine_Muted_secondary = Color(0xFF908CAA)
+val RosePine_Muted_tertiary = Color(0xFF56526E)
+
+val RosePine_Subtle = Color(0xFF908CAA)
+val RosePine_Subtle_secondary = Color(0xFF6E6A86)
+val RosePine_Subtle_tertiary = Color(0xFFABA6C4)
+
+val RosePine_Text = Color(0xFFE0DEF4)
+val RosePine_Text_secondary = Color(0xFF908CAA)
+val RosePine_Text_tertiary = Color(0xFFC8C6DD)
+
+val RosePine_Highlight = Color(0xFFC4A7E7)
+val RosePine_Highlight_secondary = Color(0xFFEB6F92)
+val RosePine_Highlight_tertiary = Color(0xFFB4A0D1)
+
+val RosePine_Surface = Color(0xFF403D52)
+val RosePine_Surface_secondary = Color(0xFF524F67)
+val RosePine_Surface_tertiary = Color(0xFF2A2837)
+
+val RosePine_Overlay = Color(0xFF524F67)
+val RosePine_Overlay_secondary = Color(0xFF6E6A86)
+val RosePine_Overlay_tertiary = Color(0xFF403D52)
+
+// Rosé Pine Dawn Background & Surface
+val Dawn_Background = Color(0xFFF5EDE5)
+val Dawn_OnBackground = Color(0xFF575279)
+val Dawn_Surface_Base = Color(0xFFF8F5F5)
+val Dawn_OnSurface = Color(0xFF575279)
+val Dawn_SurfaceVariant = Color(0xFFF2E9E1)
+val Dawn_OnSurfaceVariant = Color(0xFF6E6A86)
+
+// Rosé Pine Main Background & Surface
+val RosePine_Background = Color(0xFF191724)
+val RosePine_OnBackground = Color(0xFFE0DEF4)
+val RosePine_Surface_Base = Color(0xFF1F1D2E)
+val RosePine_OnSurface = Color(0xFFE0DEF4)
+val RosePine_SurfaceVariant = Color(0xFF26233A)
+val RosePine_OnSurfaceVariant = Color(0xFF908CAA)

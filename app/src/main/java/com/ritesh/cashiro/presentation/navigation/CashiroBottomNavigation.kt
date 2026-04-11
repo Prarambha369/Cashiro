@@ -191,10 +191,6 @@ fun CashiroBottomNavigation(
                             MaterialTheme.motionScheme.fastSpatialSpec()
                         )
                         .navigationBarsPadding()
-                        .shadow(
-                            elevation = if (blurEffects) 0.dp else 16.dp,
-                            shape = MaterialTheme.shapes.extraLarge
-                        )
                         .clip(FloatingToolbarDefaults.ContainerShape)
                         .then(
                             if (blurEffects) Modifier.hazeEffect(
