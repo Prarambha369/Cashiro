@@ -35,6 +35,22 @@
 | **SCB Thailand** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **M-Pesa Tanzania** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 | **Telebirr** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| **mBank CZ** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Al Rajhi Bank** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Chase Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ |
+| **T-Bank / Tinkoff** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Cred** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
+| **Alecu Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| **Bank Muscat** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Everest Bank** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **AU Bank** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **NMB/Nabil Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Alinma Bank** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Dashnep Bank** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Zemen Bank** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **CIB Egypt** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Bancolombia** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Mashreq Bank** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 *Uses default balance patterns (may have limited support)
 
@@ -160,6 +176,20 @@
 | **M-Pesa** | `M-PESA`, `Vodacom` |
 | **Selcom Pesa** | `Selcom Pesa` |
 | **DOP** | `DOPBNK`, `XX-DOPBNK-X` |
+| **mBank CZ** | `mBank CZ`, `MBANK` |
+| **Al Rajhi** | `AlRajhiBank`, `ALRAJHI`, `الراجحي` |
+| **Chase** | `Chase`, `JPMCB` |
+| **T-Bank** | `TBank`, `T-Bank`, `Tinkoff` |
+| **Cred** | `CREDIN`, `JK-CREDIN-S`, `AX-CREDIN-S` |
+| **Alecu Bank** | `39872`, `ALECU`, `ALEC` |
+| **Bank Muscat** | `BankMuscat`, `MuscatBank` |
+| **Alinma Bank** | `AlinmaBank`, `ALINMA` |
+| **Bancolombia** | `Bancolombi`, `Bancolombia` |
+| **CIB Egypt** | `CIB Egypt`, `CIB_Alert`, `CIBBank` |
+| **NMB Bank** | `NMBBank`, `NABIL` |
+| **AU Bank** | `AU-BNK`, `AUBANK`, `AU-SMALL` |
+| **Everest Bank** | `EverestBnk`, `EBL`, `EBL_Alert` |
+| **Mashreq Bank** | `Mashreq`, `MashreqBank` |
 
 ---
 
@@ -245,4 +275,4 @@ val parsers = listOf(
 
 ---
 
-*Last Updated: January 2025*
+*Last Updated: April 2026*
