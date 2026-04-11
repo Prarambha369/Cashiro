@@ -94,7 +94,7 @@ constructor(@ApplicationContext private val context: Context) {
                 smsScanMonths = preferences[PreferencesKeys.SMS_SCAN_MONTHS]
                     ?: 3,
                 smsScanAllTime = preferences[PreferencesKeys.SMS_SCAN_ALL_TIME]
-                    ?: false,
+                    ?: true,
                 baseCurrency = preferences[PreferencesKeys.BASE_CURRENCY]
                     ?: "INR",
                 isAmoledMode = preferences[PreferencesKeys.IS_AMOLED_MODE] ?: false,
@@ -263,7 +263,7 @@ constructor(@ApplicationContext private val context: Context) {
 
     val smsScanAllTime: Flow<Boolean> =
             context.dataStore.data.map { preferences ->
-                preferences[PreferencesKeys.SMS_SCAN_ALL_TIME] ?: false
+                preferences[PreferencesKeys.SMS_SCAN_ALL_TIME] ?: true
             }
 
     suspend fun updateSmsScanAllTime(allTime: Boolean) {
@@ -275,7 +275,7 @@ constructor(@ApplicationContext private val context: Context) {
     suspend fun getSmsScanAllTime(): Boolean {
         return context.dataStore
                 .data
-                .map { preferences -> preferences[PreferencesKeys.SMS_SCAN_ALL_TIME] ?: false }
+                .map { preferences -> preferences[PreferencesKeys.SMS_SCAN_ALL_TIME] ?: true }
                 .first()
     }
 
@@ -642,7 +642,7 @@ data class UserPreferences(
         val isDeveloperModeEnabled: Boolean = false,
         val hasShownScanTutorial: Boolean = false,
         val smsScanMonths: Int = 3, // Default to 3 months
-        val smsScanAllTime: Boolean = false,
+        val smsScanAllTime: Boolean = true,
         val baseCurrency: String = "INR", // Default to INR
         val isAmoledMode: Boolean = false,
         val userName: String = "User",

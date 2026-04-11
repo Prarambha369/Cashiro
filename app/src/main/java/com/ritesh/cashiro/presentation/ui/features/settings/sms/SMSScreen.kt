@@ -86,7 +86,7 @@ fun SMSScreen(
     blurEffects: Boolean
 ) {
     val smsScanMonths by settingsViewModel.smsScanMonths.collectAsStateWithLifecycle(initialValue = 3)
-    val smsScanAllTime by settingsViewModel.smsScanAllTime.collectAsStateWithLifecycle(initialValue = false)
+    val smsScanAllTime by settingsViewModel.smsScanAllTime.collectAsStateWithLifecycle(initialValue = true)
     val unreportedCount by settingsViewModel.unreportedSmsCount.collectAsStateWithLifecycle()
 
     var showSmsScanDialog by remember { mutableStateOf(false) }

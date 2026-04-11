@@ -1207,7 +1207,14 @@ object IconProvider {
         if (!accountIconName.isNullOrEmpty()) {
             val resId = IconResolutionUtils.nameToResId(context, accountIconName)
             if (resId != 0) {
-                return IconResource.DrawableResource(resId)
+                return if (accountIconName.startsWith("ic_brand") || accountIconName.startsWith("ic_launcher") || accountIconName.startsWith("merchant_")) {
+                    IconResource.DrawableResource(resId)
+                } else {
+                    IconResource.TintedResIcon(
+                        resId = resId,
+                        tint = Color.Unspecified
+                    )
+                }
             }
         }
         if (accountIconResId != 0) {

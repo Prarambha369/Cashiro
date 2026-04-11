@@ -45,6 +45,7 @@ import com.ritesh.cashiro.utils.CurrencyFormatter
 import java.math.BigDecimal
 import com.ritesh.cashiro.utils.IconResolutionUtils
 import androidx.compose.ui.platform.LocalContext
+import com.ritesh.cashiro.presentation.ui.components.BrandIcon
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -304,11 +305,13 @@ fun EditAccountSheet(
                             .clickable { showIconSelector = true },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            painter = painterResource(id = iconResId),
-                            contentDescription = null,
-                            modifier = Modifier.size(34.dp),
-                            tint = Color.Unspecified
+                        BrandIcon(
+                            merchantName = bankName,
+                            size = 58.dp,
+                            showBackground = false,
+                            accountIconResId = iconResId,
+                            accountIconName = iconName,
+                            accountColorHex = colorHex
                         )
                         // Edit badge
                         Box(
@@ -770,20 +773,14 @@ private fun PreviewAccountCard(
                         )
                     }
 
-                    Surface(
-                        shape = CircleShape,
-                        color = Color(colorHex.toColorInt()).copy(alpha = 0.1f),
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                painter = painterResource(id = iconResId),
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp),
-                                tint = Color.Unspecified
-                            )
-                        }
-                    }
+                    BrandIcon(
+                        merchantName = bankName,
+                        size = 48.dp,
+                        showBackground = true,
+                        accountIconResId = iconResId,
+                        accountIconName = iconName,
+                        accountColorHex = colorHex
+                    )
                 }
             }
         }

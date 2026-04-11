@@ -67,6 +67,10 @@ fun BrandIcon(
         )
     }
     
+    val internalPadding = remember(iconResource) {
+        if (iconResource is IconResource.DrawableResource) 0.dp else 8.dp
+    }
+
     Box(
         modifier = modifier
             .size(size)
@@ -79,11 +83,11 @@ fun BrandIcon(
                                 Color(colorHex.toColorInt()).copy(alpha = alpha)
                             } ?: generateColorFromString(merchantName)
                         )
-                        .padding(if (iconResource is IconResource.DrawableResource) 0.dp else 8.dp)
                 } else {
                     Modifier
                 }
-            ),
+            )
+            .padding(internalPadding),
         contentAlignment = Alignment.Center
     ) {
         when (iconResource) {

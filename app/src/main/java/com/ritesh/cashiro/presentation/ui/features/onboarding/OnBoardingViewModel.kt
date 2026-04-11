@@ -2,6 +2,7 @@ package com.ritesh.cashiro.presentation.ui.features.onboarding
 
 import android.Manifest
 import android.content.Context
+import android.util.Log
 import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.compose.ui.graphics.Color
@@ -323,22 +324,41 @@ constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             
-            // Reassign transactions
-            sourceAccounts.forEach { source ->
-                transactionRepository.updateAccountForTransactions(
-                    oldBankName = source.bankName,
-                    oldAccountNumber = source.accountLast4,
-                    newBankName = targetAccount.bankName,
-                    newAccountNumber = targetAccount.accountLast4
+            try {
+                // Calculate aggregated balance
+                val totalBalance = sourceAccounts.fold(targetAccount.balance) { acc, source ->
+                    acc + source.balance
+                }
+
+                // Reassign transactions
+                sourceAccounts.forEach { source ->
+                    transactionRepository.updateAccountForTransactions(
+                        oldBankName = source.bankName,
+                        oldAccountNumber = source.accountLast4,
+                        newBankName = targetAccount.bankName,
+                        newAccountNumber = targetAccount.accountLast4
+                    )
+                }
+
+                // Update target account balance with aggregated total
+                accountBalanceRepository.insertBalance(
+                    targetAccount.copy(
+                        id = 0, // Insert new record
+                        balance = totalBalance,
+                        timestamp = java.time.LocalDateTime.now(),
+                        sourceType = "MERGE"
+                    )
                 )
-            }
 
-            // Delete source accounts
-            sourceAccounts.forEach { source ->
-                accountBalanceRepository.deleteAccount(source.bankName, source.accountLast4)
+                // Delete source accounts
+                sourceAccounts.forEach { source ->
+                    accountBalanceRepository.deleteAccount(source.bankName, source.accountLast4)
+                }
+            } catch (e: Exception) {
+                Log.e("OnBoardingViewModel", "Error merging accounts", e)
+            } finally {
+                _uiState.update { it.copy(isLoading = false, selectedAccountsForMerge = emptySet()) }
             }
-
-            _uiState.update { it.copy(isLoading = false, selectedAccountsForMerge = emptySet()) }
         }
     }
 

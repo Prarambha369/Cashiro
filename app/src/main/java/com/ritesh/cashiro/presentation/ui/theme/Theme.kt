@@ -344,7 +344,7 @@ fun getCustomDarkColorScheme(accent: AccentColor): ColorScheme {
 
     val onPrimaryColor = when (accent) {
         AccentColor.BLUE -> Color.White
-        AccentColor.PINE_PINE, AccentColor.PINE_MUTED, AccentColor.PINE_TEXT, AccentColor.PINE_SURFACE, AccentColor.PINE_OVERLAY -> Color.White
+        AccentColor.PINE_PINE, AccentColor.PINE_MUTED, AccentColor.PINE_SURFACE, AccentColor.PINE_OVERLAY -> Color.White
         else -> Color(0xFF1a1b20) // Dark text for bright pastel accents
     }
 
@@ -356,7 +356,7 @@ fun getCustomDarkColorScheme(accent: AccentColor): ColorScheme {
 
     val onTertiaryColor = when (accent) {
         AccentColor.BLUE -> Color.White
-        AccentColor.PINE_PINE, AccentColor.PINE_MUTED, AccentColor.PINE_TEXT, AccentColor.PINE_SURFACE, AccentColor.PINE_OVERLAY -> Color.White
+        AccentColor.PINE_PINE, AccentColor.PINE_MUTED, AccentColor.PINE_SURFACE, AccentColor.PINE_OVERLAY -> Color.White
         else -> Color(0xFF1a1b20) 
     }
 

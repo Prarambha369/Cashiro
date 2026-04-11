@@ -354,7 +354,8 @@ private fun OnBoardingScreenContent(
                                 onStartScan = onStartScan,
                                 onSkip = onSkipSync,
                                 onToggleMerge = onToggleAccountSelectionForMerge,
-                                onMerge = onMergeSelectedAccounts
+                                onMerge = onMergeSelectedAccounts,
+                                isLoading = uiState.isLoading
                             )
                         }
                     }
@@ -377,6 +378,18 @@ private fun OnBoardingScreenContent(
                 },
                 onDismiss = { onToggleCurrencyBottomSheet(false) }
             )
+        }
+
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f))
+                    .zIndex(10f),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.CircularProgressIndicator()
+            }
         }
     }
 }
@@ -711,7 +724,8 @@ fun SyncStep(
     onStartScan: () -> Unit,
     onSkip: () -> Unit,
     onToggleMerge: (String) -> Unit,
-    onMerge: (AccountBalanceEntity) -> Unit
+    onMerge: (AccountBalanceEntity) -> Unit,
+    isLoading: Boolean
 ) {
     Box(
         modifier = Modifier
@@ -744,7 +758,8 @@ fun SyncStep(
                     selectedForMerge = selectedForMerge,
                     onSetMain = onSetMain,
                     onToggleMerge = onToggleMerge,
-                    onMerge = onMerge
+                    onMerge = onMerge,
+                    isLoading = isLoading
                 )
             }
         }
@@ -843,7 +858,8 @@ fun AccountSetupStep(
     selectedForMerge: Set<String>,
     onSetMain: (String, String) -> Unit,
     onToggleMerge: (String) -> Unit,
-    onMerge: (AccountBalanceEntity) -> Unit
+    onMerge: (AccountBalanceEntity) -> Unit,
+    isLoading: Boolean
 ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().overScrollVertical().clip(RoundedCornerShape(28.dp)),
@@ -914,11 +930,19 @@ fun AccountSetupStep(
                     Spacer(modifier = Modifier.height(Spacing.md))
                     Button(
                         onClick = { 
-                            // Merge into the first selected account or main account
-                            val targetKey = mainAccountKey ?: selectedForMerge.first()
-                            val targetAccount = accounts.find { "${it.bankName}_${it.accountLast4}" == targetKey }
+                            // Merge into the main account if it's part of selection, otherwise the first selected account
+                            val targetKey = if (selectedForMerge.contains(mainAccountKey)) {
+                                mainAccountKey
+                            } else {
+                                selectedForMerge.firstOrNull()
+                            }
+                            
+                            val targetAccount = targetKey?.let { key ->
+                                accounts.find { "${it.bankName}_${it.accountLast4}" == key }
+                            }
                             targetAccount?.let { onMerge(it) }
                         },
+                        enabled = !isLoading,
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer,

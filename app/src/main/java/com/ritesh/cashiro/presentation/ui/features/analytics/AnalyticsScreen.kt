@@ -88,6 +88,7 @@ import com.ritesh.cashiro.presentation.ui.components.ListItemPosition
 import com.ritesh.cashiro.presentation.ui.components.SectionHeader
 import com.ritesh.cashiro.presentation.ui.components.TransactionItem
 import com.ritesh.cashiro.presentation.ui.components.toShape
+import com.ritesh.cashiro.presentation.ui.components.TypeFilterIcon
 import com.ritesh.cashiro.presentation.ui.icons.Chart2
 import com.ritesh.cashiro.presentation.ui.icons.Grid2
 import com.ritesh.cashiro.presentation.ui.icons.Iconax
@@ -683,37 +684,6 @@ fun SharedTransitionScope.AnalyticsScreen(
     }
 }
 
-@Composable
-private fun TypeFilterIcon(typeFilter: TransactionTypeFilter) {
-    when (typeFilter) {
-        TransactionTypeFilter.INCOME -> Icon(
-            Icons.AutoMirrored.Rounded.TrendingUp,
-            contentDescription = null,
-            modifier = Modifier.size(Dimensions.Icon.small)
-        )
-        TransactionTypeFilter.EXPENSE -> Icon(
-            Icons.AutoMirrored.Rounded.TrendingDown,
-            contentDescription = null,
-            modifier = Modifier.size(Dimensions.Icon.small)
-        )
-        TransactionTypeFilter.CREDIT -> Icon(
-            Icons.Rounded.CreditCard,
-            contentDescription = null,
-            modifier = Modifier.size(Dimensions.Icon.small)
-        )
-        TransactionTypeFilter.TRANSFER -> Icon(
-            Icons.Rounded.SwapHoriz,
-            contentDescription = null,
-            modifier = Modifier.size(Dimensions.Icon.small)
-        )
-        TransactionTypeFilter.INVESTMENT -> Icon(
-            Icons.AutoMirrored.Rounded.ShowChart,
-            contentDescription = null,
-            modifier = Modifier.size(Dimensions.Icon.small)
-        )
-        else -> {}
-    }
-}
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable

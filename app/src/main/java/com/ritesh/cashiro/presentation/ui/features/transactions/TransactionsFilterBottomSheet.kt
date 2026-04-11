@@ -35,6 +35,7 @@ import com.ritesh.cashiro.presentation.effects.BlurredAnimatedVisibility
 import com.ritesh.cashiro.presentation.ui.components.AccountFilterChip
 import com.ritesh.cashiro.presentation.ui.components.CurrencyCard
 import com.ritesh.cashiro.presentation.ui.features.accounts.NumberPad
+import com.ritesh.cashiro.presentation.ui.components.TypeFilterIcon
 import com.ritesh.cashiro.presentation.ui.theme.Dimensions
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
 import com.ritesh.cashiro.utils.CurrencyFormatter
@@ -128,14 +129,17 @@ fun TransactionsFilterBottomSheet(
                             FilterChip(
                                 selected = if (type == TransactionTypeFilter.ALL) typeFilter.isEmpty() else typeFilter.contains(type),
                                 onClick = { viewModel.setTransactionTypeFilter(type) },
+                                leadingIcon = if (if (type == TransactionTypeFilter.ALL) typeFilter.isEmpty() else typeFilter.contains(type)) {
+                                    { TypeFilterIcon(type) }
+                                } else null,
                                 label = {
                                     Text(
                                         type.name.lowercase()
                                             .replaceFirstChar { it.titlecase(Locale.getDefault()) })
                                 },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                                    selectedContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
                             )
                         }

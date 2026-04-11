@@ -104,12 +104,18 @@ fun TiledScrollingIconBackground(
                     val (painter, tint) = paintersWithTint[index]
 
                     translate(left = x, top = y) {
-                        with(painter) {
-                            draw(
-                                size = Size(sizePx, sizePx),
-                                alpha = opacity,
-                                colorFilter = if (tint != Color.Unspecified) ColorFilter.tint(tint) else null
-                            )
+                        val isBrandIcon = iconResources[index] is IconResource.DrawableResource
+                        val drawSize = if (isBrandIcon) sizePx else sizePx * 0.7f
+                        val offset = if (isBrandIcon) 0f else (sizePx - drawSize) / 2f
+
+                        translate(left = offset, top = offset) {
+                            with(painter) {
+                                draw(
+                                    size = Size(drawSize, drawSize),
+                                    alpha = opacity,
+                                    colorFilter = if (tint != Color.Unspecified) ColorFilter.tint(tint) else null
+                                )
+                            }
                         }
                     }
                 }
