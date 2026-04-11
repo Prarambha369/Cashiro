@@ -51,6 +51,7 @@
 | **CIB Egypt** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Bancolombia** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Mashreq Bank** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **BPCE** | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 *Uses default balance patterns (may have limited support)
 
@@ -80,6 +81,7 @@
 | **Debit** | `has a debit by transfer of Rs XXX` | has a debit by transfer of Rs 230.00 |
 | **UPI Send** | `trf to MERCHANT` | debited by 100 trf to SHOPKEEPER |
 | **UPI Receive** | `transfer from SENDER` | credited by Rs.500 transfer from PERSON |
+| **Debit** | `debited for Rs.XXX` | Your a/c no. XXXXXXXX5045 is debited for Rs.500.00 |
 | **ATM** | `ATM withdrawal of Rs.XXX` | ATM withdrawal of Rs.2000 |
 | **YONO Cash** | `Yono Cash Rs.XXX w/d@` | Yono Cash Rs.3000 w/d@SBI ATM |
 
@@ -138,6 +140,12 @@
 | **Credit** | `Account No. XXXXXXXX1234 CREDIT with amount Rs. XXX` | Account No. XXXXXXXX1234 CREDIT with amount Rs. 5550.00 |
 | **Balance** | `Balance: Rs.XXXXX.XX` | Balance: Rs.40000.00 |
 | **Reference** | `[SXXXXXXXX]` | [S76543210] |
+| **BPCE (France)** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+### BPCE (France)
+| Type | Template Pattern | Example |
+|------|-----------------|---------|
+| **Debit** | `virement instantané de XXX,XX EUR` | réalisation de votre virement instantané de 1000,00 EUR |
 
 ---
 
@@ -190,6 +198,7 @@
 | **AU Bank** | `AU-BNK`, `AUBANK`, `AU-SMALL` |
 | **Everest Bank** | `EverestBnk`, `EBL`, `EBL_Alert` |
 | **Mashreq Bank** | `Mashreq`, `MashreqBank` |
+| **BPCE** | `38015` |
 
 ---
 

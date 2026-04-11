@@ -244,6 +244,8 @@ object BrandIcons {
         "priorbank" to R.drawable.ic_brand_priorbank,
         "alinma" to R.drawable.ic_brand_alinma_bank,
         "cib egypt" to R.drawable.ic_brand_cib_egypt,
+        "bpce" to R.drawable.ic_brand_bpce_bank,
+        "caisse d'epargne" to R.drawable.ic_brand_bpce_bank,
     )
     
     fun getIconResource(merchantName: String): Int? {
@@ -320,6 +322,8 @@ object BrandIcons {
         merchantName.contains("discover", ignoreCase = true) -> "#FF6000"
         merchantName.contains("schwab", ignoreCase = true) -> "#00A0DF"
         merchantName.contains("alinma", ignoreCase = true) -> "#B8964B"
+        merchantName.contains("bpce", ignoreCase = true) || 
+        merchantName.contains("caisse d'epargne", ignoreCase = true) -> "#642D8E"
         
         // Payments
         merchantName.contains("paytm", ignoreCase = true) -> "#00B9F1"
