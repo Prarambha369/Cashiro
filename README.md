@@ -16,9 +16,9 @@
 
 [//]: # ([![Discord]&#40;https://img.shields.io/badge/Discord-Join_Community-5865F2&#41;]&#40;https://discord.gg/H3xWeMWjKQ&#41;)
 
-## Cashiro — Free & Open‑Source, private SMS‑powered expense tracker
+## Hisab Sathi (हिसाब साथी) — Nepal's Private SMS-Powered Expense Tracker
 
-Cashiro is a comprehensive financial tracking manager that Turn bank SMS and PDF Statements into a clean, searchable money timeline with on-device AI assistance. 100% private, no cloud processing.
+Hisab Sathi is a comprehensive financial tracking manager designed for Nepal. It turns bank SMS from Nepali banks and digital wallets into a clean, searchable money timeline with on-device AI assistance. 100% private, no cloud processing.
 
 
 [//]: # ()
@@ -35,7 +35,7 @@ Cashiro is a comprehensive financial tracking manager that Turn bank SMS and PDF
 
 ## Overview
 
-For Android users worldwide who want comprehensive financial tracking — automatic expense tracking from bank SMS, manual cash entry, budgeting, clean categories, subscription detection, and clear insights. Supporting 40+ banks across 5 countries with multi-currency capabilities.
+**Hisab Sathi (हिसाब साथी)** - Your Nepali Financial Companion. For Android users in Nepal who want comprehensive financial tracking — automatic expense tracking from bank SMS, manual cash entry, budgeting, clean categories, subscription detection, and clear insights. Supporting all major Nepali banks and digital wallets with NPR currency.
 
 [//]: # (<a href="https://play.google.com/store/apps/details?id=com.pennywiseai.tracker">)
 
@@ -55,10 +55,9 @@ For Android users worldwide who want comprehensive financial tracking — automa
 2. Cashiro parses transaction SMS, extracts amount, merchant, category, and date.
 3. View analytics, subscriptions, and the full transaction timeline — with on-device AI assistant for insights.
 
-## Why Cashiro
+## Why Hisab Sathi
 
-- **🤖 Smart SMS Parsing** - Automatically extracts transaction details from 40+ banks across 5 countries
-- **🗂️ Smart PDF Parsing** - Automatically extracts transaction details from GPay and PhonePe PDF UPI Statements.
+- **🤖 Smart SMS Parsing** - Automatically extracts transaction details from all major Nepali banks and wallets
 - **💰 Smart Budgeting** - Set and track monthly budgets with visual progress indicators
 - **👛 Cash Wallet** - Dedicated default wallet for tracking cash expenses
 - **🏦 Advance Account Management** - Create Custom account for manual tracking
@@ -66,54 +65,29 @@ For Android users worldwide who want comprehensive financial tracking — automa
 - **📈 Advanced Visualizations** - Interactive animated Line, Bar, and Heatmap graphs
 - **👤 User Profiles** - Support for personal user profiles
 - **🔔 Smart Notifications** - Alerts and reminders for important financial events
-- **🌍 Multi-Currency Support** - Native support for ₹, $, د.إ, ₨, ብር with proper localization
+- **🇳🇵 NPR Currency Support** - Native support for Nepalese Rupees (₨) with proper localization
 - **📊 Clear Insights** - Analytics and charts to instantly see where money goes
 - **🔄 Subscription Tracking** - Detects and monitors recurring payments
-- **💬 On-device AI Assistant** - Ask questions like "What did I spend on food last month?" locally
+- **💬 On-device AI Assistant** - Ask questions like "के खर्च भयो मा गत महिना?" (What did I spend on food last month?) locally
 - **📤 Data Export** - Export as CSV for taxes or records
 
-## Supported Banks & Countries
+## Supported Nepali Banks & Wallets
 
-Supporting **47+ banks** across **10 countries** with **multi-currency** capabilities:
+Supporting **8+ Nepali financial institutions** with **NPR currency**:
 
-### 🇮🇳 India (35 banks) - INR ₹
-- **HDFC Bank**, **State Bank of India (SBI)**, **ICICI Bank**
-- **Axis Bank**, **Punjab National Bank (PNB)**, **IDBI Bank**
-- **Indian Bank**, **Federal Bank**, **Karnataka Bank**, **Kerala Gramin Bank**
-- **Canara Bank**, **Bank of Baroda**, **Bank of India**
-- **Jupiter (CSB Bank)**, **Amazon Pay (Juspay)**, **Kotak Bank**
-- **IDFC First Bank**, **Union Bank**, **HSBC Bank**
-- **Central Bank of India**, **South Indian Bank**, **JK Bank**
-- **Indian Overseas Bank**, **Airtel Payments Bank**, **AMEX**
-- **OneCard**, **UCO Bank**, **AU Bank**, and more...
+### 💳 Digital Wallets (2)
+- **eSewa** - Nepal's most popular digital wallet
+- **Khalti** - Popular digital wallet for payments
 
-### 🇺🇸 USA (4 banks) - USD $
-- **Citi Bank**, **Discover Card**, **Old Hickory Credit Union**, **Charles Schwab**
+### 🏦 Commercial Banks (6)
+- **Nabil Bank** - First private bank of Nepal
+- **NMB Bank** - NMB Bank Limited
+- **Everest Bank** - Everest Bank Limited
+- **Laxmi Sunrise Bank** - Laxmi Sunrise Bank Limited
+- **Siddhartha Bank** - Siddhartha Bank Limited
+- **Himalayan Bank** - Himalayan Bank Limited
 
-### 🇦🇪 UAE (3 banks) - AED د.إ
-- **First Abu Dhabi Bank (FAB)**
-- **Abu Dhabi Commercial Bank (ADCB)**
-- **Mashreq Bank**
-
-### 🇸🇦 Saudi Arabia (1 bank) - SAR ﷼
-- **Alinma Bank (بنك الإنماء)** - Arabic SMS support
-
-### 🇧🇾 Belarus (1 bank) - BYN Br
-- **Priorbank** - Russian/Belarusian SMS support
-
-### 🇳🇵 Nepal (3 banks) - NPR ₨
-- **Laxmi Sunrise Bank**, **Everest Bank**, **NMB Bank (Nabil Bank)**
-
-### 🇪🇹 Ethiopia (1 bank) - ETB ብር
-- **Commercial Bank of Ethiopia (CBE)**
-
-### 🇨🇴 Colombia (1 bank) - COP $
-- **Bancolombia**
-
-### 🇰🇪 Kenya (1 service) - KES Ksh
-- **M-PESA** - Mobile money service
-
-More banks being added regularly! [Request your bank →](https://github.com/ritesh-kanwar/Cashiro/issues/new?template=bank_support_request.md)
+More Nepali banks coming soon! [Request your bank →](https://github.com/ritesh-kanwar/Cashiro/issues/new?template=bank_support_request.md)
 
 ## Privacy First
 
