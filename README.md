@@ -184,6 +184,42 @@ com.ritesh.cashiro
 └── utils               # Utility classes and extensions
 ```
 
+## parser-core Module
+
+The `parser-core` module is a standalone Kotlin library (no Android dependencies) that handles all SMS parsing logic. External consumers and the main app both use the public API below.
+
+### Parser discovery
+
+| Entry point | Description |
+|-------------|-------------|
+| `BankParserFactory.getParser(sender)` | Singleton object — returns the first matching parser or `null` |
+| `BankParserFactory.isKnownBankSender(sender)` | `true` when any registered parser can handle the sender |
+| `BankParserFactory.getAllParsers()` | Full ordered list of registered parsers |
+| `BankParserFactory.getSupportedBanks()` | Names of all supported institutions |
+| `BankParserRegistry.default()` | Injectable class wrapping all registered parsers — prefer for Hilt/DI contexts |
+| `BankParserRegistry(parsers)` | Custom registry for testing or future extension |
+
+### Quick usage
+
+```kotlin
+// Singleton (used throughout the app)
+val parser = BankParserFactory.getParser(senderAddress)
+val transaction: ParsedTransaction? = parser?.parse(smsBody, senderAddress, timestamp)
+
+// Injectable registry (recommended for DI / testing)
+val registry = BankParserRegistry.default()
+val parser = registry.getParser(senderAddress)
+
+// Custom registry for unit tests
+val testRegistry = BankParserRegistry(listOf(NabilBankParser()))
+```
+
+### Adding a new bank parser
+
+1. Create `parser-core/src/main/kotlin/com/ritesh/parser/core/bank/MyBankParser.kt` extending `BankParser`.
+2. Register the parser in the `parsers` list inside `BankParserFactory`.
+3. Add tests in `parser-core/src/test/kotlin/com/ritesh/parser/core/bank/MyBankParserTest.kt` using `ParserTestUtils`.
+
 ## Community & Support
 
 [//]: # (- **Discord**: Join the community, share feedback, and get help — [Join Discord]&#40;https://discord.gg/H3xWeMWjKQ&#41;)
