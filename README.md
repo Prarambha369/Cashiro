@@ -1,5 +1,5 @@
 <a name="top"></a>
-[![Cashiro Banner](banner.png)](https://github.com/sarim2000/pennywiseai-tracker)
+[![Hisab Sathi Banner](banner.png)](https://github.com/sarim2000/pennywiseai-tracker)
 
 [//]: # ([![GitHub stars]&#40;https://img.shields.io/github/stars/sarim2000/pennywiseai-tracker?style=social&#41;]&#40;https://github.com/sarim2000/pennywiseai-tracker&#41;)
 [![License](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE)
@@ -52,7 +52,7 @@ Hisab Sathi is a comprehensive financial tracking manager designed for Nepal. It
 ### How it works
 
 1. Grant SMS permission (read‑only). No inbox changes, no messages sent.
-2. Cashiro parses transaction SMS, extracts amount, merchant, category, and date.
+2. Hisab Sathi parses transaction SMS, extracts amount, merchant, category, and date.
 3. View analytics, subscriptions, and the full transaction timeline — with on-device AI assistant for insights.
 
 ## Why Hisab Sathi
@@ -87,7 +87,7 @@ Supporting **8+ Nepali financial institutions** with **NPR currency**:
 - **Siddhartha Bank** - Siddhartha Bank Limited
 - **Himalayan Bank** - Himalayan Bank Limited
 
-More Nepali banks coming soon! [Request your bank →](https://github.com/ritesh-kanwar/Cashiro/issues/new?template=bank_support_request.md)
+More Nepali banks coming soon! [Request your bank →](https://github.com/ritesh-kanwar/Hisab Sathi/issues/new?template=bank_support_request.md)
 
 ## Privacy First
 
@@ -138,8 +138,8 @@ All processing happens on your device using MediaPipe's LLM. Your financial data
 
 ```bash
 # Clone repository
-git clone https://github.com/ritesh-kanwar/Cashiro.git
-cd Cashiro
+git clone https://github.com/ritesh-kanwar/Hisab Sathi.git
+cd Hisab Sathi
 
 # Build APK
 ./gradlew assembleDebug
@@ -187,7 +187,7 @@ com.ritesh.cashiro
 ## Community & Support
 
 [//]: # (- **Discord**: Join the community, share feedback, and get help — [Join Discord]&#40;https://discord.gg/H3xWeMWjKQ&#41;)
-- **Issues**: Report bugs or request features — [Open an issue](https://github.com/ritesh-kanwar/Cashiro/issues)
+- **Issues**: Report bugs or request features — [Open an issue](https://github.com/ritesh-kanwar/Hisab Sathi/issues)
 
 ## Contributing
 
@@ -264,7 +264,7 @@ GNU General Public License v3.0 - see [LICENSE](LICENSE)
 ---
 
 <p align="center">
-<a href="https://github.com/ritesh-kanwar/Cashiro/releases">Download</a> •
-<a href="https://github.com/ritesh-kanwar/Cashiro/issues">Report Bug</a> •
-<a href="https://github.com/ritesh-kanwar/Cashiro/issues">Request Feature</a>
+<a href="https://github.com/ritesh-kanwar/Hisab Sathi/releases">Download</a> •
+<a href="https://github.com/ritesh-kanwar/Hisab Sathi/issues">Report Bug</a> •
+<a href="https://github.com/ritesh-kanwar/Hisab Sathi/issues">Request Feature</a>
 </p>

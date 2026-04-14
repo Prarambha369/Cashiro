@@ -1,3 +1,6 @@
 <resources>
-    <string name="app_name">Cashiro</string>
+    <string name="app_name">Hisab Sathi</string>
+    <string name="app_name_full">Hisab Sathi (हिसाब साथी)</string>
+    <string name="app_tagline">तपाईंको आर्थिक साथी</string>
+    <string name="app_description">नेपाली एसएमएस बैंकिङ एआई - नेपाली बैंकहरू र डिजिटल वालेटहरूका लागि निजी खर्च ट्र्याकर</string>
 </resources>

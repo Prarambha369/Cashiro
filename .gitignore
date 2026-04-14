@@ -1,101 +1,66 @@
 ```
-# Kotlin/Java build artifacts
+# Compiled and build artifacts
 *.class
-*.jar
-*.war
-*.ear
-*.aar
-
-# Gradle
-.gradle/
+*.o
+*.obj
+*.out
+bin/
 build/
-!gradle-wrapper.properties
 
-# IntelliJ IDEA
-.idea/
+# Dependencies
+.gradle/
+target/
 
-# VS Code
-.vscode/
-
-# Logs
+# Logs and temp files
 *.log
+*.tmp
 
 # Environment
 .env
 .env.local
 *.env.*
 
-# Coverage reports
-coverage/
-htmlcov/
-.coverage
-
-# Temporary files
-*.tmp
+# Editors
+.vscode/
+.idea/
 *.swp
 *.swo
 
-# macOS
-.DS_Store
-
-# Windows
-Thumbs.db
-
-# Python (if any Python files exist in the project)
+# Python specific (if applicable)
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
+env/
 venv/
 .venv/
 pip-log.txt
 pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git/
+.mypy_cache/
+.pytest_cache/
+.hypothesis/
 
-# Node.js (if any Node files exist in the project)
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Java specific
+*.jar
+*.war
+*.ear
+hs_err_pid*
+.recommenders
 
-# Compiled Binary files
-*.o
-*.obj
-*.so
-*.a
-*.lib
-*.dll
-*.exe
-*.out
-
-# Compressed archives
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
-
-# Test reports
-test-results/
-*.xml
-
-# Target directory for Kotlin projects
-target/
+# Distribution / packaging
+.Python
+_build/
+buck-out/
+build/
+dist/
 ```

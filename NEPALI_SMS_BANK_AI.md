@@ -1,9 +1,9 @@
-# Nepali SMS Bank AI - Hisab (हिसाब)
+# Nepali SMS Bank AI - Hisab Sathi (हिसाब साथी)
 
 ## Overview
-This project has been transformed into **Hisab** (हिसाब), a Nepali-only SMS banking parser built on top of PennyWise and Cashiro.
+This project has been transformed into **Hisab Sathi** (हिसाब साथी), a Nepali-only SMS banking parser built on top of PennyWise.
 
-**Hisab** means "account/calculation" in Nepali - the perfect name for a financial tracking assistant.
+**Hisab Sathi** means "Account Companion" in Nepali - the perfect name for a financial tracking assistant.
 
 ## Supported Nepali Banks & Wallets
 
@@ -60,12 +60,12 @@ Additional Nepali banks to be implemented:
 
 ## Branding
 
-**Name**: Hisab (हिसाब)
+**Name**: Hisab Sathi (हिसाब साथी)
 **Tagline**: तपाईंको आर्थिक साथी - Your Financial Companion
 
 ## Technical Notes
 
 - All non-Nepali bank parsers have been removed
 - System exclusively supports Nepali financial institutions
-- Built on PennyWise and Cashiro architecture
+- Built on PennyWise architecture
 - Kotlin-based parser system
