@@ -2,7 +2,6 @@ package com.ritesh.parser.core.bank
 
 import com.ritesh.parser.core.CompiledPatterns
 import com.ritesh.parser.core.Constants
-import com.ritesh.parser.core.SmsFilter
 import com.ritesh.parser.core.ParsedTransaction
 import com.ritesh.parser.core.TransactionType
 import java.math.BigDecimal
@@ -10,6 +9,7 @@ import java.math.BigDecimal
 /**
  * Base class for bank-specific message parsers.
  * Each bank should extend this class and implement its specific parsing logic.
+ * Hisab Sathi - नेपाली एसएमएस बैंकिङ एआई
  */
 abstract class BankParser {
 
@@ -25,9 +25,9 @@ abstract class BankParser {
 
     /**
      * Returns the currency used by this bank.
-     * Defaults to INR for Indian banks. International banks should override this.
+     * Defaults to NPR for Nepali banks.
      */
-    open fun getCurrency(): String = "INR"
+    open fun getCurrency(): String = "NPR"
 
     /**
      * Parses an SMS message and extracts transaction information.
@@ -57,17 +57,14 @@ abstract class BankParser {
             null
         }
 
-        val rawAccountLast4 = extractAccountLast4(smsBody)
-        val safeAccountLast4 = rawAccountLast4?.let { extractLast4Digits(it) } ?: rawAccountLast4
-
         return ParsedTransaction(
             amount = amount,
             type = type,
             merchant = extractMerchant(smsBody, sender),
             reference = extractReference(smsBody),
-            accountLast4 = safeAccountLast4,
+            accountLast4 = extractAccountLast4(smsBody),
             balance = extractBalance(smsBody),
-            creditLimit = availableLimit,  // TODO: This is actually available limit, will be fixed in SmsReaderWorker
+            creditLimit = availableLimit,
             smsBody = smsBody,
             sender = sender,
             timestamp = timestamp,
@@ -134,10 +131,7 @@ abstract class BankParser {
             "spent", "received", "transferred", "paid"
         )
 
-        val hasKeyword = transactionKeywords.any { lowerMessage.contains(it) }
-        
-        // Final fallback to SmsFilter for broad pattern matching
-        return hasKeyword || SmsFilter.isTransactionMessage(message)
+        return transactionKeywords.any { lowerMessage.contains(it) }
     }
 
     /**
@@ -145,7 +139,6 @@ abstract class BankParser {
      * Can be overridden by specific bank parsers for custom logic.
      */
     protected open fun extractCurrency(message: String): String? {
-        // Default implementation - try to find currency pattern
         val currencyPattern = Regex("""([A-Z]{3})\s*[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE)
         currencyPattern.find(message)?.let { match ->
             return match.groupValues[1].uppercase()
@@ -203,61 +196,20 @@ abstract class BankParser {
 
     /**
      * Checks if the message is for an investment transaction.
-     * Can be overridden by specific bank parsers for custom logic.
      */
     protected open fun isInvestmentTransaction(lowerMessage: String): Boolean {
         val investmentKeywords = listOf(
-            // Clearing corporations
-            "iccl",                         // Indian Clearing Corporation Limited
-            "indian clearing corporation",
-            "nsccl",                        // NSE Clearing Corporation
-            "nse clearing",
-            "clearing corporation",
-
-            // Auto-pay indicators (excluding mandate/UMRN to avoid subscription false positives)
-            "nach",                         // National Automated Clearing House
-            "ach",                          // Automated Clearing House
-            "ecs",                          // Electronic Clearing Service
-
-            // Investment platforms
-            "groww",
-            "zerodha",
-            "upstox",
-            "kite",
-            "kuvera",
-            "paytm money",
-            "etmoney",
-            "coin by zerodha",
-            "smallcase",
-            "angel one",
-            "angel broking",
-            "5paisa",
-            "icici securities",
-            "icici direct",
-            "hdfc securities",
-            "kotak securities",
-            "motilal oswal",
-            "sharekhan",
-            "edelweiss",
-            "axis direct",
-            "sbi securities",
-
-            // Investment types
             "mutual fund",
-            "sip",                          // Systematic Investment Plan
-            "elss",                         // Tax saving funds
-            "ipo",                          // Initial Public Offering
-            "folio",                        // Mutual fund folio
+            "sip",
+            "elss",
+            "ipo",
+            "folio",
             "demat",
             "stockbroker",
-            "digital gold",                 // Digital Gold investments
-            "sovereign gold",               // Sovereign Gold Bonds
-
-            // Stock exchanges
-            "nse",                          // National Stock Exchange
-            "bse",                          // Bombay Stock Exchange
-            "cdsl",                         // Central Depository Services
-            "nsdl"                          // National Securities Depository
+            "nse",
+            "bse",
+            "cdsl",
+            "nsdl"
         )
 
         return investmentKeywords.any { lowerMessage.contains(it) }
@@ -293,76 +245,16 @@ abstract class BankParser {
     }
 
     /**
-     * Extracts last 4 digits from a raw captured string.
-     * Filters to digits only, takes last 4. Returns null if fewer than 3 digits.
-     */
-    protected fun extractLast4Digits(raw: String): String? {
-        val digits = raw.filter { it.isDigit() }
-        val last4 = digits.takeLast(4)
-        return if (last4.length >= 3) last4 else null
-    }
-
-    /**
      * Extracts last 4 digits of account number.
      */
     protected open fun extractAccountLast4(message: String): String? {
         for (pattern in CompiledPatterns.Account.ALL_PATTERNS) {
             pattern.find(message)?.let { match ->
-                val rawCapture = match.groupValues[1]
-                val last4 = extractLast4Digits(rawCapture)
-
-                if (last4 != null && isValidAccountLast4(last4, match.value, message)) {
-                    return last4
-                }
+                return match.groupValues[1]
             }
         }
 
         return null
-    }
-
-    /**
-     * Validates that the extracted 4 digits are actually part of an account number,
-     * not a date, RRN, or other numeric field.
-     */
-    private fun isValidAccountLast4(last4: String, matchedText: String, fullMessage: String): Boolean {
-        // Escape the last4 for safe regex usage
-        val escapedLast4 = Regex.escape(last4)
-
-        // Check if it's part of a date pattern (dd/mm/yyyy, dd-mm-yyyy, etc.)
-        val datePatterns = listOf(
-            Regex("""\d{1,2}[/-]\d{1,2}[/-]$escapedLast4"""),  // 04/11/2025, 05-02-2025
-            Regex("""$escapedLast4[/-]\d{1,2}[/-]\d{1,2}"""),  // 2025/11/04, 2025-02-05
-            Regex("""\bon\s+\d{1,2}[/-]\d{1,2}[/-]$escapedLast4""", RegexOption.IGNORE_CASE),  // "on 04/11/2025"
-            Regex("""\bdated\s+\d{1,2}[/-]\d{1,2}[/-]$escapedLast4""", RegexOption.IGNORE_CASE)  // "dated 05-02-2025"
-        )
-
-        for (datePattern in datePatterns) {
-            if (datePattern.find(fullMessage) != null) {
-                return false
-            }
-        }
-
-        // Check if it's a standalone year (2024, 2025, etc.)
-        if (last4.toIntOrNull() in 2000..2099) {
-            // Only reject if it appears to be a year in date context
-            val yearContextPatterns = listOf(
-                Regex("""\bon\s+\d{1,2}[/-]\d{1,2}[/-]$escapedLast4""", RegexOption.IGNORE_CASE),
-                Regex("""\bdated\s+.*?$escapedLast4""", RegexOption.IGNORE_CASE),
-                Regex("""$escapedLast4(?:\s|$)""")  // Year at end of phrase
-            )
-
-            for (yearPattern in yearContextPatterns) {
-                if (yearPattern.find(fullMessage) != null) {
-                    // Only reject if NOT preceded by "Account" or "A/c" within 25 chars
-                    val accountBeforeYear = Regex("""(?:A/c|Account|Acct).{0,25}$escapedLast4""", RegexOption.IGNORE_CASE)
-                    if (accountBeforeYear.find(fullMessage) == null) {
-                        return false
-                    }
-                }
-            }
-        }
-
-        return true
     }
 
     /**
@@ -385,38 +277,22 @@ abstract class BankParser {
 
     /**
      * Extracts credit card available limit from the message.
-     * This is the remaining credit available to spend, NOT the total credit limit.
      */
     protected open fun extractAvailableLimit(message: String): BigDecimal? {
-
-        // Common patterns for credit limit across banks
         val creditLimitPatterns = listOf(
-            // "Available limit Rs.111,111.89" - Federal Bank format (no space after Rs.)
             Regex("""Available\s+limit\s+Rs\.([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-            // "Available limit Rs. 111,111.89" or "Available limit: Rs 111,111.89"
-            Regex(
-                """Available\s+limit:?\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
-                RegexOption.IGNORE_CASE
-            ),
-            // "Avl Lmt Rs.111,111.89" or "Avl Lmt: Rs 111,111.89" (ICICI and others)
+            Regex("""Available\s+limit:?\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
             Regex("""Avl\s+Lmt:?\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-            // "Avail Limit Rs.111,111.89"
             Regex("""Avail\s+Limit:?\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-            // "Available Credit Limit: Rs.111,111.89"
-            Regex(
-                """Available\s+Credit\s+Limit:?\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
-                RegexOption.IGNORE_CASE
-            ),
-            // "Limit: Rs.111,111.89" (generic, but only for credit card messages)
+            Regex("""Available\s+Credit\s+Limit:?\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
             Regex("""(?:^|\s)Limit:?\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
         )
 
-        for ((index, pattern) in creditLimitPatterns.withIndex()) {
+        for (pattern in creditLimitPatterns) {
             pattern.find(message)?.let { match ->
                 val limitStr = match.groupValues[1].replace(",", "")
                 return try {
-                    val limit = BigDecimal(limitStr)
-                    limit
+                    BigDecimal(limitStr)
                 } catch (e: NumberFormatException) {
                     null
                 }
@@ -427,52 +303,35 @@ abstract class BankParser {
     }
 
     /**
-     * Detects if the transaction is from a card (credit/debit) based on message patterns.
-     * First excludes account-related patterns, then checks for actual card patterns.
+     * Detects if the transaction is from a card (credit/debit).
      */
     protected open fun detectIsCard(message: String): Boolean {
         val lowerMessage = message.lowercase()
 
-        // FIRST: Explicitly exclude account-related patterns - these are NOT cards
+        // Exclude account-related patterns
         val accountPatterns = listOf(
-            "a/c",           // Account abbreviation (e.g., "from HDFC Bank A/c 120092")
-            "account",       // Full word account (e.g., "from HDFC Bank Account XX0093")
-            "ac ",           // Account abbreviation with space
-            "acc ",          // Account abbreviation
-            "saving account",
-            "current account",
-            "savings a/c",
-            "current a/c"
+            "a/c", "account", "ac ", "acc ", "saving account",
+            "current account", "savings a/c", "current a/c"
         )
 
-        // If message contains account patterns, it's NOT a card transaction
         for (pattern in accountPatterns) {
             if (lowerMessage.contains(pattern)) {
                 return false
             }
         }
 
-        // SECOND: Check for actual card-specific patterns
+        // Check for card-specific patterns
         val cardPatterns = listOf(
-            "card ending",
-            "card xx",
-            "debit card",
-            "credit card",
-            "card no.",
-            "card number",
-            "card *",
-            "card x"
+            "card ending", "card xx", "debit card", "credit card",
+            "card no.", "card number", "card *", "card x"
         )
 
-        // Check for card patterns
         for (pattern in cardPatterns) {
             if (lowerMessage.contains(pattern)) {
                 return true
             }
         }
 
-        // Check for masked card number patterns (e.g., "XXXX1234", "*1234", "ending 1234")
-        // BUT only if we haven't already excluded it as an account transaction
         val maskedCardRegex = Regex("""(?:xx|XX|\*{2,})?\d{4}""")
         if (lowerMessage.contains("ending") && maskedCardRegex.containsMatchIn(message)) {
             return true
@@ -501,13 +360,12 @@ abstract class BankParser {
      * Validates if the extracted merchant name is valid.
      */
     protected open fun isValidMerchantName(name: String): Boolean {
-        val commonWords =
-            setOf("USING", "VIA", "THROUGH", "BY", "WITH", "FOR", "TO", "FROM", "AT", "THE")
+        val commonWords = setOf("USING", "VIA", "THROUGH", "BY", "WITH", "FOR", "TO", "FROM", "AT", "THE")
 
         return name.length >= Constants.Parsing.MIN_MERCHANT_NAME_LENGTH &&
                 name.any { it.isLetter() } &&
                 name.uppercase() !in commonWords &&
                 !name.all { it.isDigit() } &&
-                !name.contains("@") // Not a UPI ID
+                !name.contains("@")
     }
 }
