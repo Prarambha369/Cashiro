@@ -87,7 +87,7 @@ Supporting **8+ Nepali financial institutions** with **NPR currency**:
 - **Siddhartha Bank** - Siddhartha Bank Limited
 - **Himalayan Bank** - Himalayan Bank Limited
 
-More Nepali banks coming soon! [Request your bank →](https://github.com/ritesh-kanwar/Hisab Sathi/issues/new?template=bank_support_request.md)
+More Nepali banks coming soon! [Request your bank →](https://github.com/ritesh-kanwar/Hisab%20Sathi/issues/new?template=bank_support_request.md)
 
 ## Privacy First
 
