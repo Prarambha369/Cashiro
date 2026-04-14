@@ -28,7 +28,8 @@ class HimalayanBankParserTest {
                 expected = ExpectedTransaction(
                     amount = BigDecimal("3500.00"),
                     currency = "NPR",
-                    type = TransactionType.EXPENSE
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = "2345"
                 )
             ),
             ParserTestCase(
@@ -38,7 +39,8 @@ class HimalayanBankParserTest {
                 expected = ExpectedTransaction(
                     amount = BigDecimal("7000.00"),
                     currency = "NPR",
-                    type = TransactionType.INCOME
+                    type = TransactionType.INCOME,
+                    accountLast4 = "2345"
                 )
             ),
             ParserTestCase(
