@@ -140,7 +140,7 @@ class NabilBankParser : BankParser() {
 
         val hasCurrency = Regex("""\b(?:npr|rs\.?)\b""", RegexOption.IGNORE_CASE).containsMatchIn(message)
         val hasAmount = Regex(
-            """(?:\b(?:npr|rs\.?)\s*)?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\b\d+(?:\.\d{1,2})?\b""",
+            """(?:\b(?:npr|rs\.?)\s*)\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?""",
             RegexOption.IGNORE_CASE
         ).containsMatchIn(message)
         val hasTransactionAction = listOf(
