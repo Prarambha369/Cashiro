@@ -19,9 +19,14 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.platform.LocalContext
 import com.ritesh.cashiro.presentation.ui.features.categories.IconSelector
 import com.ritesh.cashiro.presentation.ui.theme.Dimensions
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
+import com.ritesh.cashiro.utils.CurrencyFormatter
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.ArrowDropDown
+import com.ritesh.cashiro.presentation.ui.components.CurrencyBottomSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -152,9 +157,11 @@ fun AddAccountScreen(
 
     // Icon Selector
     Text("Account Icon", style = MaterialTheme.typography.labelMedium)
+    val context = LocalContext.current
     Box(modifier = Modifier.height(200.dp).fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)) {
         IconSelector(
-            selectedIconId = formState.iconResId,
+            context = context,
+            selectedIconName = formState.iconName,
             onIconSelected = { manageAccountsViewModel.updateIcon(it) }
         )
     }
@@ -209,7 +216,11 @@ fun AddAccountScreen(
         label = { Text("Current Balance *") },
         placeholder = { Text("0.00") },
         leadingIcon = {
-            Icon(Icons.Default.CurrencyRupee, contentDescription = null)
+            Text(
+                CurrencyFormatter.getCurrencySymbol(formState.currency),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(start = 12.dp)
+            )
         },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
@@ -217,6 +228,35 @@ fun AddAccountScreen(
             keyboardType = KeyboardType.Decimal
         )
     )
+
+    // Currency Selection
+    var showCurrencySheet by remember { mutableStateOf(false) }
+    OutlinedTextField(
+        value = "${formState.currency} (${CurrencyFormatter.getCurrencySymbol(formState.currency)})",
+        onValueChange = {},
+        label = { Text("Currency") },
+        readOnly = true,
+        modifier = Modifier.fillMaxWidth(),
+        trailingIcon = {
+            IconButton(onClick = { showCurrencySheet = true }) {
+                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Currency")
+            }
+        },
+        leadingIcon = {
+            Icon(Icons.Default.Language, contentDescription = null)
+        }
+    )
+
+    if (showCurrencySheet) {
+        CurrencyBottomSheet(
+            selectedCurrency = formState.currency,
+            onCurrencySelected = {
+                manageAccountsViewModel.updateCurrency(it)
+                showCurrencySheet = false
+            },
+            onDismiss = { showCurrencySheet = false }
+        )
+    }
 
     // Credit Limit (only for credit cards)
     if (formState.accountType == AccountType.CREDIT) {

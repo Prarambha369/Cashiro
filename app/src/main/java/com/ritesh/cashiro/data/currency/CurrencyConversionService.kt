@@ -141,9 +141,14 @@ class CurrencyConversionService @Inject constructor(
             return // Rates are still fresh, no need to refresh
         }
         println("Currency rates are stale, refreshing from API")
+        fetchAndSaveAllRates(apiBaseCurrency, currencies)
+    }
 
-        // Fetch all exchange rates for the base currency at once with metadata
-        val response = exchangeRateProvider.fetchAllExchangeRatesWithMetadata(apiBaseCurrency)
+    /**
+     * Fetch all relevant rates from the API and save to the database.
+     */
+    suspend fun fetchAndSaveAllRates(baseCurrency: String, targetCurrencies: List<String> = emptyList()) {
+        val response = exchangeRateProvider.fetchAllExchangeRatesWithMetadata(baseCurrency)
 
         if (response != null) {
             val allRates = response.rates
@@ -156,44 +161,42 @@ class CurrencyConversionService @Inject constructor(
                 ZoneId.systemDefault()
             )
 
-            // Cache all relevant rates from the API response
-            currencies.forEach { fromCurrency ->
-                currencies.forEach { toCurrency ->
-                    if (fromCurrency != toCurrency) {
-                        val rate = if (fromCurrency == apiBaseCurrency) {
-                            allRates[toCurrency]
-                        } else if (toCurrency == apiBaseCurrency) {
-                            allRates[fromCurrency]?.let { fromRate ->
-                                BigDecimal.ONE.divide(fromRate, MathContext(10))
-                            }
-                        } else {
-                            // Cross-currency conversion: fromCurrency -> USD -> toCurrency
-                            val fromToUsd = allRates[fromCurrency]
-                            val usdToTo = allRates[toCurrency]
-                            if (fromToUsd != null && usdToTo != null) {
-                                usdToTo.divide(fromToUsd, MathContext(10))
-                            } else {
-                                null
-                            }
-                        }
+            val entities = mutableListOf<ExchangeRateEntity>()
 
-                        if (rate != null) {
-                            val entity = ExchangeRateEntity(
-                                fromCurrency = fromCurrency,
-                                toCurrency = toCurrency,
-                                rate = rate,
-                                provider = response.provider,
-                                updatedAt = lastUpdateTime,
-                                updatedAtUnix = response.lastUpdateTimeUnix,
-                                expiresAt = nextUpdateTime, // Use the API's next update time
-                                expiresAtUnix = response.nextUpdateTimeUnix
-                            )
-                            exchangeRateDao.insertExchangeRate(entity)
-                        }
-                    }
+            // If targetCurrencies is empty, we'll cache all received rates (usually ~150-200)
+            val sourceRates = if (targetCurrencies.isEmpty()) allRates.keys else targetCurrencies
+
+            sourceRates.forEach { toCurrency ->
+                val rate = allRates[toCurrency.uppercase()] ?: allRates[toCurrency.lowercase()]
+                if (rate != null) {
+                    entities.add(
+                        ExchangeRateEntity(
+                            fromCurrency = baseCurrency.uppercase(),
+                            toCurrency = toCurrency.uppercase(),
+                            rate = rate,
+                            provider = response.provider,
+                            updatedAt = lastUpdateTime,
+                            updatedAtUnix = response.lastUpdateTimeUnix,
+                            expiresAt = nextUpdateTime,
+                            expiresAtUnix = response.nextUpdateTimeUnix
+                        )
+                    )
                 }
             }
+
+            if (entities.isNotEmpty()) {
+                exchangeRateDao.insertExchangeRates(entities)
+            }
         }
+    }
+
+    /**
+     * Retrieve stored conversions for a base currency from the local database.
+     */
+    suspend fun getStoredConversions(baseCurrency: String): Pair<List<ExchangeRateEntity>, Long> {
+        val rates = exchangeRateDao.getAllRatesForCurrency(baseCurrency.uppercase())
+        val lastUpdated = rates.maxOfOrNull { it.updatedAtUnix } ?: 0L
+        return Pair(rates, lastUpdated)
     }
 
     /**

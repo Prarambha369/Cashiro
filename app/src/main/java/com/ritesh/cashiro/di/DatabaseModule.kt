@@ -28,6 +28,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.ritesh.cashiro.R
+import com.ritesh.cashiro.utils.IconResolutionUtils
 
 /** Hilt module that provides database-related dependencies. */
 @Module
@@ -63,7 +64,7 @@ object DatabaseModule {
                 // Room will automatically detect schema changes between versions
 
                 // Add callback to seed default data on first creation
-                .addCallback(DatabaseCallback())
+                .addCallback(DatabaseCallback(context))
                 .build()
 
         // Set the singleton instance so BroadcastReceivers can access it
@@ -217,16 +218,16 @@ object DatabaseModule {
     }
 }
 /** Database callback to seed initial data when database is first created */
-class DatabaseCallback : RoomDatabase.Callback() {
+class DatabaseCallback(private val context: Context) : RoomDatabase.Callback() {
     override fun onCreate(db: SupportSQLiteDatabase) {
         super.onCreate(db)
         // Seed default categories and subcategories for new installations
         CoroutineScope(Dispatchers.IO).launch { 
-            seedCategories(db)
-            seedSubcategories(db)
+            seedCategories(db, context)
+            seedSubcategories(db, context)
         }
     }
-    private fun seedCategories(db: SupportSQLiteDatabase) {
+    private fun seedCategories(db: SupportSQLiteDatabase, context: Context) {
         val categories = listOf(
             CategoryData(
                 name = "Food & Drinks",
@@ -494,24 +495,25 @@ class DatabaseCallback : RoomDatabase.Callback() {
             )
         )
         categories.forEach { cat ->
+            val iconName = IconResolutionUtils.resIdToName(context, cat.iconResId)
             db.execSQL(
                 """
                 INSERT OR IGNORE INTO categories (
-                    name, color, icon_res_id, description, is_system, is_income, display_order,
-                    default_name, default_color, default_icon_res_id, default_description,
+                    name, color, icon_res_id, icon_name, description, is_system, is_income, display_order,
+                    default_name, default_color, default_icon_res_id, default_icon_name, default_description,
                     created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+                VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
             """.trimIndent(),
                 arrayOf<Any>(
-                    cat.name, cat.color, cat.iconResId, cat.description, 
+                    cat.name, cat.color, cat.iconResId, iconName, cat.description, 
                     if (cat.isIncome) 1 else 0, cat.displayOrder,
-                    cat.name, cat.color, cat.iconResId, cat.description
+                    cat.name, cat.color, cat.iconResId, iconName, cat.description
                 )
             )
         }
     }
-    private fun seedSubcategories(db: SupportSQLiteDatabase) {
+    private fun seedSubcategories(db: SupportSQLiteDatabase, context: Context) {
         // Get category IDs
         val foodCategoryId = getCategoryId(db, "Food & Drinks")
         val transportCategoryId = getCategoryId(db, "Transport")
@@ -569,7 +571,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         
         foodSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, foodCategoryId, subcategory.name,
+                db, context, foodCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -596,7 +598,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
 
         transportSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, transportCategoryId, subcategory.name,
+                db, context, transportCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -624,7 +626,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         shoppingSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, shoppingCategoryId, subcategory.name,
+                db, context, shoppingCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -643,7 +645,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         groceriesSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, groceriesCategoryId, subcategory.name,
+                db, context, groceriesCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -663,7 +665,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         homeSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, homeCategoryId, subcategory.name,
+                db, context, homeCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -678,7 +680,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         entertainmentSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, entertainmentCategoryId, subcategory.name,
+                db, context, entertainmentCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -692,7 +694,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         eventsSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, eventsCategoryId, subcategory.name,
+                db, context, eventsCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -711,7 +713,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         travelSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, travelCategoryId, subcategory.name,
+                db, context, travelCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -728,7 +730,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         medicalSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, medicalCategoryId, subcategory.name,
+                db, context, medicalCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -744,7 +746,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         personalSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, personalCategoryId, subcategory.name,
+                db, context, personalCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -762,7 +764,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         fitnessSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, fitnessCategoryId, subcategory.name,
+                db, context, fitnessCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -789,7 +791,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         servicesSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, servicesCategoryId, subcategory.name,
+                db, context, servicesCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -811,7 +813,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         billSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, billCategoryId, subcategory.name,
+                db, context, billCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -843,7 +845,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         subscriptionSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, subscriptionCategoryId, subcategory.name,
+                db, context, subscriptionCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -858,7 +860,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         emiSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, emiCategoryId, subcategory.name,
+                db, context, emiCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -874,7 +876,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         creditBillSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, creditBillCategoryId, subcategory.name,
+                db, context, creditBillCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -894,7 +896,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         investmentSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, investmentCategoryId, subcategory.name,
+                db, context, investmentCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -910,7 +912,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         supportSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, supportCategoryId, subcategory.name,
+                db, context, supportCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -925,7 +927,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         insuranceSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, insuranceCategoryId, subcategory.name,
+                db, context, insuranceCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -939,7 +941,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         taxSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, taxCategoryId, subcategory.name,
+                db, context, taxCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -955,7 +957,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         topUpSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, topUpCategoryId, subcategory.name,
+                db, context, topUpCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -975,7 +977,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         childrenSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, childrenCategoryId, subcategory.name,
+                db, context, childrenCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -990,7 +992,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         petCareSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, petCareCategoryId, subcategory.name,
+                db, context, petCareCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -1010,7 +1012,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         businessSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, businessCategoryId, subcategory.name,
+                db, context, businessCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -1026,7 +1028,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         miscellaneousSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, miscellaneousCategoryId, subcategory.name,
+                db, context, miscellaneousCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -1045,7 +1047,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         )
         incomeSubcategories.forEach { subcategory ->
             insertSubcategory(
-                db, incomeCategoryId, subcategory.name,
+                db, context, incomeCategoryId, subcategory.name,
                 subcategory.iconResId,
                 subcategory.color
             )
@@ -1063,21 +1065,23 @@ class DatabaseCallback : RoomDatabase.Callback() {
     }
     private fun insertSubcategory(
         db: SupportSQLiteDatabase,
+        context: Context,
         categoryId: Long,
         name: String,
         iconResId: Int,
         color: String
     ) {
+        val iconName = IconResolutionUtils.resIdToName(context, iconResId)
         db.execSQL(
             """
             INSERT OR IGNORE INTO subcategories (
-                category_id, name, icon_res_id, color, is_system,
-                default_name, default_icon_res_id, default_color,
+                category_id, name, icon_res_id, icon_name, color, is_system,
+                default_name, default_color, default_icon_res_id, default_icon_name,
                 created_at, updated_at
             )
-            VALUES (?, ?, ?, ?, 1, ?, ?, ?, datetime('now'), datetime('now'))
+            VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, datetime('now'), datetime('now'))
         """.trimIndent(),
-            arrayOf<Any>(categoryId, name, iconResId, color, name, iconResId, color)
+            arrayOf<Any>(categoryId, name, iconResId, iconName, color, name, color, iconResId, iconName)
         )
     }
     private data class CategoryData(

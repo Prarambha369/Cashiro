@@ -54,7 +54,16 @@ class ChatViewModel @Inject constructor(
         )
     
     private val _uiState = MutableStateFlow(ChatUiState())
-    val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
+    val uiState: StateFlow<ChatUiState> = combine(
+        _uiState,
+        modelRepository.downloadProgress
+    ) { state, progress ->
+        state.copy(downloadProgress = progress)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = ChatUiState()
+    )
     
     private val _currentResponse = MutableStateFlow("")
     val currentResponse: StateFlow<String> = _currentResponse.asStateFlow()
@@ -212,7 +221,8 @@ class ChatViewModel @Inject constructor(
 
 data class ChatUiState(
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val downloadProgress: Int = 0
 )
 
 data class ChatStats(

@@ -117,6 +117,18 @@ fun getCustomLightColorScheme(accent: AccentColor): ColorScheme {
         AccentColor.SAPPHIRE -> Latte_Sapphire
         AccentColor.BLUE -> Latte_Blue
         AccentColor.LAVENDER -> Latte_Lavender
+        AccentColor.PINE_ROSE -> Dawn_Rose
+        AccentColor.PINE_IRIS -> Dawn_Iris
+        AccentColor.PINE_PINE -> Dawn_Pine
+        AccentColor.PINE_GOLD -> Dawn_Gold
+        AccentColor.PINE_LOVE -> Dawn_Love
+        AccentColor.PINE_FOAM -> Dawn_Foam
+        AccentColor.PINE_MUTED -> Dawn_Muted
+        AccentColor.PINE_SUBTLE -> Dawn_Subtle
+        AccentColor.PINE_TEXT -> Dawn_Text
+        AccentColor.PINE_HIGHLIGHT -> Dawn_Highlight
+        AccentColor.PINE_SURFACE -> Dawn_Surface
+        AccentColor.PINE_OVERLAY -> Dawn_Overlay
     }
     val secondaryColor = when (accent) {
         AccentColor.ROSEWATER -> Latte_Rosewater_secondary
@@ -131,6 +143,18 @@ fun getCustomLightColorScheme(accent: AccentColor): ColorScheme {
         AccentColor.SAPPHIRE -> Latte_Sapphire_secondary
         AccentColor.BLUE -> Latte_Blue_secondary
         AccentColor.LAVENDER -> Latte_Lavender_secondary
+        AccentColor.PINE_ROSE -> Dawn_Rose_secondary
+        AccentColor.PINE_IRIS -> Dawn_Iris_secondary
+        AccentColor.PINE_PINE -> Dawn_Pine_secondary
+        AccentColor.PINE_GOLD -> Dawn_Gold_secondary
+        AccentColor.PINE_LOVE -> Dawn_Love_secondary
+        AccentColor.PINE_FOAM -> Dawn_Foam_secondary
+        AccentColor.PINE_MUTED -> Dawn_Muted_secondary
+        AccentColor.PINE_SUBTLE -> Dawn_Subtle_secondary
+        AccentColor.PINE_TEXT -> Dawn_Text_secondary
+        AccentColor.PINE_HIGHLIGHT -> Dawn_Highlight_secondary
+        AccentColor.PINE_SURFACE -> Dawn_Surface_secondary
+        AccentColor.PINE_OVERLAY -> Dawn_Overlay_secondary
     }
 
     val tertiaryColor = when (accent) {
@@ -146,46 +170,110 @@ fun getCustomLightColorScheme(accent: AccentColor): ColorScheme {
         AccentColor.SAPPHIRE -> Latte_Sapphire_tertiary
         AccentColor.BLUE -> Latte_Blue_tertiary
         AccentColor.LAVENDER -> Latte_Lavender_tertiary
+        AccentColor.PINE_ROSE -> Dawn_Rose_tertiary
+        AccentColor.PINE_IRIS -> Dawn_Iris_tertiary
+        AccentColor.PINE_PINE -> Dawn_Pine_tertiary
+        AccentColor.PINE_GOLD -> Dawn_Gold_tertiary
+        AccentColor.PINE_LOVE -> Dawn_Love_tertiary
+        AccentColor.PINE_FOAM -> Dawn_Foam_tertiary
+        AccentColor.PINE_MUTED -> Dawn_Muted_tertiary
+        AccentColor.PINE_SUBTLE -> Dawn_Subtle_tertiary
+        AccentColor.PINE_TEXT -> Dawn_Text_tertiary
+        AccentColor.PINE_HIGHLIGHT -> Dawn_Highlight_tertiary
+        AccentColor.PINE_SURFACE -> Dawn_Surface_tertiary
+        AccentColor.PINE_OVERLAY -> Dawn_Overlay_tertiary
     }
+
+    val onPrimaryColor = when (accent) {
+        AccentColor.YELLOW -> Color(0xFF1a1b20)
+
+        AccentColor.PINE_IRIS, AccentColor.PINE_PINE,
+        AccentColor.PINE_LOVE, AccentColor.PINE_FOAM, AccentColor.PINE_MUTED, AccentColor.PINE_SUBTLE,
+        AccentColor.PINE_TEXT,  AccentColor.PINE_SURFACE,
+        AccentColor.PINE_OVERLAY -> Dawn_Surface_Base
+
+        AccentColor.PINE_ROSE, AccentColor.PINE_GOLD,
+        AccentColor.PINE_HIGHLIGHT-> Dawn_OnBackground
+        else -> Color(0xFFffffff)
+    }
+
+    val onSecondaryColor = when (accent) {
+        AccentColor.YELLOW -> Color(0xFF1a1b20)
+        AccentColor.PINE_ROSE,  AccentColor.PINE_GOLD,
+        AccentColor.PINE_LOVE -> Dawn_OnBackground
+
+        AccentColor.PINE_IRIS, AccentColor.PINE_PINE, AccentColor.PINE_MUTED,
+        AccentColor.PINE_SUBTLE, AccentColor.PINE_TEXT, AccentColor.PINE_FOAM,
+        AccentColor.PINE_HIGHLIGHT, AccentColor.PINE_SURFACE,
+        AccentColor.PINE_OVERLAY -> Dawn_Surface_Base
+        else -> Color(0xFFffffff)
+    }
+
+    val onTertiaryColor = when (accent) {
+        AccentColor.YELLOW, AccentColor.ROSEWATER, AccentColor.FLAMINGO -> Color(0xFF1a1b20)
+
+        AccentColor.PINE_ROSE, AccentColor.PINE_HIGHLIGHT, -> Dawn_OnBackground
+
+        AccentColor.PINE_IRIS, AccentColor.PINE_PINE,   AccentColor.PINE_GOLD,
+        AccentColor.PINE_MUTED, AccentColor.PINE_LOVE,
+        AccentColor.PINE_SUBTLE, AccentColor.PINE_FOAM,
+        AccentColor.PINE_SURFACE, AccentColor.PINE_TEXT,
+        AccentColor.PINE_OVERLAY -> Dawn_Surface_Base
+        else -> Color(0xFFffffff)
+    }
+
+    val isPine = accent.name.startsWith("PINE_")
 
     return lightColorScheme(
         primary = primaryColor,
-        onPrimary = Color(0xFFffffff),
+        onPrimary = onPrimaryColor,
         primaryContainer = primaryColor,
-        onPrimaryContainer = Color(0xFFffffff),
+        onPrimaryContainer = onPrimaryColor,
         inversePrimary = Color(0xFF000000),
         secondary = secondaryColor,
-        onSecondary = Color(0xFFffffff),
+        onSecondary = onSecondaryColor,
         secondaryContainer = secondaryColor,
-        onSecondaryContainer = Color(0xFFffffff),
+        onSecondaryContainer = onSecondaryColor,
         tertiary = tertiaryColor,
-        onTertiary = Color(0xFFffffff),
+        onTertiary = onTertiaryColor,
         tertiaryContainer = tertiaryColor,
-        onTertiaryContainer = Color(0xFFffffff),
-        background = Color(0xFFe2e2e9),
-        onBackground = Color(0xFF1a1b20),
-        surface = Color(0xFFE5E5EA),
-        onSurface = Color(0xFF1a1b20),
-        surfaceVariant = Color(0xFFc4c6d0),
-        onSurfaceVariant = Color(0xFF44474f),
-        inverseSurface = Color(0xFF2f3036),
-        inverseOnSurface = Color(0xFFf0f0f7),
-        error = Latte_Red,
+        onTertiaryContainer = onTertiaryColor,
+        background = if (isPine) Dawn_Background else Color(0xFFe2e2e9),
+        onBackground = if (isPine) Dawn_OnBackground else Color(0xFF1a1b20),
+        surface = if (isPine) Dawn_Background else Color(0xFFE5E5EA),
+        onSurface = if (isPine) Dawn_OnSurface else Color(0xFF1a1b20),
+        surfaceVariant = if (isPine) Dawn_SurfaceVariant else Color(0xFFc4c6d0),
+        onSurfaceVariant = if (isPine) Dawn_OnSurfaceVariant else Color(0xFF44474f),
+        inverseSurface = if (isPine) Color(0xFF26233A) else Color(0xFF2f3036),
+        inverseOnSurface = if (isPine) Color(0xFFE0DEF4) else Color(0xFFf0f0f7),
+        error = if (isPine) Dawn_Love else Latte_Red,
         onError = Color(0xFFffffff),
-        errorContainer = Latte_Red,
+        errorContainer = if (isPine) Dawn_Love else Latte_Red,
         onErrorContainer = Color(0xFFffffff),
-        surfaceBright = Color(0xFFE8E9EC),
-        surfaceDim = Color(0xFFd9d9e0),
-        surfaceContainer = Color(0xFFf9f9ff),
-        surfaceContainerHigh = Color(0xFFe8e7ee),
-        surfaceContainerHighest = Color(0xFFe2e2e9),
-        surfaceContainerLow = Color(0xFFffffff),
+        surfaceBright = if (isPine) Dawn_Surface_Base else Color(0xFFE8E9EC),
+        surfaceDim = if (isPine) Dawn_SurfaceVariant else Color(0xFFd9d9e0),
+        surfaceContainer = if (isPine) Dawn_Background else Color(0xFFf9f9ff),
+        surfaceContainerHigh = if (isPine) Dawn_SurfaceVariant else Color(0xFFe8e7ee),
+        surfaceContainerHighest = if (isPine) Color(0xFFE6DDD5) else Color(0xFFe2e2e9),
+        surfaceContainerLow = if (isPine) Dawn_Surface_Base else Color(0xFFffffff),
         surfaceContainerLowest = Color(0xFFf9f9ff)
     )
 }
 
 fun getCustomDarkColorScheme(accent: AccentColor): ColorScheme {
     val primaryColor = when (accent) {
+        AccentColor.PINE_ROSE -> RosePine_Rose
+        AccentColor.PINE_IRIS -> RosePine_Iris
+        AccentColor.PINE_PINE -> RosePine_Pine
+        AccentColor.PINE_GOLD -> RosePine_Gold
+        AccentColor.PINE_LOVE -> RosePine_Love
+        AccentColor.PINE_FOAM -> RosePine_Foam
+        AccentColor.PINE_MUTED -> RosePine_Muted
+        AccentColor.PINE_SUBTLE -> RosePine_Subtle
+        AccentColor.PINE_TEXT -> RosePine_Text
+        AccentColor.PINE_HIGHLIGHT -> RosePine_Highlight
+        AccentColor.PINE_SURFACE -> RosePine_Surface
+        AccentColor.PINE_OVERLAY -> RosePine_Overlay
         AccentColor.ROSEWATER -> Macchiato_Rosewater_dim
         AccentColor.FLAMINGO -> Macchiato_Flamingo_dim
         AccentColor.PINK -> Macchiato_Pink_dim
@@ -201,6 +289,18 @@ fun getCustomDarkColorScheme(accent: AccentColor): ColorScheme {
     }
 
     val secondaryColor = when (accent) {
+        AccentColor.PINE_ROSE -> RosePine_Rose_secondary
+        AccentColor.PINE_IRIS -> RosePine_Iris_secondary
+        AccentColor.PINE_PINE -> RosePine_Pine_secondary
+        AccentColor.PINE_GOLD -> RosePine_Gold_secondary
+        AccentColor.PINE_LOVE -> RosePine_Love_secondary
+        AccentColor.PINE_FOAM -> RosePine_Foam_secondary
+        AccentColor.PINE_MUTED -> RosePine_Muted_secondary
+        AccentColor.PINE_SUBTLE -> RosePine_Subtle_secondary
+        AccentColor.PINE_TEXT -> RosePine_Text_secondary
+        AccentColor.PINE_HIGHLIGHT -> RosePine_Highlight_secondary
+        AccentColor.PINE_SURFACE -> RosePine_Surface_secondary
+        AccentColor.PINE_OVERLAY -> RosePine_Overlay_secondary
         AccentColor.ROSEWATER -> Macchiato_Rosewater_dim_secondary
         AccentColor.FLAMINGO -> Macchiato_Flamingo_dim_secondary
         AccentColor.PINK -> Macchiato_Pink_dim_secondary
@@ -216,6 +316,18 @@ fun getCustomDarkColorScheme(accent: AccentColor): ColorScheme {
     }
 
     val tertiaryColor = when (accent) {
+        AccentColor.PINE_ROSE -> RosePine_Rose_tertiary
+        AccentColor.PINE_IRIS -> RosePine_Iris_tertiary
+        AccentColor.PINE_PINE -> RosePine_Pine_tertiary
+        AccentColor.PINE_GOLD -> RosePine_Gold_tertiary
+        AccentColor.PINE_LOVE -> RosePine_Love_tertiary
+        AccentColor.PINE_FOAM -> RosePine_Foam_tertiary
+        AccentColor.PINE_MUTED -> RosePine_Muted_tertiary
+        AccentColor.PINE_SUBTLE -> RosePine_Subtle_tertiary
+        AccentColor.PINE_TEXT -> RosePine_Text_tertiary
+        AccentColor.PINE_HIGHLIGHT -> RosePine_Highlight_tertiary
+        AccentColor.PINE_SURFACE -> RosePine_Surface_tertiary
+        AccentColor.PINE_OVERLAY -> RosePine_Overlay_tertiary
         AccentColor.ROSEWATER -> Macchiato_Rosewater_dim_tertiary
         AccentColor.FLAMINGO -> Macchiato_Flamingo_dim_tertiary
         AccentColor.PINK -> Macchiato_Pink_dim_tertiary
@@ -229,38 +341,59 @@ fun getCustomDarkColorScheme(accent: AccentColor): ColorScheme {
         AccentColor.BLUE -> Macchiato_Blue_dim_tertiary
         AccentColor.LAVENDER -> Macchiato_Lavender_dim_tertiary
     }
+
+    val onPrimaryColor = when (accent) {
+        AccentColor.BLUE -> Color.White
+        AccentColor.PINE_PINE, AccentColor.PINE_MUTED, AccentColor.PINE_SURFACE, AccentColor.PINE_OVERLAY -> Color.White
+        else -> Color(0xFF1a1b20) // Dark text for bright pastel accents
+    }
+
+    val onSecondaryColor = when (accent) {
+        AccentColor.BLUE -> Color.White
+        AccentColor.PINE_PINE, AccentColor.PINE_MUTED, AccentColor.PINE_TEXT, AccentColor.PINE_SURFACE, AccentColor.PINE_OVERLAY -> Color(0xFF1a1b20) // Pine secondary is Foam (bright)
+        else -> Color(0xFF1a1b20) 
+    }
+
+    val onTertiaryColor = when (accent) {
+        AccentColor.BLUE -> Color.White
+        AccentColor.PINE_PINE, AccentColor.PINE_MUTED, AccentColor.PINE_SURFACE, AccentColor.PINE_OVERLAY -> Color.White
+        else -> Color(0xFF1a1b20) 
+    }
+
+    val isPine = accent.name.startsWith("PINE_")
+
     return darkColorScheme(
         primary = primaryColor,
-        onPrimary = Color(0xFFffffff),
+        onPrimary = onPrimaryColor,
         primaryContainer = primaryColor,
-        onPrimaryContainer = Color(0xFFffffff),
-        inversePrimary = Color(0xFFffffff),
+        onPrimaryContainer = onPrimaryColor,
+        inversePrimary = Color(0xFFFFFFFF),
         secondary = secondaryColor,
-        onSecondary = Color(0xFFffffff),
+        onSecondary = onSecondaryColor,
         secondaryContainer = secondaryColor,
-        onSecondaryContainer = Color(0xFFffffff),
+        onSecondaryContainer = onSecondaryColor,
         tertiary = tertiaryColor,
-        onTertiary = Color(0xFFffffff),
+        onTertiary = onTertiaryColor,
         tertiaryContainer = tertiaryColor,
-        onTertiaryContainer = Color(0xFFffffff),
-        background = Color(0xFF111318),
-        onBackground = Color(0xFFe2e2e9),
-        surface = Color(0xFF111318),
-        onSurface = Color(0xFFe2e2e9),
-        surfaceVariant = Color(0xFF1e1f25),
-        onSurfaceVariant = Color(0xFFc4c6d0),
-        inverseSurface = Color(0xFFe2e2e9),
-        inverseOnSurface = Color(0xFF2f3036),
-        error = Macchiato_Red_dim,
+        onTertiaryContainer = onTertiaryColor,
+        background = if (isPine) RosePine_Background else Color(0xFF111318),
+        onBackground = if (isPine) RosePine_OnBackground else Color(0xFFe2e2e9),
+        surface = if (isPine) RosePine_Background else Color(0xFF111318),
+        onSurface = if (isPine) RosePine_OnSurface else Color(0xFFe2e2e9),
+        surfaceVariant = if (isPine) RosePine_SurfaceVariant else Color(0xFF1e1f25),
+        onSurfaceVariant = if (isPine) RosePine_OnSurfaceVariant else Color(0xFFc4c6d0),
+        inverseSurface = if (isPine) Color(0xFFE0DEF4) else Color(0xFFe2e2e9),
+        inverseOnSurface = if (isPine) Color(0xFF26233A) else Color(0xFF2f3036),
+        error = if (isPine) RosePine_Love else Macchiato_Red_dim,
         onError = Color(0xFFffffff),
-        errorContainer = Macchiato_Red_dim,
+        errorContainer = if (isPine) RosePine_Love else Macchiato_Red_dim,
         onErrorContainer = Color(0xFFffffff),
-        surfaceBright = Color(0xFF37393e),
-        surfaceDim = Color(0xFF0c0e13),
-        surfaceContainer = Color(0xFF1e1f25),
-        surfaceContainerHigh = Color(0xFF282a2f),
-        surfaceContainerHighest = Color(0xFF33353a),
-        surfaceContainerLow = Color(0xFF1e1f25),
-        surfaceContainerLowest = Color(0xFF1a1b20)
+        surfaceBright = if (isPine) RosePine_SurfaceVariant else Color(0xFF37393e),
+        surfaceDim = if (isPine) RosePine_Background else Color(0xFF0c0e13),
+        surfaceContainer = if (isPine) RosePine_Surface_Base else Color(0xFF1e1f25),
+        surfaceContainerHigh = if (isPine) RosePine_SurfaceVariant else Color(0xFF282a2f),
+        surfaceContainerHighest = if (isPine) Color(0xFF403D52) else Color(0xFF33353a),
+        surfaceContainerLow = if (isPine) RosePine_Surface_Base else Color(0xFF1e1f25),
+        surfaceContainerLowest = if (isPine) RosePine_Background else Color(0xFF1a1b20)
     )
 }

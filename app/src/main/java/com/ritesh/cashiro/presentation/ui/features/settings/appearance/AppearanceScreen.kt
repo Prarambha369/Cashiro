@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -56,91 +57,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import com.ritesh.cashiro.R
 import com.ritesh.cashiro.data.preferences.AccentColor
+import com.ritesh.cashiro.data.preferences.AppIcon
 import com.ritesh.cashiro.data.preferences.AppFont
 import com.ritesh.cashiro.data.preferences.NavigationBarStyle
 import com.ritesh.cashiro.data.preferences.ThemeStyle
+import com.ritesh.cashiro.utils.IconSwitchingUtils
 import com.ritesh.cashiro.presentation.effects.BlurredAnimatedVisibility
 import com.ritesh.cashiro.presentation.effects.overScrollVertical
 import com.ritesh.cashiro.presentation.ui.components.CustomTitleTopAppBar
 import com.ritesh.cashiro.presentation.ui.components.PreferenceSwitch
 import com.ritesh.cashiro.presentation.ui.components.SectionHeader
 import com.ritesh.cashiro.presentation.ui.features.categories.NavigationContent
-import com.ritesh.cashiro.presentation.ui.theme.Dimensions
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Blue
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Blue_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Blue_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Flamingo
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Flamingo_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Flamingo_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Green
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Green_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Green_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Lavender
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Lavender_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Lavender_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Mauve
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Mauve_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Mauve_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Peach
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Peach_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Peach_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Pink
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Pink_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Pink_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Red
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Red_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Red_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Rosewater
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Rosewater_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Rosewater_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Sapphire
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Sapphire_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Sapphire_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Teal
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Teal_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Teal_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Yellow
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Yellow_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Latte_Yellow_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Blue_dim
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Blue_dim_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Blue_dim_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Flamingo_dim
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Flamingo_dim_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Flamingo_dim_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Green_dim
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Green_dim_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Green_dim_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Lavender_dim
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Lavender_dim_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Lavender_dim_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Mauve_dim
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Mauve_dim_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Mauve_dim_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Peach_dim
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Peach_dim_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Peach_dim_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Pink_dim
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Pink_dim_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Pink_dim_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Red_dim
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Red_dim_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Red_dim_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Rosewater_dim
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Rosewater_dim_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Rosewater_dim_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Sapphire_dim
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Sapphire_dim_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Sapphire_dim_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Teal_dim
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Teal_dim_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Teal_dim_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Yellow_dim
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Yellow_dim_secondary
-import com.ritesh.cashiro.presentation.ui.theme.Macchiato_Yellow_dim_tertiary
-import com.ritesh.cashiro.presentation.ui.theme.SNProFontFamily
-import com.ritesh.cashiro.presentation.ui.theme.Spacing
+import com.ritesh.cashiro.presentation.ui.theme.*
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 
@@ -156,6 +88,7 @@ fun AppearanceScreen(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val hazeState = remember { HazeState() }
+    val context = LocalContext.current
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -519,6 +452,61 @@ fun AppearanceScreen(
                     }
                 }
 
+                // App Logo Section
+                SectionHeader(
+                    title = "App Logo",
+                    modifier = Modifier.padding(start = Spacing.xl, top = Spacing.md)
+                )
+
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = Spacing.md),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                ) {
+                    item {
+                        AppLogoOption(
+                            name = "Original",
+                            icon = AppIcon.ORIGINAL,
+                            backgroundColor = Color(0xFF1F1F1F),
+                            drawableResId = R.drawable.cashiro_original,
+                            isSelected = themeUiState.currentAppIcon == AppIcon.ORIGINAL,
+                            onClick = {
+                                themeViewModel.updateAppIcon(AppIcon.ORIGINAL).invokeOnCompletion {
+                                    IconSwitchingUtils.switchAppIcon(context, AppIcon.ORIGINAL)
+                                }
+                            }
+                        )
+                    }
+                    item {
+                        AppLogoOption(
+                            name = "Anarchy",
+                            icon = AppIcon.ANARCHY,
+                            backgroundColor = Color(0xFFF5EEE5),
+                            drawableResId = R.drawable.cashiro_anarchy,
+                            isSelected = themeUiState.currentAppIcon == AppIcon.ANARCHY,
+                            onClick = {
+                                themeViewModel.updateAppIcon(AppIcon.ANARCHY).invokeOnCompletion {
+                                    IconSwitchingUtils.switchAppIcon(context, AppIcon.ANARCHY)
+                                }
+                            }
+                        )
+                    }
+                    item {
+                        AppLogoOption(
+                            name = "Zenith",
+                            icon = AppIcon.ZENITH,
+                            backgroundColor = Color(0xFFE6E6E6),
+                            drawableResId = R.drawable.cashiro_zenith,
+                            isSelected = themeUiState.currentAppIcon == AppIcon.ZENITH,
+                            onClick = {
+                                themeViewModel.updateAppIcon(AppIcon.ZENITH).invokeOnCompletion {
+                                    IconSwitchingUtils.switchAppIcon(context, AppIcon.ZENITH)
+                                }
+                            }
+                        )
+                    }
+                }
+
                 // Navigation Style Section
                 SectionHeader(
                     title = "Navigation",
@@ -771,6 +759,18 @@ fun getAccentColorForDisplay(accent: AccentColor, isDark: Boolean): Color {
             AccentColor.SAPPHIRE -> Macchiato_Sapphire_dim
             AccentColor.BLUE -> Macchiato_Blue_dim
             AccentColor.LAVENDER -> Macchiato_Lavender_dim
+            AccentColor.PINE_ROSE -> RosePine_Rose
+            AccentColor.PINE_IRIS -> RosePine_Iris
+            AccentColor.PINE_PINE -> RosePine_Pine
+            AccentColor.PINE_GOLD -> RosePine_Gold
+            AccentColor.PINE_LOVE -> RosePine_Love
+            AccentColor.PINE_FOAM -> RosePine_Foam
+            AccentColor.PINE_MUTED -> RosePine_Muted
+            AccentColor.PINE_SUBTLE -> RosePine_Subtle
+            AccentColor.PINE_TEXT -> RosePine_Text
+            AccentColor.PINE_HIGHLIGHT -> RosePine_Highlight
+            AccentColor.PINE_SURFACE -> RosePine_Surface
+            AccentColor.PINE_OVERLAY -> RosePine_Overlay
         }
     } else {
         when (accent) {
@@ -786,6 +786,18 @@ fun getAccentColorForDisplay(accent: AccentColor, isDark: Boolean): Color {
             AccentColor.SAPPHIRE -> Latte_Sapphire
             AccentColor.BLUE -> Latte_Blue
             AccentColor.LAVENDER -> Latte_Lavender
+            AccentColor.PINE_ROSE -> Dawn_Rose
+            AccentColor.PINE_IRIS -> Dawn_Iris
+            AccentColor.PINE_PINE -> Dawn_Pine
+            AccentColor.PINE_GOLD -> Dawn_Gold
+            AccentColor.PINE_LOVE -> Dawn_Love
+            AccentColor.PINE_FOAM -> Dawn_Foam
+            AccentColor.PINE_MUTED -> Dawn_Muted
+            AccentColor.PINE_SUBTLE -> Dawn_Subtle
+            AccentColor.PINE_TEXT -> Dawn_Text
+            AccentColor.PINE_HIGHLIGHT -> Dawn_Highlight
+            AccentColor.PINE_SURFACE -> Dawn_Surface
+            AccentColor.PINE_OVERLAY -> Dawn_Overlay
         }
     }
 }
@@ -806,6 +818,18 @@ fun getSecondaryColorForDisplay(accent: AccentColor, isDark: Boolean): Color {
             AccentColor.SAPPHIRE -> Macchiato_Sapphire_dim_secondary
             AccentColor.BLUE -> Macchiato_Blue_dim_secondary
             AccentColor.LAVENDER -> Macchiato_Lavender_dim_secondary
+            AccentColor.PINE_ROSE -> RosePine_Rose_secondary
+            AccentColor.PINE_IRIS -> RosePine_Iris_secondary
+            AccentColor.PINE_PINE -> RosePine_Pine_secondary
+            AccentColor.PINE_GOLD -> RosePine_Gold_secondary
+            AccentColor.PINE_LOVE -> RosePine_Love_secondary
+            AccentColor.PINE_FOAM -> RosePine_Foam_secondary
+            AccentColor.PINE_MUTED -> RosePine_Muted_secondary
+            AccentColor.PINE_SUBTLE -> RosePine_Subtle_secondary
+            AccentColor.PINE_TEXT -> RosePine_Text_secondary
+            AccentColor.PINE_HIGHLIGHT -> RosePine_Highlight_secondary
+            AccentColor.PINE_SURFACE -> RosePine_Surface_secondary
+            AccentColor.PINE_OVERLAY -> RosePine_Overlay_secondary
         }
     } else {
         when (accent) {
@@ -821,6 +845,18 @@ fun getSecondaryColorForDisplay(accent: AccentColor, isDark: Boolean): Color {
             AccentColor.SAPPHIRE -> Latte_Sapphire_secondary
             AccentColor.BLUE -> Latte_Blue_secondary
             AccentColor.LAVENDER -> Latte_Lavender_secondary
+            AccentColor.PINE_ROSE -> Dawn_Rose_secondary
+            AccentColor.PINE_IRIS -> Dawn_Iris_secondary
+            AccentColor.PINE_PINE -> Dawn_Pine_secondary
+            AccentColor.PINE_GOLD -> Dawn_Gold_secondary
+            AccentColor.PINE_LOVE -> Dawn_Love_secondary
+            AccentColor.PINE_FOAM -> Dawn_Foam_secondary
+            AccentColor.PINE_MUTED -> Dawn_Muted_secondary
+            AccentColor.PINE_SUBTLE -> Dawn_Subtle_secondary
+            AccentColor.PINE_TEXT -> Dawn_Text_secondary
+            AccentColor.PINE_HIGHLIGHT -> Dawn_Highlight_secondary
+            AccentColor.PINE_SURFACE -> Dawn_Surface_secondary
+            AccentColor.PINE_OVERLAY -> Dawn_Overlay_secondary
         }
     }
 }
@@ -841,6 +877,18 @@ fun getTertiaryColorForDisplay(accent: AccentColor, isDark: Boolean): Color {
             AccentColor.SAPPHIRE -> Macchiato_Sapphire_dim_tertiary
             AccentColor.BLUE -> Macchiato_Blue_dim_tertiary
             AccentColor.LAVENDER -> Macchiato_Lavender_dim_tertiary
+            AccentColor.PINE_ROSE -> RosePine_Rose_tertiary
+            AccentColor.PINE_IRIS -> RosePine_Iris_tertiary
+            AccentColor.PINE_PINE -> RosePine_Pine_tertiary
+            AccentColor.PINE_GOLD -> RosePine_Gold_tertiary
+            AccentColor.PINE_LOVE -> RosePine_Love_tertiary
+            AccentColor.PINE_FOAM -> RosePine_Foam_tertiary
+            AccentColor.PINE_MUTED -> RosePine_Muted_tertiary
+            AccentColor.PINE_SUBTLE -> RosePine_Subtle_tertiary
+            AccentColor.PINE_TEXT -> RosePine_Text_tertiary
+            AccentColor.PINE_HIGHLIGHT -> RosePine_Highlight_tertiary
+            AccentColor.PINE_SURFACE -> RosePine_Surface_tertiary
+            AccentColor.PINE_OVERLAY -> RosePine_Overlay_tertiary
         }
     } else {
         when (accent) {
@@ -856,6 +904,18 @@ fun getTertiaryColorForDisplay(accent: AccentColor, isDark: Boolean): Color {
             AccentColor.SAPPHIRE -> Latte_Sapphire_tertiary
             AccentColor.BLUE -> Latte_Blue_tertiary
             AccentColor.LAVENDER -> Latte_Lavender_tertiary
+            AccentColor.PINE_ROSE -> Dawn_Rose_tertiary
+            AccentColor.PINE_IRIS -> Dawn_Iris_tertiary
+            AccentColor.PINE_PINE -> Dawn_Pine_tertiary
+            AccentColor.PINE_GOLD -> Dawn_Gold_tertiary
+            AccentColor.PINE_LOVE -> Dawn_Love_tertiary
+            AccentColor.PINE_FOAM -> Dawn_Foam_tertiary
+            AccentColor.PINE_MUTED -> Dawn_Muted_tertiary
+            AccentColor.PINE_SUBTLE -> Dawn_Subtle_tertiary
+            AccentColor.PINE_TEXT -> Dawn_Text_tertiary
+            AccentColor.PINE_HIGHLIGHT -> Dawn_Highlight_tertiary
+            AccentColor.PINE_SURFACE -> Dawn_Surface_tertiary
+            AccentColor.PINE_OVERLAY -> Dawn_Overlay_tertiary
         }
     }
 }
@@ -927,6 +987,67 @@ fun ColorSchemeBox(
                     accent,
                     RoundedCornerShape(Spacing.xs)
                 )
+            )
+        }
+    }
+}
+
+@Composable
+fun AppLogoOption(
+    name: String,
+    icon: AppIcon,
+    backgroundColor: Color,
+    drawableResId: Int,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        modifier = Modifier
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            )
+            .padding(vertical = Spacing.sm)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .clip(RoundedCornerShape(Dimensions.Radius.lg))
+                .background(backgroundColor),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(id = drawableResId),
+                contentDescription = null,
+                modifier = Modifier.size(84.dp)
+            )
+            
+            if (isSelected) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .border(
+                            width = 3.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(Dimensions.Radius.lg)
+                        )
+                )
+            }
+        }
+        
+        Surface(
+            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+            shape = CircleShape
+        ) {
+            Text(
+                text = name,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(horizontal = Spacing.md, vertical = 4.dp)
             )
         }
     }

@@ -131,7 +131,7 @@ constructor(
         _targetCategoryId.value = null
     }
 
-    fun saveCategory(name: String, description: String, color: String, iconResId: Int, isIncome: Boolean) {
+    fun saveCategory(name: String, description: String, color: String, iconResId: Int, iconName: String, isIncome: Boolean) {
         viewModelScope.launch {
             try {
                 val editingCat = _editingCategory.value
@@ -144,6 +144,7 @@ constructor(
                                 description = description,
                                 color = color,
                                 iconResId = iconResId,
+                                iconName = iconName,
                                 isIncome = isIncome
                             )
                     )
@@ -157,11 +158,12 @@ constructor(
 
                     // Create new category
                     categoryRepository.createCategory(
-                            name = name,
-                            description = description,
-                            color = color,
-                            iconResId = iconResId,
-                            isIncome = isIncome
+                        name = name,
+                        description = description,
+                        color = color,
+                        iconResId = iconResId,
+                        iconName = iconName,
+                        isIncome = isIncome
                     )
                     _snackbarMessage.value = "Category created successfully"
                 }
@@ -270,7 +272,7 @@ constructor(
         _hasTransactions.value = false
     }
 
-    fun saveSubcategory(name: String, iconResId: Int, color: String) {
+    fun saveSubcategory(name: String, iconResId: Int, iconName: String, color: String) {
         val categoryId = _targetCategoryId.value ?: return
         val editingSub = _editingSubcategory.value
 
@@ -278,11 +280,17 @@ constructor(
             try {
                 if (editingSub != null) {
                     subcategoryRepository.updateSubcategory(
-                        editingSub.copy(name = name, iconResId = iconResId, color = color)
+                        editingSub.copy(name = name, iconResId = iconResId, iconName = iconName, color = color)
                     )
                     _snackbarMessage.value = "Subcategory updated"
                 } else {
-                    subcategoryRepository.createSubcategory(categoryId, name, iconResId, color)
+                    subcategoryRepository.createSubcategory(
+                        categoryId = categoryId,
+                        name = name,
+                        iconResId = iconResId,
+                        iconName = iconName,
+                        color = color
+                    )
                     _snackbarMessage.value = "Subcategory added"
                 }
                 hideSubcategoryDialog()

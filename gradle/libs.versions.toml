@@ -22,7 +22,7 @@ ktorVersion = "3.3.3"
 lifecycleRuntimeCompose = "2.10.0"
 lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.12.2"
-composeBom = "2026.01.00"
+composeBom = "2026.03.01"
 lifecycleViewmodelCompose = "2.10.0"
 markdown = "0.7.3"
 material3 = "1.5.0-alpha12"
@@ -110,4 +110,3 @@ pdfbox-android = { module = "com.tom-roush:pdfbox-android", version.ref = "pdfbo
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-

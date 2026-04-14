@@ -1,6 +1,7 @@
 
 package com.ritesh.cashiro.data.repository
 
+import android.content.Context
 import com.ritesh.cashiro.data.database.dao.SubcategoryDao
 import com.ritesh.cashiro.data.database.dao.CategoryDao
 import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
@@ -12,6 +13,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDateTime
+import dagger.hilt.android.qualifiers.ApplicationContext
+import com.ritesh.cashiro.utils.IconResolutionUtils
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,6 +22,7 @@ import javax.inject.Singleton
 class SubcategoryRepository @Inject constructor(
     private val subcategoryDao: SubcategoryDao,
     private val categoryDao: CategoryDao,
+    @ApplicationContext private val context: Context,
     @ApplicationScope private val externalScope: CoroutineScope
 ) {
     val subcategoriesMap: StateFlow<Map<Long, List<SubcategoryEntity>>> = subcategoryDao.getAllSubcategories()
@@ -40,12 +44,14 @@ class SubcategoryRepository @Inject constructor(
         categoryId: Long,
         name: String,
         iconResId: Int = 0,
+        iconName: String = "",
         color: String = "#757575"
     ): Long {
         val subcategory = SubcategoryEntity(
             categoryId = categoryId,
             name = name,
             iconResId = iconResId,
+            iconName = iconName,
             color = color,
             isSystem = false
         )
@@ -65,6 +71,7 @@ class SubcategoryRepository @Inject constructor(
             val resetSubcategory = subcategory.copy(
                 name = subcategory.defaultName ?: subcategory.name,
                 iconResId = subcategory.defaultIconResId ?: subcategory.iconResId,
+                iconName = subcategory.defaultIconName ?: subcategory.iconName,
                 color = subcategory.defaultColor ?: subcategory.color,
                 updatedAt = LocalDateTime.now()
             )

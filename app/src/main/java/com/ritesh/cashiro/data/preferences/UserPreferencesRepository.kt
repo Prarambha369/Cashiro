@@ -76,6 +76,7 @@ constructor(@ApplicationContext private val context: Context) {
         val HIDE_PILL_INDICATOR = booleanPreferencesKey("hide_pill_indicator")
         val BLUR_EFFECTS = booleanPreferencesKey("blur_effects")
         val IS_SAMPLE_DATA_SEEDED = booleanPreferencesKey("is_sample_data_seeded")
+        val APP_ICON = stringPreferencesKey("app_icon")
     }
 
     val userPreferences: Flow<UserPreferences> =
@@ -93,7 +94,7 @@ constructor(@ApplicationContext private val context: Context) {
                 smsScanMonths = preferences[PreferencesKeys.SMS_SCAN_MONTHS]
                     ?: 3,
                 smsScanAllTime = preferences[PreferencesKeys.SMS_SCAN_ALL_TIME]
-                    ?: false,
+                    ?: true,
                 baseCurrency = preferences[PreferencesKeys.BASE_CURRENCY]
                     ?: "INR",
                 isAmoledMode = preferences[PreferencesKeys.IS_AMOLED_MODE] ?: false,
@@ -135,7 +136,14 @@ constructor(@ApplicationContext private val context: Context) {
                 hideNavigationLabels = preferences[PreferencesKeys.HIDE_NAVIGATION_LABELS] ?: false,
                 hidePillIndicator = preferences[PreferencesKeys.HIDE_PILL_INDICATOR] ?: false,
                 blurEffects = preferences[PreferencesKeys.BLUR_EFFECTS] ?: (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S),
-                isSampleDataSeeded = preferences[PreferencesKeys.IS_SAMPLE_DATA_SEEDED] ?: false
+                isSampleDataSeeded = preferences[PreferencesKeys.IS_SAMPLE_DATA_SEEDED] ?: false,
+                appIcon = try {
+                    AppIcon.valueOf(
+                        preferences[PreferencesKeys.APP_ICON] ?: AppIcon.ORIGINAL.name
+                    )
+                } catch (e: Exception) {
+                    AppIcon.ORIGINAL
+                }
             )
         }
 
@@ -143,6 +151,12 @@ constructor(@ApplicationContext private val context: Context) {
         context.dataStore.data.map { preferences ->
             preferences[PreferencesKeys.BASE_CURRENCY] ?: "INR"
         }
+
+    suspend fun updateBaseCurrency(currency: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BASE_CURRENCY] = currency
+        }
+    }
 
     val isDeveloperModeEnabled: Flow<Boolean> =
         context.dataStore.data.map { preferences ->
@@ -249,7 +263,7 @@ constructor(@ApplicationContext private val context: Context) {
 
     val smsScanAllTime: Flow<Boolean> =
             context.dataStore.data.map { preferences ->
-                preferences[PreferencesKeys.SMS_SCAN_ALL_TIME] ?: false
+                preferences[PreferencesKeys.SMS_SCAN_ALL_TIME] ?: true
             }
 
     suspend fun updateSmsScanAllTime(allTime: Boolean) {
@@ -261,7 +275,7 @@ constructor(@ApplicationContext private val context: Context) {
     suspend fun getSmsScanAllTime(): Boolean {
         return context.dataStore
                 .data
-                .map { preferences -> preferences[PreferencesKeys.SMS_SCAN_ALL_TIME] ?: false }
+                .map { preferences -> preferences[PreferencesKeys.SMS_SCAN_ALL_TIME] ?: true }
                 .first()
     }
 
@@ -613,6 +627,12 @@ constructor(@ApplicationContext private val context: Context) {
             preferences[PreferencesKeys.IS_SAMPLE_DATA_SEEDED] = seeded
         }
     }
+
+    suspend fun updateAppIcon(icon: AppIcon) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.APP_ICON] = icon.name
+        }
+    }
 }
 
 data class UserPreferences(
@@ -622,7 +642,7 @@ data class UserPreferences(
         val isDeveloperModeEnabled: Boolean = false,
         val hasShownScanTutorial: Boolean = false,
         val smsScanMonths: Int = 3, // Default to 3 months
-        val smsScanAllTime: Boolean = false,
+        val smsScanAllTime: Boolean = true,
         val baseCurrency: String = "INR", // Default to INR
         val isAmoledMode: Boolean = false,
         val userName: String = "User",
@@ -637,5 +657,6 @@ data class UserPreferences(
         val hideNavigationLabels: Boolean = false,
         val hidePillIndicator: Boolean = false,
         val blurEffects: Boolean = true,
-        val isSampleDataSeeded: Boolean = false
+        val isSampleDataSeeded: Boolean = false,
+        val appIcon: AppIcon = AppIcon.ORIGINAL
 )

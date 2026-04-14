@@ -1,7 +1,6 @@
 package com.ritesh.cashiro.presentation.ui.features.accounts
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -12,9 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.AccountBalance
-import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Pin
 import androidx.compose.material3.*
@@ -22,29 +19,21 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
 import com.ritesh.cashiro.R
 import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
-import com.ritesh.cashiro.presentation.accounts.CurrencyBottomSheet
+import com.ritesh.cashiro.presentation.ui.components.CurrencyBottomSheet
 import com.ritesh.cashiro.presentation.ui.components.DeleteAccountDialog
 import com.ritesh.cashiro.presentation.ui.features.categories.IconSelector
 import com.ritesh.cashiro.presentation.ui.components.ColorPickerContent
 import com.ritesh.cashiro.presentation.effects.BlurredAnimatedVisibility
 import com.ritesh.cashiro.presentation.ui.icons.Bag
-import com.ritesh.cashiro.presentation.ui.icons.Calendar
 import com.ritesh.cashiro.presentation.ui.icons.Card
 import com.ritesh.cashiro.presentation.ui.icons.DollarCircle
 import com.ritesh.cashiro.presentation.ui.icons.Edit2
@@ -54,6 +43,9 @@ import com.ritesh.cashiro.presentation.ui.icons.Wallet3
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
 import com.ritesh.cashiro.utils.CurrencyFormatter
 import java.math.BigDecimal
+import com.ritesh.cashiro.utils.IconResolutionUtils
+import androidx.compose.ui.platform.LocalContext
+import com.ritesh.cashiro.presentation.ui.components.BrandIcon
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -66,6 +58,7 @@ fun EditAccountSheet(
         balance: BigDecimal,
         accountLast4: String,
         iconResId: Int,
+        iconName: String,
         colorHex: String,
         isCreditCard: Boolean,
         isWallet: Boolean,
@@ -73,6 +66,7 @@ fun EditAccountSheet(
         currency: String
     ) -> Unit
 ) {
+    val context = LocalContext.current
     var bankName by remember { mutableStateOf(account?.bankName ?: "") }
     var balance by remember { mutableStateOf(account?.balance ?: BigDecimal.ZERO) }
     var creditLimit by remember { mutableStateOf(account?.creditLimit ?: BigDecimal.ZERO) }
@@ -85,6 +79,9 @@ fun EditAccountSheet(
             if (account?.iconResId != 0 && account?.iconResId != null) account.iconResId
             else R.drawable.type_finance_bank
         )
+    }
+    var iconName by remember {
+        mutableStateOf(account?.iconName ?: IconResolutionUtils.resIdToName(context, iconResId))
     }
     var colorHex by remember { mutableStateOf(account?.color ?: "#33B5E5") }
 
@@ -128,9 +125,10 @@ fun EditAccountSheet(
             dragHandle = { BottomSheetDefaults.DragHandle() }
         ) {
             IconSelector(
-                selectedIconId = iconResId,
-                onIconSelected = {
-                    iconResId = it
+                selectedIconName = iconName,
+                onIconSelected = { name ->
+                    iconName = name
+                    iconResId = IconResolutionUtils.nameToResId(context, name)
                     showIconSelector = false
                 }
             )
@@ -243,6 +241,7 @@ fun EditAccountSheet(
                             isCreditCard = false
                             accountLast4 = "wallet"
                             bankName = "Cash"
+                            iconName = "type_finance_dollar_banknote"
                             iconResId = R.drawable.type_finance_dollar_banknote
                             colorHex = "#8BC34A"
                         },
@@ -274,6 +273,7 @@ fun EditAccountSheet(
                     balance = balance,
                     accountLast4 = accountLast4.ifEmpty { "0000" },
                     iconResId = iconResId,
+                    iconName = iconName,
                     colorHex = colorHex,
                     currency = selectedCurrency,
                     isCreditCard = isCreditCard,
@@ -305,11 +305,13 @@ fun EditAccountSheet(
                             .clickable { showIconSelector = true },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            painter = painterResource(id = iconResId),
-                            contentDescription = null,
-                            modifier = Modifier.size(34.dp),
-                            tint = Color.Unspecified
+                        BrandIcon(
+                            merchantName = bankName,
+                            size = 58.dp,
+                            showBackground = false,
+                            accountIconResId = iconResId,
+                            accountIconName = iconName,
+                            accountColorHex = colorHex
                         )
                         // Edit badge
                         Box(
@@ -649,6 +651,7 @@ fun EditAccountSheet(
                             balance,
                             accountLast4,
                             iconResId,
+                            iconName,
                             colorHex,
                             isCreditCard,
                             isWallet,
@@ -680,6 +683,7 @@ private fun PreviewAccountCard(
     balance: BigDecimal,
     accountLast4: String,
     iconResId: Int,
+    iconName: String,
     colorHex: String,
     currency: String,
     isCreditCard: Boolean = false,
@@ -769,20 +773,14 @@ private fun PreviewAccountCard(
                         )
                     }
 
-                    Surface(
-                        shape = CircleShape,
-                        color = Color(colorHex.toColorInt()).copy(alpha = 0.1f),
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                painter = painterResource(id = iconResId),
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp),
-                                tint = Color.Unspecified
-                            )
-                        }
-                    }
+                    BrandIcon(
+                        merchantName = bankName,
+                        size = 48.dp,
+                        showBackground = true,
+                        accountIconResId = iconResId,
+                        accountIconName = iconName,
+                        accountColorHex = colorHex
+                    )
                 }
             }
         }

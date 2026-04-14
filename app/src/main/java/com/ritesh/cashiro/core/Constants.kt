@@ -69,18 +69,25 @@ object Constants {
      * LLM Model Configuration
      */
     object ModelDownload {
-        const val MODEL_URL = "https://d3q489kjw0f759.cloudfront.net/Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv4096.task"
+        const val MODEL_URL = "https://huggingface.co/litert-community/Qwen2.5-1.5B-Instruct/resolve/main/Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv4096.task?download=true"
+    
         const val MODEL_FILE_NAME = "qwen2.5-1.5b-instruct.task"
-        const val MODEL_SIZE_MB = 1536L // 1536 MB
-        const val MODEL_SIZE_BYTES = 1_610_613_760L // 1536 MB in bytes
-        const val REQUIRED_SPACE_BYTES = 2_013_771_776L // ~2GB (2x model size for safety)
+        const val MODEL_SIZE_MB = 1638L // ~1.6 GB
+        const val MODEL_SIZE_BYTES = 1_500_000_000L // 1.5 GB minimum (handles decimal/binary variance)
+        const val REQUIRED_SPACE_BYTES = 1_800_000_000L // 1.8 GB (1.1x model size for safety)
     }
 
     /**
      * External Links
      */
     object Links {
-        const val DISCORD_URL = "https://discord.gg/H3xWeMWjKQ"
+        const val DISCORD_URL = "https://discord.gg/6qaYgpJTg"
         const val GITHUB_URL = "https://github.com/ritesh-kanwar/Cashiro"
+        const val WEBSITE_URL = "https://ritesh-kanwar.github.io/cashiro.showcase"
+        const val PRIVACY_POLICY_URL = "https://ritesh-kanwar.github.io/cashiro.showcase/privacy"
+        const val TERMS_OF_SERVICE_URL = "https://ritesh-kanwar.github.io/cashiro.showcase/terms"
+        const val FAQ_URL = "https://ritesh-kanwar.github.io/cashiro.showcase/faq"
+        const val GUIDE_URL = "https://ritesh-kanwar.github.io/cashiro.showcase/guides"
+        const val REPORT_BUG_URL = "https://github.com/ritesh-kanwar/Cashiro/issues/new/choose"
     }
 }

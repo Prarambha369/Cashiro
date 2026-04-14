@@ -21,6 +21,7 @@ import com.ritesh.cashiro.presentation.navigation.Home
 import com.ritesh.cashiro.presentation.navigation.CashiroNavHost
 import com.ritesh.cashiro.presentation.navigation.OnBoarding
 import com.ritesh.cashiro.presentation.navigation.Settings
+import com.ritesh.cashiro.presentation.navigation.AddTransaction
 import com.ritesh.cashiro.presentation.navigation.TransactionDetail
 import com.ritesh.cashiro.presentation.ui.theme.CashiroTheme
 import com.ritesh.cashiro.presentation.ui.features.settings.applock.AppLockViewModel
@@ -31,7 +32,10 @@ fun CashiroApp(
     themeViewModel: ThemeViewModel = hiltViewModel(),
     appLockViewModel: AppLockViewModel = hiltViewModel(),
     editTransactionId: Long? = null,
-    onEditComplete: () -> Unit = {}
+    onEditComplete: () -> Unit = {},
+    addTransactionTab: Int? = null,
+    addTransactionType: String? = null,
+    onAddComplete: () -> Unit = {}
 ) {
     val themeUiState by themeViewModel.themeUiState.collectAsStateWithLifecycle()
     val appLockUiState by appLockViewModel.uiState.collectAsStateWithLifecycle()
@@ -85,6 +89,14 @@ fun CashiroApp(
     LaunchedEffect(editTransactionId) {
         editTransactionId?.let { transactionId ->
             navController.navigate(TransactionDetail(transactionId))
+        }
+    }
+
+    // Navigate to Add screen when addTransactionTab changes
+    LaunchedEffect(addTransactionTab, addTransactionType) {
+        addTransactionTab?.let { tab ->
+            navController.navigate(AddTransaction(initialTab = tab, type = addTransactionType))
+            onAddComplete()
         }
     }
 

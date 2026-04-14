@@ -27,6 +27,7 @@
 | **ADCB** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **FAB** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **Siddhartha Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Prime Commercial Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **Melli Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **Parsian Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **Bangkok Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
@@ -34,6 +35,23 @@
 | **SCB Thailand** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **M-Pesa Tanzania** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 | **Telebirr** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| **mBank CZ** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Al Rajhi Bank** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Chase Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ |
+| **T-Bank / Tinkoff** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Cred** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
+| **Alecu Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| **Bank Muscat** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Everest Bank** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **AU Bank** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **NMB/Nabil Bank** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Alinma Bank** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Dashnep Bank** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Zemen Bank** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **CIB Egypt** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Bancolombia** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Mashreq Bank** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **BPCE** | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 *Uses default balance patterns (may have limited support)
 
@@ -63,6 +81,7 @@
 | **Debit** | `has a debit by transfer of Rs XXX` | has a debit by transfer of Rs 230.00 |
 | **UPI Send** | `trf to MERCHANT` | debited by 100 trf to SHOPKEEPER |
 | **UPI Receive** | `transfer from SENDER` | credited by Rs.500 transfer from PERSON |
+| **Debit** | `debited for Rs.XXX` | Your a/c no. XXXXXXXX5045 is debited for Rs.500.00 |
 | **ATM** | `ATM withdrawal of Rs.XXX` | ATM withdrawal of Rs.2000 |
 | **YONO Cash** | `Yono Cash Rs.XXX w/d@` | Yono Cash Rs.3000 w/d@SBI ATM |
 
@@ -121,6 +140,12 @@
 | **Credit** | `Account No. XXXXXXXX1234 CREDIT with amount Rs. XXX` | Account No. XXXXXXXX1234 CREDIT with amount Rs. 5550.00 |
 | **Balance** | `Balance: Rs.XXXXX.XX` | Balance: Rs.40000.00 |
 | **Reference** | `[SXXXXXXXX]` | [S76543210] |
+| **BPCE (France)** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+### BPCE (France)
+| Type | Template Pattern | Example |
+|------|-----------------|---------|
+| **Debit** | `virement instantané de XXX,XX EUR` | réalisation de votre virement instantané de 1000,00 EUR |
 
 ---
 
@@ -149,6 +174,7 @@
 | **ADCB** | `ADCB`, `ADCB_Alert` |
 | **FAB** | `FAB`, `FirstAbuDhab` |
 | **Siddhartha** | `SBL_Alert`, `SBL-Alert`, `SIDDHARTHA` |
+| **Prime Commercial** | `PCBLNPKA`, `PRIME_ALERT`, `PRIME`, `AD-PRIME-ALERT` |
 | **Melli Bank** | `MELLI`, `MELLIBANK`, `+98700717` |
 | **Parsian Bank** | `PARSIAN`, `PARSIANBANK`, `PERSIANBANK` |
 | **Bangkok Bank** | `BBL`, `BANGKOK BANK` |
@@ -158,6 +184,21 @@
 | **M-Pesa** | `M-PESA`, `Vodacom` |
 | **Selcom Pesa** | `Selcom Pesa` |
 | **DOP** | `DOPBNK`, `XX-DOPBNK-X` |
+| **mBank CZ** | `mBank CZ`, `MBANK` |
+| **Al Rajhi** | `AlRajhiBank`, `ALRAJHI`, `الراجحي` |
+| **Chase** | `Chase`, `JPMCB` |
+| **T-Bank** | `TBank`, `T-Bank`, `Tinkoff` |
+| **Cred** | `CREDIN`, `JK-CREDIN-S`, `AX-CREDIN-S` |
+| **Alecu Bank** | `39872`, `ALECU`, `ALEC` |
+| **Bank Muscat** | `BankMuscat`, `MuscatBank` |
+| **Alinma Bank** | `AlinmaBank`, `ALINMA` |
+| **Bancolombia** | `Bancolombi`, `Bancolombia` |
+| **CIB Egypt** | `CIB Egypt`, `CIB_Alert`, `CIBBank` |
+| **NMB Bank** | `NMBBank`, `NABIL` |
+| **AU Bank** | `AU-BNK`, `AUBANK`, `AU-SMALL` |
+| **Everest Bank** | `EverestBnk`, `EBL`, `EBL_Alert` |
+| **Mashreq Bank** | `Mashreq`, `MashreqBank` |
+| **BPCE** | `38015` |
 
 ---
 
@@ -243,4 +284,4 @@ val parsers = listOf(
 
 ---
 
-*Last Updated: January 2025*
+*Last Updated: April 2026*

@@ -15,7 +15,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -29,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -39,7 +39,6 @@ import com.ritesh.cashiro.utils.formatBalance
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeEffectScope
-import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 
@@ -82,6 +81,7 @@ fun SharedTransitionScope.AccountCarousel(
                 animatedContentScope = animatedContentScope,
                 isWallet = account.isWallet,
                 iconResId = account.iconResId,
+                iconName = account.iconName,
                 color = account.color,
                 blurEffects = blurEffects,
                 hazeState = hazeState,
@@ -113,6 +113,7 @@ fun SharedTransitionScope.AccountCarousel(
                 animatedContentScope = animatedContentScope,
                 isWallet = account.isWallet,
                 iconResId = account.iconResId,
+                iconName = account.iconName,
                 color = account.color,
                 blurEffects = blurEffects,
                 hazeState = hazeState,
@@ -134,6 +135,7 @@ fun SharedTransitionScope.AccountCarouselCard(
     animatedContentScope: AnimatedVisibilityScope? = null,
     isWallet: Boolean = false,
     iconResId: Int = 0,
+    iconName: String? = null,
     color: String? = null,
     blurEffects: Boolean,
     hazeState: HazeState = remember { HazeState() }
@@ -187,10 +189,13 @@ fun SharedTransitionScope.AccountCarouselCard(
         shape = RoundedCornerShape(28.dp),
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            val iconResource = remember(bankName, iconResId) {
+            val context = LocalContext.current
+            val iconResource = remember(bankName, iconResId, iconName) {
                 IconProvider.getIconForTransaction(
+                    context = context,
                     merchantName = bankName,
-                    accountIconResId = iconResId
+                    accountIconResId = iconResId,
+                    accountIconName = iconName
                 )
             }
 
@@ -228,6 +233,7 @@ fun SharedTransitionScope.AccountCarouselCard(
                     size = 48.dp,
                     showBackground = true,
                     accountIconResId = iconResId,
+                    accountIconName = iconName,
                     accountColorHex = color
                 )
 

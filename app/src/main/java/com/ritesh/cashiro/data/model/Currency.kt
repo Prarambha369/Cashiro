@@ -32,7 +32,11 @@ data class Currency(
             Currency("SAR", "Saudi Riyal", "﷼"),
             Currency("BYN", "Belarusian Ruble", "Br"),
             Currency("COP", "Colombian Peso", "$"),
-            Currency("KES", "Kenyan Shilling", "Ksh")
+            Currency("KES", "Kenyan Shilling", "Ksh"),
+            Currency("CHF", "Swiss Franc", "Fr"),
+            Currency("SEK", "Swedish Krona", "kr"),
+            Currency("NZD", "New Zealand Dollar", "$"),
+            Currency("MXN", "Mexican Peso", "$")
         )
 
         /**

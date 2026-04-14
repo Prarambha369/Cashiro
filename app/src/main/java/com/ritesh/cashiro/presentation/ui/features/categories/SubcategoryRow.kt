@@ -71,9 +71,21 @@ private fun SubcategoryChip(
             verticalAlignment = Alignment.CenterVertically
     ) {
         // Icon
-        if (subcategory.iconResId != 0) {
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val iconResId = if (subcategory.iconName.isNotEmpty()) {
+            com.ritesh.cashiro.utils.IconResolutionUtils.nameToResId(context, subcategory.iconName)
+                .takeIf { it != 0 } ?: 0
+        } else {
+            com.ritesh.cashiro.utils.IconResolutionUtils.getSafeResId(
+                context,
+                subcategory.iconResId,
+                0
+            )
+        }
+
+        if (iconResId != 0) {
             Icon(
-                    painter = painterResource(id = subcategory.iconResId),
+                    painter = painterResource(id = iconResId),
                     contentDescription = null,
                     modifier = Modifier.size(14.dp),
                     tint = Color.Unspecified

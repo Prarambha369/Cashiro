@@ -9,7 +9,9 @@ import com.ritesh.cashiro.data.database.dao.AccountBalanceDao
 import com.ritesh.cashiro.data.database.entity.BudgetPeriod
 import com.ritesh.cashiro.data.database.entity.BudgetTrackType
 import com.ritesh.cashiro.data.database.entity.BudgetType
+import com.ritesh.cashiro.data.repository.CurrencyRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,12 +20,18 @@ import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import javax.inject.Inject
+import com.ritesh.cashiro.data.currency.CurrencyConversionService
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
 
 
 @HiltViewModel
 class BudgetViewModel @Inject constructor(
     private val budgetRepository: BudgetRepository,
-    private val accountBalanceDao: AccountBalanceDao
+    private val accountBalanceDao: AccountBalanceDao,
+    private val currencyRepository: CurrencyRepository,
+    private val currencyConversionService: CurrencyConversionService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BudgetUiState())
@@ -38,6 +46,15 @@ class BudgetViewModel @Inject constructor(
     init {
         loadBudgets()
         loadAccounts()
+        observeBaseCurrency()
+    }
+
+    private fun observeBaseCurrency() {
+        viewModelScope.launch {
+            currencyRepository.baseCurrencyCode.collect { currency ->
+                _uiState.update { it.copy(baseCurrency = currency) }
+            }
+        }
     }
 
     private fun loadAccounts() {
@@ -52,11 +69,41 @@ class BudgetViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                budgetRepository.getAllBudgetsWithSpending().collect { budgetsWithSpending ->
+                combine(
+                    budgetRepository.getAllBudgetsWithSpending(),
+                    currencyRepository.baseCurrencyCode
+                ) { budgets, targetCurrency ->
+                    // Convert budgets to match the selected main currency for display
+                    budgets.map { budgetWithSpending ->
+                        if (budgetWithSpending.budget.currency != targetCurrency) {
+                            val convertedAmount = currencyConversionService.convertAmount(
+                                budgetWithSpending.budget.amount,
+                                budgetWithSpending.budget.currency,
+                                targetCurrency
+                            ) ?: budgetWithSpending.budget.amount
+
+                            val convertedSpending = currencyConversionService.convertAmount(
+                                budgetWithSpending.currentSpending,
+                                budgetWithSpending.budget.currency,
+                                targetCurrency
+                            ) ?: budgetWithSpending.currentSpending
+
+                            budgetWithSpending.copy(
+                                budget = budgetWithSpending.budget.copy(
+                                    amount = convertedAmount,
+                                    currency = targetCurrency
+                                ),
+                                currentSpending = convertedSpending
+                            )
+                        } else {
+                            budgetWithSpending
+                        }
+                    }
+                }.collect { convertedBudgets ->
                     _uiState.update { 
                         it.copy(
                             isLoading = false,
-                            budgets = budgetsWithSpending,
+                            budgets = convertedBudgets,
                             error = null
                         )
                     }
@@ -127,9 +174,21 @@ class BudgetViewModel @Inject constructor(
             } else budget
 
             transactionCollectionJob = viewModelScope.launch {
-                budgetRepository.getTransactionsForBudget(collectionBudget).collect { transactions ->
-                    _uiState.update { it.copy(selectedBudgetTransactions = transactions) }
-                }
+                combine(
+                    budgetRepository.getTransactionsForBudget(collectionBudget),
+                    currencyRepository.baseCurrencyCode
+                ) { transactions, mainCurrency ->
+                    val converted = transactions
+                        .filter { it.currency != mainCurrency }
+                        .associate { tx ->
+                            tx.id to (currencyConversionService.convertAmount(tx.amount, tx.currency, mainCurrency) ?: tx.amount)
+                        }
+                    
+                    _uiState.update { it.copy(
+                        selectedBudgetTransactions = transactions,
+                        convertedAmounts = converted
+                    ) }
+                }.collectLatest { }
             }
         }
     }
@@ -149,15 +208,18 @@ class BudgetViewModel @Inject constructor(
     }
 
     // Edit budget state management
-    fun initNewBudget(currency: String = "INR") {
+    fun initNewBudget() {
         val now = LocalDateTime.now()
-        _editBudgetState.value = EditBudgetState(
-            year = now.year,
-            month = now.monthValue,
-            startDate = now,
-            endDate = now.plusMonths(1).minusDays(1),
-            currency = currency
-        )
+        viewModelScope.launch {
+            val currency = currencyRepository.baseCurrencyCode.first()
+            _editBudgetState.value = EditBudgetState(
+                year = now.year,
+                month = now.monthValue,
+                startDate = now,
+                endDate = now.plusMonths(1).minusDays(1),
+                currency = currency
+            )
+        }
     }
 
     fun initEditBudget(budget: BudgetEntity) {
@@ -245,7 +307,18 @@ class BudgetViewModel @Inject constructor(
     }
 
     fun updateAccountIds(accountIds: List<String>) {
-        _editBudgetState.update { it.copy(accountIds = accountIds) }
+        viewModelScope.launch {
+            val currency = if (accountIds.isEmpty()) {
+                currencyRepository.baseCurrencyCode.first()
+            } else {
+                val accountKey = accountIds.first()
+                val matchedAccount = _uiState.value.allAccounts.find { 
+                    accountKey.contains(it.bankName) && accountKey.contains(it.accountLast4) 
+                }
+                matchedAccount?.currency ?: currencyRepository.baseCurrencyCode.first()
+            }
+            _editBudgetState.update { it.copy(accountIds = accountIds, currency = currency) }
+        }
     }
     
     fun updateColor(color: String) {

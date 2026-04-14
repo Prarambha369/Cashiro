@@ -4,13 +4,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ritesh.cashiro.data.currency.CurrencyConversionService
-import com.ritesh.cashiro.data.database.entity.AccountBalanceEntity
-import com.ritesh.cashiro.data.database.entity.TransactionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionType
 import com.ritesh.cashiro.data.repository.AccountBalanceRepository
 import com.ritesh.cashiro.data.repository.CategoryRepository
 import com.ritesh.cashiro.data.repository.SubcategoryRepository
 import com.ritesh.cashiro.data.repository.TransactionRepository
+import com.ritesh.cashiro.data.repository.CurrencyRepository
 import com.ritesh.cashiro.presentation.ui.components.BalancePoint
 import com.ritesh.cashiro.utils.CurrencyFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,6 +28,7 @@ class AccountDetailViewModel @Inject constructor(
     private val accountBalanceRepository: AccountBalanceRepository,
     private val categoryRepository: CategoryRepository,
     private val subcategoryRepository: SubcategoryRepository,
+    private val currencyRepository: CurrencyRepository,
     private val currencyConversionService: CurrencyConversionService
 ) : ViewModel() {
     
@@ -68,8 +68,9 @@ class AccountDetailViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 selectedDateRange,
-                transactionRepository.getTransactionsByAccount(bankName, accountLast4)
-            ) { dateRange, allTransactions ->
+                transactionRepository.getTransactionsByAccount(bankName, accountLast4),
+                currencyRepository.baseCurrencyCode
+            ) { dateRange, allTransactions, mainCurrency ->
                 val (startDate, endDate) = getDateRangeValues(dateRange)
 
                 val filteredTransactions = if (dateRange == DateRange.ALL_TIME) {
@@ -81,7 +82,7 @@ class AccountDetailViewModel @Inject constructor(
                     }
                 }
 
-                val primaryCurrency = getPrimaryCurrencyForAccount(bankName)
+                val accountPrimaryCurrency = getPrimaryCurrencyForAccount(bankName)
                 val hasMultipleCurrencies = filteredTransactions
                     .map { it.currency }
                     .distinct()
@@ -93,16 +94,16 @@ class AccountDetailViewModel @Inject constructor(
                     currencyConversionService.refreshExchangeRatesForAccount(accountCurrencies)
                 }
 
-                // Calculate total income and expenses with currency conversion
+                // Calculate total income and expenses with account primary currency conversion
                 var totalIncome = BigDecimal.ZERO
                 var totalExpenses = BigDecimal.ZERO
 
                 filteredTransactions.forEach { transaction ->
-                    val convertedAmount = if (transaction.currency != primaryCurrency) {
+                    val convertedAmount = if (transaction.currency != accountPrimaryCurrency) {
                         currencyConversionService.convertAmount(
                             amount = transaction.amount,
                             fromCurrency = transaction.currency,
-                            toCurrency = primaryCurrency
+                            toCurrency = accountPrimaryCurrency
                         ) ?: transaction.amount
                     } else {
                         transaction.amount
@@ -115,18 +116,27 @@ class AccountDetailViewModel @Inject constructor(
                     }
                 }
 
+                // Calculate converted amounts for the UI (TransactionItem) based on Main App Currency
+                val converted = filteredTransactions
+                    .filter { it.currency != mainCurrency }
+                    .associate { tx ->
+                        tx.id to (currencyConversionService.convertAmount(tx.amount, tx.currency, mainCurrency) ?: tx.amount)
+                    }
+
                 _uiState.update { state ->
                     state.copy(
                         transactions = filteredTransactions,
                         totalIncome = totalIncome,
                         totalExpenses = totalExpenses,
                         netBalance = totalIncome - totalExpenses,
-                        primaryCurrency = primaryCurrency,
+                        primaryCurrency = accountPrimaryCurrency,
+                        baseCurrency = mainCurrency,
                         hasMultipleCurrencies = hasMultipleCurrencies,
+                        convertedAmounts = converted,
                         isLoading = false
                     )
                 }
-            }.collect()
+            }.collectLatest { }
         }
     }
     

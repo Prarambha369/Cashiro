@@ -14,9 +14,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ritesh.cashiro.utils.IconResolutionUtils
 import com.ritesh.cashiro.data.database.entity.CategoryEntity
 import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
 import com.ritesh.cashiro.presentation.common.icons.CategoryMapping
@@ -38,16 +40,20 @@ fun BrandIcon(
     category: String? = null,
     subcategory: String? = null,
     accountIconResId: Int = 0,
+    accountIconName: String? = null,
     accountColorHex: String? = null
 ) {
-    val iconResource = remember(merchantName, categoryEntity, subcategoryEntity, category, subcategory, accountIconResId) {
+    val context = LocalContext.current
+    val iconResource = remember(merchantName, categoryEntity, subcategoryEntity, category, subcategory, accountIconResId, accountIconName) {
         IconProvider.getIconForTransaction(
+            context = context,
             merchantName = merchantName,
             categoryEntity = categoryEntity,
             subcategoryEntity = subcategoryEntity,
             category = category,
             subcategory = subcategory,
-            accountIconResId = accountIconResId
+            accountIconResId = accountIconResId,
+            accountIconName = accountIconName
         )
     }
     val brandColor = remember(merchantName, categoryEntity, subcategoryEntity, category, subcategory, accountColorHex) {
@@ -61,6 +67,10 @@ fun BrandIcon(
         )
     }
     
+    val internalPadding = remember(iconResource) {
+        if (iconResource is IconResource.DrawableResource) 0.dp else 8.dp
+    }
+
     Box(
         modifier = modifier
             .size(size)
@@ -73,11 +83,11 @@ fun BrandIcon(
                                 Color(colorHex.toColorInt()).copy(alpha = alpha)
                             } ?: generateColorFromString(merchantName)
                         )
-                        .padding(if (iconResource is IconResource.DrawableResource) 0.dp else 8.dp)
                 } else {
                     Modifier
                 }
-            ),
+            )
+            .padding(internalPadding),
         contentAlignment = Alignment.Center
     ) {
         when (iconResource) {
@@ -116,15 +126,32 @@ fun CategoryIcon(
     modifier: Modifier = Modifier,
     size: Dp = 24.dp,
     tint: Color? = Color.Unspecified,
-    iconResId: Int = 0
+    iconResId: Int = 0,
+    iconName: String? = null
 ) {
-    val painter = if (iconResId != 0) {
-        painterResource(id = iconResId)
+    val context = LocalContext.current
+    val painter = if (!iconName.isNullOrEmpty()) {
+        val resId = IconResolutionUtils.nameToResId(context, iconName)
+        if (resId != 0) painterResource(id = resId) else {
+            val categoryInfo = CategoryMapping.categories[category]
+                ?: CategoryMapping.categories["Miscellaneous"]!!
+            painterResource(id = categoryInfo.iconResId)
+        }
+    } else if (iconResId != 0) {
+        val safeResId = IconResolutionUtils.getSafeResId(context, iconResId, 0)
+        if (safeResId != 0) {
+            painterResource(id = safeResId)
+        } else {
+            val categoryInfo = CategoryMapping.categories[category]
+                ?: CategoryMapping.categories["Miscellaneous"]!!
+            painterResource(id = categoryInfo.iconResId)
+        }
     } else {
         val categoryInfo = CategoryMapping.categories[category]
             ?: CategoryMapping.categories["Miscellaneous"]!!
         painterResource(id = categoryInfo.iconResId)
     }
+
     
     Icon(
         painter = painter,

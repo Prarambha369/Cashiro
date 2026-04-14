@@ -40,20 +40,11 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ReceiptLong
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.MarkChatUnread
 import androidx.compose.material.icons.outlined.MoreHoriz
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Sync
-import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -85,8 +76,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.BlurEffect
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
@@ -135,8 +124,6 @@ import com.ritesh.cashiro.presentation.ui.icons.Convertshape2
 import com.ritesh.cashiro.presentation.ui.icons.Gallery
 import com.ritesh.cashiro.presentation.ui.icons.Iconax
 import com.ritesh.cashiro.presentation.ui.icons.ReceiptItem
-import com.ritesh.cashiro.presentation.ui.icons.ReceiptSearch
-import com.ritesh.cashiro.presentation.ui.icons.RefreshArrow01
 import com.ritesh.cashiro.presentation.ui.icons.RefreshCircle
 import com.ritesh.cashiro.presentation.ui.icons.Search
 import com.ritesh.cashiro.presentation.ui.icons.Setting2
@@ -152,8 +139,6 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeDefaults.tint
 import dev.chrisbanes.haze.HazeEffectScope
-import dev.chrisbanes.haze.HazeInputScale
-import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
@@ -187,6 +172,7 @@ fun SharedTransitionScope.HomeScreen(
     val deletedTransaction by homeViewModel.deletedTransaction.collectAsState()
     val categoriesMap by homeViewModel.categoriesMap.collectAsStateWithLifecycle()
     val subcategoriesMap by homeViewModel.subcategoriesMap.collectAsStateWithLifecycle()
+    val accountsMap by homeViewModel.accountsMap.collectAsStateWithLifecycle()
     val homeWidgets by homeViewModel.homeWidgets.collectAsStateWithLifecycle()
     val activity = LocalActivity.current
     val hazeState = remember { HazeState()}
@@ -689,10 +675,16 @@ fun SharedTransitionScope.HomeScreen(
                                                             uiState.recentTransactions.size
                                                         )
 
+                                                        val accountEntity = accountsMap["${transaction.bankName}_${transaction.accountNumber}"]
                                                         TransactionItem(
                                                             transaction = transaction,
                                                             categoryEntity = categoryEntity,
                                                             subcategoryEntity = subcategoryEntity,
+                                                            accountIconResId = accountEntity?.iconResId ?: 0,
+                                                            accountIconName = accountEntity?.iconName,
+                                                            accountColorHex = accountEntity?.color,
+                                                            convertedAmount = uiState.convertedAmounts[transaction.id],
+                                                            mainCurrency = uiState.baseCurrency,
                                                             onClick = {
                                                                 onTransactionClick(
                                                                     transaction.id,
@@ -1239,8 +1231,8 @@ private fun NetworthSummaryCards(
             userName = uiState.userName,
             balanceHistory = uiState.balanceHistory,
             dateRangeLabel = dateRangeLabel,
-            thisMonthValue = CurrencyFormatter.formatCurrency(uiState.currentMonthExpenses, uiState.selectedCurrency),
-            thisYearValue = CurrencyFormatter.formatCurrency(uiState.currentMonthExpenses, uiState.selectedCurrency),
+            thisMonthValue = CurrencyFormatter.formatCurrency(uiState.currentMonthTotal, uiState.selectedCurrency),
+            thisYearValue = CurrencyFormatter.formatCurrency(uiState.currentYearTotal, uiState.selectedCurrency),
             availableCurrenciesCount = uiState.availableCurrencies.size,
             onCurrencyClick = { showCurrencySheet = true },
             blurEffects = blurEffects,

@@ -59,6 +59,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,6 +67,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
@@ -89,6 +91,7 @@ import com.ritesh.cashiro.presentation.ui.components.LoadingCircle
 import com.ritesh.cashiro.presentation.ui.features.categories.NavigationContent
 import com.ritesh.cashiro.presentation.ui.icons.Bag
 import com.ritesh.cashiro.presentation.ui.icons.Calendar
+import com.ritesh.cashiro.presentation.ui.icons.Edit2
 import com.ritesh.cashiro.presentation.ui.icons.Iconax
 import com.ritesh.cashiro.presentation.ui.icons.VideoPlay
 import com.ritesh.cashiro.presentation.ui.theme.Dimensions
@@ -103,12 +106,23 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import androidx.core.graphics.toColorInt
+import com.ritesh.cashiro.presentation.ui.components.SubtitleTag
+import com.ritesh.cashiro.presentation.ui.theme.credit_dark
+import com.ritesh.cashiro.presentation.ui.theme.credit_light
+import com.ritesh.cashiro.presentation.ui.theme.income_dark
+import com.ritesh.cashiro.presentation.ui.theme.income_light
+import com.ritesh.cashiro.presentation.ui.theme.investment_dark
+import com.ritesh.cashiro.presentation.ui.theme.investment_light
+import com.ritesh.cashiro.presentation.ui.theme.transfer_dark
+import com.ritesh.cashiro.presentation.ui.theme.transfer_light
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun SubscriptionsScreen(
     subscriptionsViewModel: SubscriptionsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
+    onEditSubscription: (Long) -> Unit = {},
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedContentScope: AnimatedVisibilityScope? = null
 ) {
@@ -197,7 +211,11 @@ fun SubscriptionsScreen(
                 categoryEntity = categoriesMap[selectedSubscription.category],
                 subcategoryEntity = subcategoriesMap[selectedSubscription.subcategory],
                 onDismiss = { subscriptionsViewModel.selectSubscription(null) },
-                onMarkAsPaid = { subscriptionsViewModel.markAsPaid(selectedSubscription) }
+                onMarkAsPaid = { subscriptionsViewModel.markAsPaid(selectedSubscription) },
+                onEdit = {
+                    subscriptionsViewModel.selectSubscription(null)
+                    onEditSubscription(selectedSubscription.id)
+                }
             )
         }
         LazyColumn(
@@ -240,7 +258,12 @@ fun SubscriptionsScreen(
                         subscription = subscription,
                         categoryEntity = categoryEntity,
                         subcategoryEntity = subcategoryEntity,
+                        convertedAmount = uiState.convertedAmounts[subscription.id],
+                        targetCurrency = uiState.targetCurrency,
                         onDelete = { subscriptionToDelete = subscription },
+                        onEdit = {
+                            onEditSubscription(subscription.id)
+                        },
                         onClick = { subscriptionsViewModel.selectSubscription(subscription) }
                     )
                 }
@@ -403,7 +426,10 @@ private fun SwipeableSubscriptionItem(
     subscription: SubscriptionEntity,
     categoryEntity: CategoryEntity? = null,
     subcategoryEntity: SubcategoryEntity? = null,
+    convertedAmount: BigDecimal? = null,
+    targetCurrency: String? = null,
     onDelete: () -> Unit,
+    onEdit: () -> Unit,
     onClick: () -> Unit
 ) {
     var showSmsBody by remember { mutableStateOf(false) }
@@ -411,11 +437,22 @@ private fun SwipeableSubscriptionItem(
     val dismissState = rememberSwipeToDismissBoxState()
     var isInitialized by remember { mutableStateOf(false) }
 
-    // Handle dismissal event when the state changes to EndToStart
+    // Handle dismissal events
     LaunchedEffect(dismissState.currentValue) {
-        if (isInitialized && dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
-            onDelete()
-            dismissState.reset()
+        if (isInitialized) {
+            when (dismissState.currentValue) {
+                SwipeToDismissBoxValue.EndToStart -> {
+                    // Swiped Left -> Edit
+                    onEdit()
+                    dismissState.reset()
+                }
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    // Swiped Right -> Delete
+                    onDelete()
+                    dismissState.reset()
+                }
+                else -> {}
+            }
         }
         isInitialized = true
     }
@@ -429,23 +466,45 @@ private fun SwipeableSubscriptionItem(
 
     SwipeToDismissBox(
         state = dismissState,
-        enableDismissFromStartToEnd = false,
+        enableDismissFromStartToEnd = true,
         enableDismissFromEndToStart = true,
         backgroundContent = {
+            val direction = dismissState.dismissDirection
+            val color = when (direction) {
+                SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.error
+                SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.primary
+                else -> Color.Transparent
+            }
+            val alignment = when (direction) {
+                SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                else -> Alignment.Center
+            }
+            val icon = when (direction) {
+                SwipeToDismissBoxValue.StartToEnd -> Iconax.Bag
+                SwipeToDismissBoxValue.EndToStart -> Iconax.Edit2
+                else -> Iconax.Edit2
+            }
+            val label = when (direction) {
+                SwipeToDismissBoxValue.StartToEnd -> "Delete"
+                SwipeToDismissBoxValue.EndToStart -> "Edit"
+                else -> ""
+            }
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
-                        color = MaterialTheme.colorScheme.error,
+                        color = color,
                         shape = MaterialTheme.shapes.extraLarge
                     )
                     .padding(horizontal = Dimensions.Padding.content),
-                contentAlignment = Alignment.CenterEnd
+                contentAlignment = alignment
             ) {
                 Icon(
-                    imageVector = Iconax.Bag,
-                    contentDescription = "Hide",
-                    tint = MaterialTheme.colorScheme.onError
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = if (direction == SwipeToDismissBoxValue.StartToEnd) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary
                 )
             }
         },
@@ -498,78 +557,89 @@ private fun SwipeableSubscriptionItem(
                             )
                             
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // SMS indicator if available
-                                if (!subscription.smsBody.isNullOrBlank()) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.Chat,
-                                        contentDescription = "SMS available",
-                                        modifier = Modifier.size(14.dp),
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                                
-                                // Calculate the actual next payment date
                                 val today = LocalDate.now()
                                 val subscriptionDate = subscription.nextPaymentDate
-                                
-                                // Handle null date
-                                if (subscriptionDate == null) {
-                                    Text(
-                                        text = "• No date set",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                } else {
+
+                                // Date Tag
+                                if (subscriptionDate != null) {
                                     val daysUntilNext = ChronoUnit.DAYS.between(today, subscriptionDate)
-                                
-                                    Icon(
-                                        imageVector = Iconax.Calendar,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(14.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    
                                     val isOverdue = subscriptionDate.isBefore(today) && 
                                                    (subscription.lastPaidDate == null || subscription.lastPaidDate!!.isBefore(subscriptionDate))
 
-                                    Text(
+                                    val dateTagColor = remember(subscriptionDate) {
+                                        val colors = listOf(income_dark, expense_dark, credit_dark, transfer_dark, investment_dark)
+                                        val dateHash = subscriptionDate.hashCode()
+                                        val index = Math.abs(dateHash) % colors.size
+                                        colors[index]
+                                    }
+
+                                    SubtitleTag(
+                                        icon = {
+                                            Icon(
+                                                imageVector = Iconax.Calendar,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(10.dp),
+                                                tint = (if (isOverdue || daysUntilNext <= 3) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant).copy(0.85f)
+                                            )
+                                        },
                                         text = when {
                                             isOverdue -> "Overdue"
                                             daysUntilNext == 0L -> "Due today"
                                             daysUntilNext == 1L -> "Due tomorrow"
                                             daysUntilNext in 2..7 -> "Due in $daysUntilNext days"
-                                            else -> subscriptionDate.format(
-                                                DateTimeFormatter.ofPattern("MMM d")
-                                            )
+                                            else -> subscriptionDate.format(DateTimeFormatter.ofPattern("MMM d"))
                                         },
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = when {
-                                            isOverdue || daysUntilNext <= 3 -> MaterialTheme.colorScheme.error
-                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                        },
-                                        fontWeight = if (isOverdue) FontWeight.Bold else FontWeight.Normal
+                                        color = if (isOverdue || daysUntilNext <= 3) MaterialTheme.colorScheme.error else dateTagColor
                                     )
                                 }
-                                
-                                subscription.category?.let { category ->
-                                    Text(
-                                        text = "• $category",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+
+                                // Category Tag
+                                categoryEntity?.let { category ->
+                                    SubtitleTag(
+                                        text = category.name,
+                                        color = try {
+                                            Color(category.color.toColorInt())
+                                        } catch (e: Exception) {
+                                            MaterialTheme.colorScheme.primary
+                                        }
+                                    )
+                                }
+
+                                // SMS indicator if available
+                                if (!subscription.smsBody.isNullOrBlank()) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Chat,
+                                        contentDescription = "SMS available",
+                                        modifier = Modifier.size(12.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
                                     )
                                 }
                             }
                         }
                         
-                        Text(
-                            text = subscription.formatAmount(),
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (!isSystemInDarkTheme()) expense_light else expense_dark
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = subscription.formatAmount(),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (!isSystemInDarkTheme()) expense_light else expense_dark
+                            )
+
+                            if (convertedAmount != null && targetCurrency != null && subscription.currency != targetCurrency) {
+                                Text(
+                                    text = "≈ ${CurrencyFormatter.formatCurrency(convertedAmount, targetCurrency)}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    fontWeight = FontWeight.Normal
+                                )
+                            }
+                        }
                     }
                 }
                 
@@ -634,7 +704,8 @@ private fun PaymentStatusBottomSheet(
     categoryEntity: CategoryEntity? = null,
     subcategoryEntity: SubcategoryEntity? = null,
     onDismiss: () -> Unit,
-    onMarkAsPaid: () -> Unit
+    onMarkAsPaid: () -> Unit,
+    onEdit: () -> Unit
 ) {
     var showSmsBody by remember { mutableStateOf(false) }
     val today = LocalDate.now()
@@ -654,11 +725,32 @@ private fun PaymentStatusBottomSheet(
                 .padding(bottom = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Track Payment",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Track Payment",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(0.5f))
+                        .clickable { onEdit() }
+                        .padding(8.dp)
+                ) {
+                    Icon(
+                        imageVector =Iconax.Edit2,
+                        contentDescription = "Edit Subscription",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
             
             Spacer(modifier = Modifier.height(16.dp))
             

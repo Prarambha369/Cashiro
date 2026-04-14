@@ -56,6 +56,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import com.ritesh.cashiro.presentation.ui.components.CashiroCheckbox
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -141,6 +142,7 @@ import com.ritesh.cashiro.presentation.ui.components.CategoryIcon
 import com.ritesh.cashiro.presentation.ui.components.CategorySelectionSheet
 import com.ritesh.cashiro.presentation.ui.components.CustomTitleTopAppBar
 import com.ritesh.cashiro.presentation.ui.components.DashedLine
+import com.ritesh.cashiro.presentation.ui.components.CustomBillingCycleCard
 import com.ritesh.cashiro.presentation.ui.components.DatePicker
 import com.ritesh.cashiro.presentation.ui.components.DeleteTransactionDialog
 import com.ritesh.cashiro.presentation.ui.components.LoadingCircle
@@ -157,17 +159,21 @@ import com.ritesh.cashiro.presentation.ui.icons.DocumentText2
 import com.ritesh.cashiro.presentation.ui.icons.Edit2
 import com.ritesh.cashiro.presentation.ui.icons.Iconax
 import com.ritesh.cashiro.presentation.ui.icons.Messages
+import com.ritesh.cashiro.presentation.ui.icons.RefreshCircle
 import com.ritesh.cashiro.presentation.ui.icons.VideoTime
 import com.ritesh.cashiro.presentation.ui.icons.Wallet3
 import com.ritesh.cashiro.presentation.ui.theme.Dimensions
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
 import com.ritesh.cashiro.utils.CurrencyFormatter
+import com.ritesh.cashiro.utils.IconResolutionUtils
+import com.ritesh.cashiro.utils.SubscriptionUtils
 import com.ritesh.cashiro.utils.formatAmount
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -217,11 +223,54 @@ fun SharedTransitionScope.TransactionDetailScreen(
     var showAccountSheet by remember { mutableStateOf(false) }
     var showTargetAccountSheet by remember { mutableStateOf(false) }
     var showBillingCycleMenu by remember { mutableStateOf(false) }
+    var showCustomCountPad by remember { mutableStateOf(false) }
+    var showCustomUnitMenu by remember { mutableStateOf(false) }
+    var showCustomEndDatePicker by remember { mutableStateOf(false) }
     val hazeState = remember { HazeState() }
 
-
-
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    // Custom Billing Cycle Count Pad
+    if (showCustomCountPad && isEditMode) {
+        ModalBottomSheet(
+            onDismissRequest = { showCustomCountPad = false },
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            NumberPad(
+                initialValue = uiState.customCycleCount.toString(),
+                onDone = { newCount ->
+                    transactionDetailViewModel.updateSubscriptionCustomCycleCount(newCount.toIntOrNull() ?: 1)
+                    showCustomCountPad = false
+                },
+                title = "Repeat every"
+            )
+        }
+    }
+
+    // Custom Billing Cycle End Date Picker
+    if (showCustomEndDatePicker && isEditMode) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = (uiState.customCycleEndDate ?: LocalDate.now())
+                .atStartOfDay()
+                .toInstant(java.time.ZoneOffset.UTC)
+                .toEpochMilli()
+        )
+        DatePicker(
+            onDismiss = { showCustomEndDatePicker = false },
+            onConfirm = {
+                datePickerState.selectedDateMillis?.let { millis ->
+                    val localDate = java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                    transactionDetailViewModel.updateSubscriptionCustomCycleEndDate(localDate)
+                }
+                showCustomEndDatePicker = false
+            },
+            datePickerState = datePickerState,
+            blurEffects = blurEffects,
+            hazeState = hazeState
+        )
+    }
 
     // Show success snackbar
     LaunchedEffect(saveSuccess) {
@@ -380,6 +429,9 @@ fun SharedTransitionScope.TransactionDetailScreen(
                     onTargetAccountClick = { showTargetAccountSheet = true },
                     showBillingCycleMenu = showBillingCycleMenu,
                     onBillingCycleMenuChange = { showBillingCycleMenu = it },
+                    showCustomCountPad = { showCustomCountPad = it },
+                    showCustomUnitMenu = { showCustomUnitMenu = it },
+                    showCustomEndDatePicker = { showCustomEndDatePicker = it },
                     paddingValues = paddingValues,
                     categories = categories,
                     subcategoriesMap = allSubcategories,
@@ -388,7 +440,8 @@ fun SharedTransitionScope.TransactionDetailScreen(
                     onAddAttachment = transactionDetailViewModel::addAttachment,
                     onRemoveAttachment = transactionDetailViewModel::removeAttachment,
                     blurEffects = blurEffects,
-                    hazeState = hazeState
+                    hazeState = hazeState,
+                    accountIconName = uiState.accountIconName
                 )
             }
 
@@ -633,6 +686,9 @@ private fun TransactionDetailContent(
     onTargetAccountClick: () -> Unit,
     showBillingCycleMenu: Boolean,
     onBillingCycleMenuChange: (Boolean) -> Unit,
+    showCustomCountPad: (Boolean) -> Unit,
+    showCustomUnitMenu: (Boolean) -> Unit,
+    showCustomEndDatePicker: (Boolean) -> Unit,
     paddingValues: PaddingValues,
     availableAccounts: List<AccountBalanceEntity>,
     categories: List<CategoryEntity>,
@@ -643,6 +699,7 @@ private fun TransactionDetailContent(
     onRemoveAttachment: (String) -> Unit = {},
     blurEffects: Boolean,
     hazeState: HazeState = remember { HazeState()},
+    accountIconName: String?
 ) {
 
     Column(
@@ -685,7 +742,8 @@ private fun TransactionDetailContent(
                     categoryEntity = categoryEntity,
                     subcategoryEntity = subcategoryEntity,
                     blurEffects = blurEffects,
-                    hazeState = hazeState
+                    hazeState = hazeState,
+                    accountIconName = accountIconName
                 )
                 Spacer(modifier = Modifier.height(Spacing.lg))
                 // SMS Body - Always read-only
@@ -702,6 +760,9 @@ private fun TransactionDetailContent(
                     onTargetAccountClick = onTargetAccountClick,
                     showBillingCycleMenu = showBillingCycleMenu,
                     onBillingCycleMenuChange = onBillingCycleMenuChange,
+                    showCustomCountPad = showCustomCountPad,
+                    showCustomUnitMenu = showCustomUnitMenu,
+                    showCustomEndDatePicker = showCustomEndDatePicker,
                     viewModel = viewModel,
                     onCategoryClick = onCategoryClick,
                     onAccountClick = onAccountClick
@@ -804,6 +865,7 @@ private fun EditableTransactionHeader(
     subcategoryEntity: SubcategoryEntity? = null,
     blurEffects: Boolean,
     hazeState: HazeState = remember { HazeState()},
+    accountIconName: String?
 ) {
     CashiroCard(
         modifier = Modifier.fillMaxWidth(),
@@ -904,7 +966,8 @@ private fun EditableTransactionHeader(
                             size = 24.dp,
                             showBackground = false,
                             categoryEntity = categoryEntity,
-                            subcategoryEntity = subcategoryEntity
+                            subcategoryEntity = subcategoryEntity,
+                            accountIconName = accountIconName
                         )
                     },
                     isError = transaction.merchantName.isBlank(),
@@ -969,12 +1032,17 @@ private fun EditableExtractedInfoCard(
     onTargetAccountClick: () -> Unit,
     showBillingCycleMenu: Boolean,
     onBillingCycleMenuChange: (Boolean) -> Unit,
+    showCustomCountPad: (Boolean) -> Unit,
+    showCustomUnitMenu: (Boolean) -> Unit,
+    showCustomEndDatePicker: (Boolean) -> Unit,
     viewModel: TransactionDetailViewModel
 ) {
     val selectedAccount by viewModel.selectedAccount.collectAsStateWithLifecycle()
     val targetAccount by viewModel.targetAccount.collectAsStateWithLifecycle()
     val categories by viewModel.categories.collectAsStateWithLifecycle()
     val allSubcategories by viewModel.allSubcategories.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isCustomCycle = uiState.isCustomCycle
 
     val selectedCategoryObj = remember(transaction.category, categories) {
         categories.find { it.name == transaction.category }
@@ -1045,6 +1113,7 @@ private fun EditableExtractedInfoCard(
                                     BrandIcon(
                                         merchantName = selectedAccount?.bankName ?: "",
                                         accountIconResId = selectedAccount?.iconResId ?: 0,
+                                        accountIconName = selectedAccount?.iconName,
                                         size = 24.dp,
                                         showBackground = false
                                     )
@@ -1099,6 +1168,7 @@ private fun EditableExtractedInfoCard(
                                     BrandIcon(
                                         merchantName = targetAccount?.bankName ?: "",
                                         accountIconResId = targetAccount?.iconResId ?: 0,
+                                        accountIconName = targetAccount?.iconName,
                                         size = 24.dp,
                                         showBackground = false
                                     )
@@ -1205,6 +1275,7 @@ private fun EditableExtractedInfoCard(
                                 BrandIcon(
                                     merchantName = selectedAccount?.bankName ?: "",
                                     accountIconResId = selectedAccount?.iconResId ?: 0,
+                                    accountIconName = selectedAccount?.iconName,
                                     size = 24.dp,
                                     showBackground = false
                                 )
@@ -1311,7 +1382,7 @@ private fun EditableExtractedInfoCard(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(1.5.dp)
                 ) {
-                    val billingCycles = listOf("Weekly", "Monthly", "Quarterly", "Semi-Annual", "Annual")
+                    val billingCycles = listOf("Weekly", "Monthly", "Quarterly", "Semi-Annual", "Annual", "Custom")
                     
                     ExposedDropdownMenuBox(
                         expanded = showBillingCycleMenu,
@@ -1334,8 +1405,8 @@ private fun EditableExtractedInfoCard(
                             shape = RoundedCornerShape(
                                 topStart = 4.dp,
                                 topEnd = 4.dp,
-                                bottomStart = 16.dp,
-                                bottomEnd = 16.dp
+                                bottomStart = if (isCustomCycle) 4.dp else 16.dp,
+                                bottomEnd = if (isCustomCycle) 4.dp else 16.dp
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1349,6 +1420,30 @@ private fun EditableExtractedInfoCard(
                                 unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
                             )
                         )
+
+                        val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                        BlurredAnimatedVisibility(
+                            visible = uiState.isCustomCycle,
+                            enter = fadeIn() + slideInVertically { -it },
+                            exit = fadeOut() + slideOutVertically { -it }
+                        ) {
+                            Spacer(modifier = Modifier.height(Spacing.sm))
+                            CustomBillingCycleCard(
+                                count = uiState.customCycleCount,
+                                unit = uiState.customCycleUnit,
+                                endDate = uiState.customCycleEndDate,
+                                onCountClick = { showCustomCountPad(true) },
+                                onUnitSelected = { viewModel.updateSubscriptionCustomCycleUnit(it) },
+                                onEndDateClick = { showCustomEndDatePicker(true) },
+                                onClearEndDate = { viewModel.updateSubscriptionCustomCycleEndDate(null) },
+                                shape = RoundedCornerShape(
+                                    topStart = 4.dp,
+                                    topEnd = 4.dp,
+                                    bottomStart = 16.dp,
+                                    bottomEnd = 16.dp
+                                )
+                            )
+                        }
 
                         ExposedDropdownMenu(
                             expanded = showBillingCycleMenu,
@@ -1426,9 +1521,19 @@ private fun CategoryDropdown(
                 bottomEnd = 16.dp,
                 bottomStart = 16.dp),
             leadingIcon = {
-                if (selectedCategoryObj != null && selectedCategoryObj.iconResId != 0) {
+                val context = LocalContext.current
+                val resolvedResId = remember(selectedCategoryObj) {
+                    selectedCategoryObj?.let { cat ->
+                        if (!cat.iconName.isNullOrEmpty()) {
+                            val res = IconResolutionUtils.nameToResId(context, cat.iconName)
+                            if (res != 0) res else cat.iconResId
+                        } else cat.iconResId
+                    } ?: 0
+                }
+
+                if (resolvedResId != 0) {
                     Icon(
-                        painter = painterResource(id = selectedCategoryObj.iconResId),
+                        painter = painterResource(id = resolvedResId),
                         contentDescription = null,
                         tint = Color.Unspecified,
                         modifier = Modifier.size(24.dp)
@@ -1466,9 +1571,19 @@ private fun CategoryDropdown(
                 readOnly = true,
                 label = { Text("Subcategory") },
                 leadingIcon = {
-                    if (selectedSubcategoryObj != null && selectedSubcategoryObj.iconResId != 0) {
+                    val context = LocalContext.current
+                    val resolvedResId = remember(selectedSubcategoryObj) {
+                        selectedSubcategoryObj?.let { sub ->
+                            if (!sub.iconName.isNullOrEmpty()) {
+                                val res = IconResolutionUtils.nameToResId(context, sub.iconName)
+                                if (res != 0) res else sub.iconResId
+                            } else sub.iconResId
+                        } ?: 0
+                    }
+
+                    if (resolvedResId != 0) {
                         Icon(
-                            painter = painterResource(id = selectedSubcategoryObj.iconResId),
+                            painter = painterResource(id = resolvedResId),
                             contentDescription = null,
                             tint = Color.Unspecified,
                             modifier = Modifier.size(24.dp)
@@ -1895,7 +2010,8 @@ private fun TransactionReceipt(
                                 category = transaction.category,
                                 size = 20.dp,
                                 tint = null, // Original colors
-                                iconResId = categoryEntity?.iconResId ?: 0
+                                iconResId = categoryEntity?.iconResId ?: 0,
+                                iconName = categoryEntity?.iconName
                             )
                         },
                         subIcon = {
@@ -1904,7 +2020,8 @@ private fun TransactionReceipt(
                                     category = transaction.subcategory,
                                     size = 20.dp,
                                     tint = null, // Original colors
-                                    iconResId = subcategoryEntity?.iconResId ?: 0
+                                    iconResId = subcategoryEntity?.iconResId ?: 0,
+                                    iconName = subcategoryEntity?.iconName
                                 )
                             }
                         },
@@ -1949,6 +2066,7 @@ private fun TransactionReceipt(
                                 size = 20.dp,
                                 showBackground = false,
                                 accountIconResId = fromAccountEntity?.iconResId ?: 0,
+                                accountIconName = fromAccountEntity?.iconName,
                                 accountColorHex = fromAccountEntity?.color
                             )
                         },
@@ -1959,6 +2077,7 @@ private fun TransactionReceipt(
                                     size = 20.dp,
                                     showBackground = false,
                                     accountIconResId = toAccountEntity?.iconResId ?: 0,
+                                    accountIconName = toAccountEntity?.iconName,
                                     accountColorHex = toAccountEntity?.color
                                 )
                             }
@@ -2265,7 +2384,8 @@ private fun ReceiptBadge(
                 size = 32.dp,
                 showBackground = true,
                 categoryEntity = categoryEntity,
-                subcategoryEntity = subcategoryEntity
+                subcategoryEntity = subcategoryEntity,
+                accountIconName = null // Not an account icon in this context
             )
             Text(
                 text = merchantName,

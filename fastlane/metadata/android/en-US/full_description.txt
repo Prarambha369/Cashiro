@@ -1,11 +1,9 @@
 Cashiro — Free & Open-Source, private SMS-powered expense tracker
 
-Automatically extracts transaction data from bank SMS messages and PDF Statements using pattern-based parsing. Works 100% offline - no internet connection required.
-
-Automatic expense tracking from bank SMS with clean categories, subscription detection, and clear insights.
+Automatically extracts transaction data from bank SMS messages and PDF Statements [Gpay & Phonepe UPI] using pattern-based parsing. Works 100% offline - no internet connection required.
 
 Key Features:
-• Multi-Source Transaction Extraction - Automatically parses SMS and PDF statements with pattern-based extraction
+• Multi-Source Transaction Extraction - Automatically parses SMS and PDF Statements [Gpay & Phonepe UPI] with pattern-based extraction
 • 100% Offline Core Features - Transaction parsing, analytics, and exports work without internet
 • Optional AI Chat - Download Qwen 2.5 model (1.5GB, Apache 2.0) for natural language queries
 • Dynamic Home Screen - Customizable widgets including heatmaps, analytics, and transaction lists
@@ -14,14 +12,14 @@ Key Features:
 • Data Portability - Export as CSV ; smart backup/restore for all preferences and data
 • Premium Material You Design - Sleek interface with blur effects and fully customizable dynamic theming
 
-Currently Supported Banks (20+):
-• HDFC, SBI, ICICI, Axis, PNB, IDBI
-• Indian Bank, Federal Bank, Karnataka Bank
-• Canara Bank, Bank of Baroda, Union Bank
-• Kotak, IndusInd, IDFC First, Central Bank
-• Utkarsh, HSBC, Jio Payments Bank
-• Jupiter, Slice, and payment gateways like Juspay
-• More banks being added regularly!
+Currently Supported Banks & Countries (80+ banks across 14 countries):
+• India: HDFC, SBI, ICICI, Axis, PNB, IDBI, Indian, Federal, BOB, Canara, etc.
+• USA: Citi, Discover, Old Hickory, Charles Schwab, Navy Federal
+• UAE: FAB, ADCB, Emirates NBD, Mashreq, Liv Bank
+• Nepal: Laxmi Sunrise, Everest, NMB, Siddhartha, Prime Commercial
+• Thailand: Bangkok Bank, Kasikorn, SCB, Krungthai, Krungsri, etc.
+• Other regions: Ethiopia (CBE), Tanzania (M-Pesa), Kenya (M-PESA), Pakistan, Iran, Egypt, Saudi Arabia, Colombia, Belarus.
+• Plus payment services like Slice, LazyPay, Jio Pay, and Juspay.
 
 Privacy & Security:
 • No internet required for core functionality (SMS parsing, analytics, exports)

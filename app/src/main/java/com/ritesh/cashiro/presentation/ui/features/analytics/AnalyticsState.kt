@@ -13,8 +13,8 @@ import java.time.LocalDate
 data class FilterState(
     val period: TimePeriod,
     val customRange: Pair<LocalDate, LocalDate>?,
-    val typeFilter: TransactionTypeFilter,
-    val currency: String
+    val typeFilter: Set<TransactionTypeFilter>,
+    val currency: String?
 )
 
 data class AnalyticsUiState(
@@ -26,8 +26,10 @@ data class AnalyticsUiState(
     val topCategory: String? = null,
     val topCategoryPercentage: Float = 0f,
     val currency: String = "INR",
+    val baseCurrency: String = "INR",
     val isLoading: Boolean = true,
-    val spendingTrend: List<BalancePoint> = emptyList()
+    val spendingTrend: List<BalancePoint> = emptyList(),
+    val convertedMerchantAmounts: Map<String, BigDecimal> = emptyMap()
 )
 
 data class CategoryData(
@@ -43,5 +45,6 @@ data class MerchantData(
     val transactionCount: Int,
     val isSubscription: Boolean,
     val categoryName: String? = null,
-    val subcategoryName: String? = null
+    val subcategoryName: String? = null,
+    val accountIconName: String? = null
 )

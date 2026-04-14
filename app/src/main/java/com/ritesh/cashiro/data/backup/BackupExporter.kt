@@ -197,7 +197,8 @@ class BackupExporter @Inject constructor(
                     accentColor = if (config.includeAppPreferences) prefs.accentColor.name else null,
                     hideNavigationLabels = if (config.includeAppPreferences) prefs.hideNavigationLabels else null,
                     hidePillIndicator = if (config.includeAppPreferences) prefs.hidePillIndicator else null,
-                    blurEffects = if (config.includeAppPreferences) prefs.blurEffects else null
+                    blurEffects = if (config.includeAppPreferences) prefs.blurEffects else null,
+                    appIcon = if (config.includeAppPreferences) prefs.appIcon.name else null
                 ),
                 sms = SmsPreferences(
                     hasSkippedSmsPermission = prefs.hasSkippedSmsPermission,

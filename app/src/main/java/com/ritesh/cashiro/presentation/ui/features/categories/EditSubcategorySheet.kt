@@ -42,6 +42,9 @@ import com.ritesh.cashiro.presentation.ui.theme.Dimensions
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
 import com.ritesh.cashiro.data.database.entity.SubcategoryEntity
 import com.ritesh.cashiro.presentation.ui.components.ColorPickerContent
+import com.ritesh.cashiro.R
+import com.ritesh.cashiro.utils.IconResolutionUtils
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -50,15 +53,27 @@ fun EditSubcategorySheet(
     categoryColor: String,
     categoryIconResId: Int,
     onDismiss: () -> Unit,
-    onSave: (name: String, iconResId: Int, color: String) -> Unit,
+    onSave: (name: String, iconResId: Int, iconName: String, color: String) -> Unit,
     onReset: ((Long) -> Unit)? = null,
     onDelete: ((Long) -> Unit)? = null
 ) {
+    val context = LocalContext.current
     var name by remember { mutableStateOf(subcategory?.name ?: "") }
     var colorHex by remember { mutableStateOf(subcategory?.color ?: categoryColor) }
-    var iconResId by remember {
-        mutableIntStateOf(subcategory?.iconResId ?: categoryIconResId)
+    var iconName by remember(subcategory) {
+        mutableStateOf(
+            subcategory?.iconName?.takeIf { it.isNotEmpty() }
+                ?: IconResolutionUtils.resIdToName(context, subcategory?.iconResId ?: categoryIconResId)
+                    .takeIf { it.isNotEmpty() } ?: "type_food_dining"
+        )
     }
+    var iconResId by remember(iconName) {
+        mutableIntStateOf(
+            IconResolutionUtils.nameToResId(context, iconName)
+                .takeIf { it != 0 } ?: R.drawable.type_food_dining
+        )
+    }
+
 
     var showIconSelector by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
@@ -73,9 +88,10 @@ fun EditSubcategorySheet(
             containerColor = MaterialTheme.colorScheme.surface
         ) {
             IconSelector(
-                selectedIconId = iconResId,
-                onIconSelected = {
-                    iconResId = it
+                selectedIconName = iconName,
+                onIconSelected = { name ->
+                    iconName = name
+                    iconResId = IconResolutionUtils.nameToResId(context, name)
                     showIconSelector = false
                 }
             )
@@ -260,7 +276,7 @@ fun EditSubcategorySheet(
 
                 // Create/Update button
                 Button(
-                    onClick = { onSave(name, iconResId, colorHex) },
+                    onClick = { onSave(name, iconResId, iconName, colorHex) },
                     enabled = name.isNotBlank(),
                     modifier = Modifier
                         .weight(1f)
@@ -280,7 +296,8 @@ fun EditSubcategorySheet(
                         onClick = {
                             name = subcategory.defaultName ?: subcategory.name
                             colorHex = subcategory.defaultColor ?: categoryColor
-                            iconResId = subcategory.defaultIconResId ?: categoryIconResId
+                            iconName = subcategory.defaultIconName ?: subcategory.iconName
+                            iconResId = IconResolutionUtils.nameToResId(context, iconName)
                             onReset(subcategory.id)
                         },
                         modifier = Modifier

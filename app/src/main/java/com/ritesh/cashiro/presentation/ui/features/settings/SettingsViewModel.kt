@@ -60,6 +60,7 @@ import com.ritesh.cashiro.data.database.entity.TransactionEntity
 import com.ritesh.cashiro.data.database.entity.TransactionType
 import com.ritesh.cashiro.data.database.entity.SubscriptionEntity
 import com.ritesh.cashiro.data.database.entity.SubscriptionState
+import com.ritesh.cashiro.utils.IconResolutionUtils
 import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -124,7 +125,26 @@ class SettingsViewModel @Inject constructor(
 
     init {
         checkDownloadStatus()
-        // Also sync with model repository
+        
+        // Observe model state and progress from repository
+        viewModelScope.launch {
+            modelRepository.modelState.collect { state ->
+                val downloadStatus = when (state) {
+                    ModelState.NOT_DOWNLOADED -> DownloadState.NOT_DOWNLOADED
+                    ModelState.DOWNLOADING -> DownloadState.DOWNLOADING
+                    ModelState.READY -> DownloadState.COMPLETED
+                    ModelState.LOADING -> DownloadState.COMPLETED
+                    ModelState.ERROR -> DownloadState.FAILED
+                }
+                _uiState.update { it.copy(downloadStatus = downloadStatus) }
+            }
+        }
+        
+        viewModelScope.launch {
+            modelRepository.downloadProgress.collect { progress ->
+                _uiState.update { it.copy(downloadProgress = progress) }
+            }
+        }
         modelRepository.checkModelState()
     }
 
@@ -171,7 +191,7 @@ class SettingsViewModel @Inject constructor(
                                         _uiState.update { it.copy(downloadProgress = (bytes * 100 / total).toInt()) }
                                     }
                                 }
-                                monitorDownload(savedDownloadId)
+                                modelRepository.monitorDownload(savedDownloadId)
                             }
 
                             DownloadManager.STATUS_SUCCESSFUL -> {
@@ -230,9 +250,9 @@ class SettingsViewModel @Inject constructor(
         )
 
         // Check against expected size to ensure it's complete
-        // Allow 5% variance in file size as download sizes can vary slightly
-        val minSize = (Constants.ModelDownload.MODEL_SIZE_BYTES * 0.95).toLong()
-        val maxSize = (Constants.ModelDownload.MODEL_SIZE_BYTES * 1.05).toLong()
+        // Allow 10% variance in file size as download sizes can vary slightly
+        val minSize = (Constants.ModelDownload.MODEL_SIZE_BYTES * 0.90).toLong()
+        val maxSize = (Constants.ModelDownload.MODEL_SIZE_BYTES * 1.20).toLong()
 
         if (modelFile.exists() && modelFile.length() in minSize..maxSize) {
             _uiState.update {
@@ -280,6 +300,21 @@ class SettingsViewModel @Inject constructor(
 
     fun startModelDownload() {
         viewModelScope.launch {
+            // Guard: if model file is already fully downloaded, do NOT start a new download
+            // (DownloadManager would delete the existing file before writing the new one)
+            if (modelRepository.isModelDownloaded()) {
+                Log.d("SettingsViewModel", "Model already downloaded — skipping download")
+                _uiState.update {
+                    it.copy(
+                        downloadStatus = DownloadState.COMPLETED,
+                        downloadProgress = 100
+                    )
+                }
+                modelRepository.updateModelState(ModelState.READY)
+                userPreferencesRepository.clearActiveDownloadId()
+                return@launch
+            }
+
             // Check if download is already active
             val existingDownloadId = userPreferencesRepository.getActiveDownloadId()
             if (existingDownloadId != null) {
@@ -304,7 +339,7 @@ class SettingsViewModel @Inject constructor(
                             _uiState.update { it.copy(downloadStatus = DownloadState.DOWNLOADING) }
                             currentDownloadId = existingDownloadId
                             modelRepository.updateModelState(ModelState.DOWNLOADING)
-                            monitorDownload(existingDownloadId)
+                            modelRepository.monitorDownload(existingDownloadId)
                             return@launch
                         }
                     }
@@ -342,77 +377,8 @@ class SettingsViewModel @Inject constructor(
             userPreferencesRepository.saveActiveDownloadId(currentDownloadId!!)
             Log.d("SettingsViewModel", "Started download with ID: $currentDownloadId")
 
-            // Start monitoring progress
-            monitorDownload(currentDownloadId!!)
-        }
-    }
-
-    private fun monitorDownload(downloadId: Long) {
-        viewModelScope.launch {
-            while (isActive && _uiState.value.downloadStatus == DownloadState.DOWNLOADING) {
-                val query = DownloadManager.Query().setFilterById(downloadId)
-                val cursor = downloadManager.query(query)
-
-                if (cursor != null && cursor.moveToFirst()) {
-                    val bytesColumnIndex =
-                        cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
-                    val totalBytesColumnIndex =
-                        cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
-                    val statusColumnIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
-
-                    if (bytesColumnIndex != -1 && totalBytesColumnIndex != -1) {
-                        val bytesDownloaded = cursor.getLong(bytesColumnIndex)
-                        val bytesTotal = cursor.getLong(totalBytesColumnIndex)
-
-                        // Calculate progress
-                        val progress = if (bytesTotal > 0) {
-                            (bytesDownloaded * 100 / bytesTotal).toInt()
-                        } else 0
-
-                        _uiState.update {
-                            it.copy(
-                                downloadProgress = progress,
-                                downloadedMB = bytesDownloaded / (1024 * 1024),
-                                totalMB = bytesTotal / (1024 * 1024)
-                            )
-                        }
-                    }
-
-                    // Check status
-                    if (statusColumnIndex != -1) {
-                        when (cursor.getInt(statusColumnIndex)) {
-                            DownloadManager.STATUS_SUCCESSFUL -> {
-                                _uiState.update {
-                                    it.copy(
-                                        downloadStatus = DownloadState.COMPLETED,
-                                        downloadProgress = 100
-                                    )
-                                }
-                                // Clear saved download ID
-                                userPreferencesRepository.clearActiveDownloadId()
-                                // Update model repository state
-                                modelRepository.updateModelState(ModelState.READY)
-                                Log.d("SettingsViewModel", "Download completed successfully")
-                            }
-
-                            DownloadManager.STATUS_FAILED -> {
-                                _uiState.update { it.copy(downloadStatus = DownloadState.FAILED) }
-                                // Clear saved download ID
-                                userPreferencesRepository.clearActiveDownloadId()
-                                // Sync ModelRepository state
-                                modelRepository.updateModelState(ModelState.NOT_DOWNLOADED)
-                                Log.d("SettingsViewModel", "Download failed")
-                            }
-
-                            DownloadManager.STATUS_PAUSED -> {
-                                _uiState.update { it.copy(downloadStatus = DownloadState.PAUSED) }
-                            }
-                        }
-                    }
-                }
-                cursor?.close()
-                delay(1000) // Update every second
-            }
+            // Start monitoring progress via repository
+            modelRepository.monitorDownload(currentDownloadId!!)
         }
     }
 
@@ -433,9 +399,7 @@ class SettingsViewModel @Inject constructor(
                     context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
                     Constants.ModelDownload.MODEL_FILE_NAME
                 )
-                if (modelFile.exists()) {
-                    modelFile.delete()
-                }
+                modelRepository.deleteModel()
                 Log.d("SettingsViewModel", "Download cancelled and cleaned up")
             }
         }
@@ -443,17 +407,13 @@ class SettingsViewModel @Inject constructor(
 
     fun deleteModel() {
         viewModelScope.launch {
-            val modelFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), Constants.ModelDownload.MODEL_FILE_NAME)
-            if (modelFile.exists()) {
-                modelFile.delete()
+            if (modelRepository.deleteModel()) {
                 _uiState.update { it.copy(downloadStatus = DownloadState.NOT_DOWNLOADED) }
                 _uiState.update { it.copy(downloadProgress = 0) }
                 _uiState.update { it.copy(downloadedMB = 0) }
                 _uiState.update { it.copy(totalMB = 0) }
                 // Clear any saved download ID
                 userPreferencesRepository.clearActiveDownloadId()
-                // Update model repository state
-                modelRepository.updateModelState(ModelState.NOT_DOWNLOADED)
                 Log.d("SettingsViewModel", "Model deleted")
             }
         }
@@ -711,6 +671,7 @@ class SettingsViewModel @Inject constructor(
                             timestamp = now.minusDays(i.toLong()),
                             sourceType = "MANUAL",
                             iconResId = R.drawable.type_finance_bank,
+                            iconName = IconResolutionUtils.resIdToName(context, R.drawable.type_finance_bank),
                             color = "#33B5E5",
                             isSample = true
                         )
@@ -728,6 +689,7 @@ class SettingsViewModel @Inject constructor(
                         isCreditCard = true,
                         sourceType = "MANUAL",
                         iconResId = R.drawable.type_stationary_card_file_box,
+                        iconName = IconResolutionUtils.resIdToName(context, R.drawable.type_stationary_card_file_box),
                         color = "#E91E63",
                         isSample = true
                     )
@@ -741,6 +703,7 @@ class SettingsViewModel @Inject constructor(
                         balance = BigDecimal(75000),
                         timestamp = now,
                         iconResId = R.drawable.type_finance_bank,
+                        iconName = IconResolutionUtils.resIdToName(context, R.drawable.type_finance_bank),
                         color = "#1976D2",
                         isSample = true
                     )
@@ -756,7 +719,8 @@ class SettingsViewModel @Inject constructor(
                         sourceType = "MANUAL",
                         isWallet = true,
                         isSample = true,
-                        iconResId = R.drawable.type_finance_dollar_banknote
+                        iconResId = R.drawable.type_finance_dollar_banknote,
+                        iconName = IconResolutionUtils.resIdToName(context, R.drawable.type_finance_dollar_banknote)
                     )
                 )
 
@@ -824,12 +788,18 @@ class SettingsViewModel @Inject constructor(
                     }
                     
                     // Split into few transactions per month
+                    val foodMerchants = listOf("Swiggy", "Zomato", "Blinkit", "Zepto")
                     for (i in 1..4) {
                         transactionRepository.insertTransaction(
                             TransactionEntity(
                                 amount = BigDecimal(baseAmount / 4),
-                                merchantName = "Groceries $i",
+                                merchantName = foodMerchants[i-1],
                                 category = foodCategory,
+                                subcategory = when(foodMerchants[i-1]) {
+                                    "Swiggy", "Zomato" -> "Eating out"
+                                    "Blinkit", "Zepto" -> "Groceries"
+                                    else -> "Eating out"
+                                },
                                 transactionType = TransactionType.EXPENSE,
                                 dateTime = monthDate.withDayOfMonth(i * 5).withHour(12),
                                 transactionHash = UUID.randomUUID().toString(),
@@ -862,6 +832,7 @@ class SettingsViewModel @Inject constructor(
                 )
 
                 // Seed transactions for Weekly Fun (Last 5 weeks inclusive)
+                val entertainmentMerchants = listOf("Netflix", "Spotify", "BookMyShow", "PVR", "Youtube")
                 for (weekOffset in 0..4) {
                     val weekDate = now.minusWeeks(weekOffset.toLong())
                     val amount = when(weekOffset) {
@@ -876,8 +847,12 @@ class SettingsViewModel @Inject constructor(
                     transactionRepository.insertTransaction(
                         TransactionEntity(
                             amount = BigDecimal(amount),
-                            merchantName = "Movie/Games",
+                            merchantName = entertainmentMerchants[weekOffset],
                             category = entertainmentCategory,
+                            subcategory = when(entertainmentMerchants[weekOffset]) {
+                                "Netflix", "Spotify", "Youtube" -> "Subscription"
+                                else -> "Movies"
+                            },
                             transactionType = TransactionType.EXPENSE,
                             dateTime = weekDate.withHour(20),
                             transactionHash = UUID.randomUUID().toString(),
@@ -911,7 +886,7 @@ class SettingsViewModel @Inject constructor(
                  
                  // 1. Weekly Subscription: Fruits & Vegetables
                  val weeklyFruits = SubscriptionEntity(
-                     merchantName = "Daily Fresh Vegetables",
+                     merchantName = "BigBasket",
                      amount = BigDecimal(500),
                      nextPaymentDate = today.plusDays(3),
                      billingCycle = "WEEKLY",
@@ -926,7 +901,7 @@ class SettingsViewModel @Inject constructor(
                      transactionRepository.insertTransaction(
                          TransactionEntity(
                              amount = BigDecimal(500),
-                             merchantName = "Daily Fresh Vegetables",
+                             merchantName = "BigBasket",
                              category = "Groceries",
                              transactionType = TransactionType.EXPENSE,
                              dateTime = now.minusWeeks(i.toLong()).withHour(10),
@@ -971,7 +946,7 @@ class SettingsViewModel @Inject constructor(
 
                  // 3. Monthly Subscription: Rent
                  val rent = SubscriptionEntity(
-                     merchantName = "House Rent",
+                     merchantName = "NoBroker Rent",
                      amount = BigDecimal(25000),
                      nextPaymentDate = today.plusMonths(1).withDayOfMonth(1),
                      billingCycle = "MONTHLY",
@@ -986,7 +961,7 @@ class SettingsViewModel @Inject constructor(
                      transactionRepository.insertTransaction(
                          TransactionEntity(
                              amount = BigDecimal(25000),
-                             merchantName = "House Rent",
+                             merchantName = "NoBroker Rent",
                              category = "Bill",
                              transactionType = TransactionType.EXPENSE,
                              dateTime = now.minusMonths(i.toLong()).withDayOfMonth(1).withHour(9),

@@ -110,6 +110,7 @@ fun CategoriesScreen(
     categoriesViewModel: CategoriesViewModel = hiltViewModel(),
     blurEffects: Boolean
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val categories by categoriesViewModel.filteredCategories.collectAsStateWithLifecycle()
     val searchQuery by categoriesViewModel.searchQuery.collectAsStateWithLifecycle()
     
@@ -447,8 +448,8 @@ fun CategoriesScreen(
             EditCategorySheet(
                 category = editingCategory,
                 onDismiss = { categoriesViewModel.hideDialog() },
-                onSave = { name, description, color, iconResId, isIncome ->
-                    categoriesViewModel.saveCategory(name, description, color, iconResId, isIncome)
+                onSave = { name, description, color, iconResId, iconName, isIncome ->
+                    categoriesViewModel.saveCategory(name, description, color, iconResId, iconName, isIncome)
                 },
                 onReset = if (editingCategory?.isSystem == true) {
                     { categoryId -> categoriesViewModel.resetCategory(categoryId) }
@@ -475,11 +476,17 @@ fun CategoriesScreen(
             EditSubcategorySheet(
                 subcategory = editingSubcategory,
                 categoryColor = currentCategory?.color ?: "#757575",
-                categoryIconResId = currentCategory?.iconResId
-                    ?: R.drawable.type_food_dining,
+                categoryIconResId = currentCategory?.let { cat ->
+                    if (cat.iconName.isNotEmpty()) {
+                        com.ritesh.cashiro.utils.IconResolutionUtils.nameToResId(context, cat.iconName)
+                            .takeIf { it != 0 } ?: cat.iconResId
+                    } else {
+                        cat.iconResId
+                    }
+                } ?: R.drawable.type_food_dining,
                 onDismiss = { categoriesViewModel.hideSubcategoryDialog() },
-                onSave = { name, iconResId, color ->
-                    categoriesViewModel.saveSubcategory(name, iconResId, color)
+                onSave = { name, iconResId, iconName, color ->
+                    categoriesViewModel.saveSubcategory(name, iconResId, iconName, color)
                 },
                 onReset = if (editingSubcategory?.isSystem == true) {
                     { subcategoryId -> categoriesViewModel.resetSubcategory(subcategoryId) }

@@ -1,5 +1,7 @@
 package com.ritesh.cashiro.presentation.ui.features.subscriptions
 
+import com.ritesh.cashiro.utils.SubscriptionUtils
+
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,6 +22,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import javax.inject.Inject
+import com.ritesh.cashiro.data.repository.CurrencyRepository
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.update
 
 @HiltViewModel
 class SubscriptionsViewModel @Inject constructor(
@@ -28,6 +34,7 @@ class SubscriptionsViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val subcategoryRepository: SubcategoryRepository,
     private val currencyConversionService: CurrencyConversionService,
+    private val currencyRepository: CurrencyRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     
@@ -50,27 +57,17 @@ class SubscriptionsViewModel @Inject constructor(
     
     private fun loadSubscriptions() {
         viewModelScope.launch {
-            subscriptionRepository.getActiveSubscriptions().collect { subscriptions ->
-                val mainAccountKey = sharedPrefs.getString("main_account", null)
-                val targetCurrency = if (mainAccountKey != null) {
-                    val parts = mainAccountKey.split("_")
-                    if (parts.size >= 2) {
-                        accountBalanceRepository.getLatestBalance(parts[0], parts[1])?.currency
-                            ?: "INR"
-                    } else {
-                        "INR"
-                    }
-                } else {
-                    "INR"
-                }
-
+            combine(
+                subscriptionRepository.getActiveSubscriptions(),
+                currencyRepository.baseCurrencyCode
+            ) { subscriptions, targetCurrency ->
                 val subscriptionCurrencies = subscriptions.map { it.currency }.distinct()
                 if (subscriptionCurrencies.any { it != targetCurrency }) {
                     currencyConversionService.refreshExchangeRatesForAccount(subscriptionCurrencies + targetCurrency)
                 }
 
-                val totalMonthlyAmount = subscriptions.sumOf { subscription ->
-                    if (subscription.currency == targetCurrency) {
+                val convertedAmounts = subscriptions.associate { subscription ->
+                    subscription.id to if (subscription.currency == targetCurrency) {
                         subscription.amount
                     } else {
                         currencyConversionService.convertAmount(
@@ -80,15 +77,20 @@ class SubscriptionsViewModel @Inject constructor(
                         ) ?: subscription.amount
                     }
                 }
+
+                val totalMonthlyAmount = convertedAmounts.values.sumOf { it }
                 
-                _uiState.value = _uiState.value.copy(
-                    activeSubscriptions = subscriptions,
-                    totalMonthlyAmount = totalMonthlyAmount,
-                    totalYearlyAmount = totalMonthlyAmount * BigDecimal(12),
-                    targetCurrency = targetCurrency,
-                    isLoading = false
-                )
-            }
+                _uiState.update { 
+                    it.copy(
+                        activeSubscriptions = subscriptions,
+                        totalMonthlyAmount = totalMonthlyAmount,
+                        totalYearlyAmount = totalMonthlyAmount * BigDecimal(12),
+                        targetCurrency = targetCurrency,
+                        convertedAmounts = convertedAmounts,
+                        isLoading = false
+                    )
+                }
+            }.collectLatest { }
         }
     }
     
@@ -117,32 +119,10 @@ class SubscriptionsViewModel @Inject constructor(
     fun markAsPaid(subscription: SubscriptionEntity) {
         viewModelScope.launch {
             val today = java.time.LocalDate.now()
-            val nextDate = calculateNextBillingDate(subscription.nextPaymentDate ?: today, subscription.billingCycle)
+            val nextDate = SubscriptionUtils.calculateNextPaymentDate(subscription.nextPaymentDate ?: today, subscription.billingCycle)
             subscriptionRepository.updatePaymentStatus(subscription.id, nextDate, today)
             selectSubscription(null)
         }
     }
 
-    private fun calculateNextBillingDate(currentDate: java.time.LocalDate, billingCycle: String?): java.time.LocalDate {
-        val today = java.time.LocalDate.now()
-        var nextDate = when (billingCycle?.lowercase()) {
-            "weekly" -> currentDate.plusWeeks(1)
-            "quarterly" -> currentDate.plusMonths(3)
-            "semi-annual" -> currentDate.plusMonths(6)
-            "annual" -> currentDate.plusYears(1)
-            else -> currentDate.plusMonths(1) // Default to monthly
-        }
-
-        // Catch up to today if needed
-        while (nextDate.isBefore(today)) {
-            nextDate = when (billingCycle?.lowercase()) {
-                "weekly" -> nextDate.plusWeeks(1)
-                "quarterly" -> nextDate.plusMonths(3)
-                "semi-annual" -> nextDate.plusMonths(6)
-                "annual" -> nextDate.plusYears(1)
-                else -> nextDate.plusMonths(1)
-            }
-        }
-        return nextDate
-    }
 }

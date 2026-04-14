@@ -10,5 +10,6 @@ data class SubscriptionsUiState(
     val targetCurrency: String = "INR",
     val isLoading: Boolean = true,
     val lastHiddenSubscription: SubscriptionEntity? = null,
-    val selectedSubscription: SubscriptionEntity? = null
+    val selectedSubscription: SubscriptionEntity? = null,
+    val convertedAmounts: Map<Long, BigDecimal> = emptyMap()
 )

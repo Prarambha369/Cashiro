@@ -7,6 +7,7 @@ import com.ritesh.cashiro.data.preferences.NavigationBarStyle
 import com.ritesh.cashiro.data.preferences.AppFont
 import com.ritesh.cashiro.data.preferences.ThemeStyle
 import com.ritesh.cashiro.data.preferences.AccentColor
+import com.ritesh.cashiro.data.preferences.AppIcon
 import com.ritesh.cashiro.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -36,6 +37,7 @@ class ThemeViewModel @Inject constructor(
                 hidePillIndicator = preferences.hidePillIndicator,
                 blurEffects = preferences.blurEffects,
                 isOnboardingFinished = preferences.hasShownScanTutorial,
+                currentAppIcon = preferences.appIcon,
                 isLoaded = true
             )
         }
@@ -104,6 +106,10 @@ class ThemeViewModel @Inject constructor(
             userPreferencesRepository.updateBlurEffects(enabled)
         }
     }
+
+    fun updateAppIcon(icon: AppIcon) = viewModelScope.launch {
+        userPreferencesRepository.updateAppIcon(icon)
+    }
 }
 
 data class ThemeUiState(
@@ -119,5 +125,6 @@ data class ThemeUiState(
     val hidePillIndicator: Boolean = false,
     val blurEffects: Boolean = true,
     val isOnboardingFinished: Boolean = false,
+    val currentAppIcon: AppIcon = AppIcon.ORIGINAL,
     val isLoaded: Boolean = false
 )

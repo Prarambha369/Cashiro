@@ -528,6 +528,9 @@ fun CashiroNavHost(
                 ) {
                     SubscriptionsScreen(
                         onNavigateBack = { navController.safePopBackStack() },
+                        onEditSubscription = { id ->
+                            navController.safeNavigate(AddTransaction(initialTab = 1, subscriptionId = id))
+                        },
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedContentScope = this@composable
                     )
@@ -642,6 +645,8 @@ fun CashiroNavHost(
                     onNavigateBack = { navController.safePopBackStack() },
                     animatedVisibilityScope = this@AnimatedVisibility,
                     initialTab = addTransaction.initialTab,
+                    subscriptionId = addTransaction.subscriptionId,
+                    transactionType = addTransaction.type,
                     blurEffects = themeUiState.blurEffects,
                 )
             }

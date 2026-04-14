@@ -11,8 +11,10 @@ import java.math.BigDecimal
 
 data class HomeUiState(
     val currentMonthTotal: BigDecimal = BigDecimal.ZERO,
+    val currentYearTotal: BigDecimal = BigDecimal.ZERO,
     val currentMonthIncome: BigDecimal = BigDecimal.ZERO,
     val currentMonthExpenses: BigDecimal = BigDecimal.ZERO,
+    val currentYearExpenses: BigDecimal = BigDecimal.ZERO,
     val currentMonthCreditCard: BigDecimal = BigDecimal.ZERO,
     val currentMonthTransfer: BigDecimal = BigDecimal.ZERO,
     val currentMonthInvestment: BigDecimal = BigDecimal.ZERO,
@@ -43,4 +45,6 @@ data class HomeUiState(
     val activeBudgets: List<BudgetWithSpending> = emptyList(),
     val balanceHistory: List<BalancePoint> = emptyList(),
     val transactionHeatmap: Map<java.time.LocalDate, Int> = emptyMap(),
+    val convertedAmounts: Map<Long, BigDecimal> = emptyMap(),
+    val baseCurrency: String = "INR",
 )

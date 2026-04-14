@@ -32,6 +32,7 @@ import com.ritesh.cashiro.presentation.ui.components.GenericTypeSwitcher
 import com.ritesh.cashiro.presentation.ui.features.categories.NavigationContent
 import com.ritesh.cashiro.presentation.ui.theme.Dimensions
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
+import com.ritesh.cashiro.data.database.entity.TransactionType
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
@@ -43,6 +44,8 @@ fun SharedTransitionScope.AddScreen(
     onNavigateBack: () -> Unit = {},
     animatedVisibilityScope: AnimatedVisibilityScope,
     initialTab: Int = 0,
+    subscriptionId: Long? = null,
+    transactionType: String? = null,
     blurEffects: Boolean,
 ) {
     val hazeState = remember { HazeState() }
@@ -53,8 +56,23 @@ fun SharedTransitionScope.AddScreen(
     val coroutineScope = rememberCoroutineScope()
 
     // Reset state when screen is opened to avoid stale data from previous entries
-    LaunchedEffect(Unit) {
-        addViewModel.resetAllStates()
+    LaunchedEffect(subscriptionId, transactionType) {
+        if (subscriptionId == null && transactionType == null) {
+            addViewModel.resetAllStates()
+        }
+        
+        if (subscriptionId != null) {
+            addViewModel.loadSubscriptionForEdit(subscriptionId)
+        }
+        
+        if (transactionType != null) {
+            try {
+                val type = TransactionType.valueOf(transactionType)
+                addViewModel.updateTransactionType(type)
+            } catch (e: Exception) {
+                // Ignore invalid types
+            }
+        }
     }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()

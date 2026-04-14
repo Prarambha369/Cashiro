@@ -16,7 +16,9 @@ data class AccountDetailUiState(
     val totalExpenses: BigDecimal = BigDecimal.ZERO,
     val netBalance: BigDecimal = BigDecimal.ZERO,
     val primaryCurrency: String = "INR",
+    val baseCurrency: String = "INR",
     val hasMultipleCurrencies: Boolean = false,
+    val convertedAmounts: Map<Long, BigDecimal> = emptyMap(),
     val isLoading: Boolean = true
 )
 

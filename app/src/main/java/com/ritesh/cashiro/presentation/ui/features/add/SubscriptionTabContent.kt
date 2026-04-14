@@ -1,5 +1,10 @@
 package com.ritesh.cashiro.presentation.ui.features.add
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -22,17 +27,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.EventRepeat
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.SubdirectoryArrowRight
-import androidx.compose.material.icons.filled.Subscriptions
 import androidx.compose.material.icons.rounded.Error
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.BottomSheetDefaults
@@ -40,7 +36,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -66,8 +61,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -89,13 +84,19 @@ import com.ritesh.cashiro.presentation.ui.theme.Dimensions
 import com.ritesh.cashiro.presentation.ui.theme.Spacing
 import com.ritesh.cashiro.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
+import java.time.ZoneId
+import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import androidx.core.graphics.toColorInt
+import com.ritesh.cashiro.presentation.effects.BlurredAnimatedVisibility
+import com.ritesh.cashiro.presentation.ui.components.CustomBillingCycleCard
 import com.ritesh.cashiro.presentation.ui.icons.Box2
 import com.ritesh.cashiro.presentation.ui.icons.Calendar
 import com.ritesh.cashiro.presentation.ui.icons.Information
 import com.ritesh.cashiro.presentation.ui.icons.VideoTime
+import com.ritesh.cashiro.utils.IconResolutionUtils
+import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -115,6 +116,9 @@ fun SubscriptionTabContent(
     var showBillingCycleMenu by remember { mutableStateOf(false) }
     var showAccountSheet by remember { mutableStateOf(false) }
     var showNumberPad by remember { mutableStateOf(false) }
+    var showCustomUnitMenu by remember { mutableStateOf(false) }
+    var showCustomCountPad by remember { mutableStateOf(false) }
+    var showCustomEndDatePicker by remember { mutableStateOf(false) }
     val allSubcategories by viewModel.allSubcategories.collectAsState(initial = emptyMap())
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -132,7 +136,7 @@ fun SubscriptionTabContent(
         subcategories.find { it.name == uiState.subcategory }
     }
 
-    val billingCycles = listOf("Monthly", "Quarterly", "Semi-Annual", "Annual", "Weekly")
+    val billingCycles = listOf("Monthly", "Quarterly", "Semi-Annual", "Annual", "Weekly", "Custom")
     val scrollState = rememberScrollState()
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -214,133 +218,157 @@ fun SubscriptionTabContent(
             )
 
             // Billing Cycle Dropdown and Date Selection
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth().animateContentSize(),
             ) {
-
-                // Billing Cycle Dropdown
-                ExposedDropdownMenuBox(
-                    expanded = showBillingCycleMenu,
-                    onExpandedChange = { showBillingCycleMenu = it },
-                    modifier = Modifier.weight(1f)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    TextField(
-                        value = uiState.billingCycle,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Billing Cycle") },
-                        leadingIcon = {
-                            Icon(
-                                Iconax.VideoTime,
-                                contentDescription = null
-                            )
-                        },
-                        shape = RoundedCornerShape(Spacing.md),
-                        modifier =
-                            Modifier.weight(1f).menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-                        isError = uiState.billingCycleError != null,
-                        supportingText = uiState.billingCycleError?.let { { Text(it) } },
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            focusedLabelColor = MaterialTheme.colorScheme.primary,
-                            unfocusedLabelColor =
-                                MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
-                        ),
-                    )
 
-                    ExposedDropdownMenu(
+                    // Billing Cycle Dropdown
+                    ExposedDropdownMenuBox(
                         expanded = showBillingCycleMenu,
-                        onDismissRequest = { showBillingCycleMenu = false },
-                        shape = MaterialTheme.shapes.large,
+                        onExpandedChange = { showBillingCycleMenu = it },
+                        modifier = Modifier.weight(1f)
                     ) {
-                        billingCycles.forEachIndexed { index, cycle ->
-                            val isFirstItem = index == 0
-                            val isLastItem = index == billingCycles.lastIndex
-                            val isMiddleItem = !isFirstItem && !isLastItem
-                            DropdownMenuItem(
-                                text = { Text(cycle) },
-                                onClick = {
-                                    viewModel.updateSubscriptionBillingCycle(cycle)
-                                    showBillingCycleMenu = false
-                                }
-                            )
-                            // Add a Spacer for middle items
-                            if (isMiddleItem || (isFirstItem && billingCycles.size > 2) ) {
-                                HorizontalDivider(
-                                    thickness = 1.5.dp,
-                                    color = MaterialTheme.colorScheme.surface
+                        TextField(
+                            value = uiState.billingCycle,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Billing Cycle") },
+                            leadingIcon = {
+                                Icon(
+                                    Iconax.VideoTime,
+                                    contentDescription = null
                                 )
+                            },
+                            shape = RoundedCornerShape(Spacing.md),
+                            modifier =
+                                Modifier.weight(1f)
+                                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                            isError = uiState.billingCycleError != null,
+                            singleLine = true,
+                            supportingText = uiState.billingCycleError?.let { { Text(it) } },
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                unfocusedLabelColor =
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
+                            ),
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = showBillingCycleMenu,
+                            onDismissRequest = { showBillingCycleMenu = false },
+                            shape = MaterialTheme.shapes.large,
+                        ) {
+                            billingCycles.forEachIndexed { index, cycle ->
+                                val isFirstItem = index == 0
+                                val isLastItem = index == billingCycles.lastIndex
+                                val isMiddleItem = !isFirstItem && !isLastItem
+                                DropdownMenuItem(
+                                    text = { Text(cycle) },
+                                    onClick = {
+                                        viewModel.updateSubscriptionBillingCycle(cycle)
+                                        showBillingCycleMenu = false
+                                    }
+                                )
+                                // Add a Spacer for middle items
+                                if (isMiddleItem || (isFirstItem && billingCycles.size > 2)) {
+                                    HorizontalDivider(
+                                        thickness = 1.5.dp,
+                                        color = MaterialTheme.colorScheme.surface
+                                    )
+                                }
                             }
                         }
                     }
-                }
-                // Date Button
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(
-                            color = MaterialTheme.colorScheme.surfaceContainerLow,
-                            shape = RoundedCornerShape(Dimensions.Radius.md)
-                        )
-                        .padding(8.dp)
-                        .clickable(
-                            onClick = { showDatePicker = true },
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        modifier = Modifier.padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
+                    // Date Button
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .background(
+                                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                                shape = RoundedCornerShape(Dimensions.Radius.md)
+                            )
+                            .padding(8.dp)
+                            .clickable(
+                                onClick = { showDatePicker = true },
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() }
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
-                        val themeColors = MaterialTheme.colorScheme
-                        Icon(
-                            imageVector = Iconax.Calendar,
-                            contentDescription = "Date Picker",
-                            tint = themeColors.onSurface
-                        )
-                        Spacer(Modifier.size(8.dp))
-
-                        val dateLabel =
-                            uiState.nextPaymentDate.format(DateTimeFormatter.ofPattern("dd MMMM"))
-                        val yearLabel =
-                            uiState.nextPaymentDate.format(DateTimeFormatter.ofPattern("yyyy"))
-                        Column(
-                            verticalArrangement = Arrangement.Center,
+                        Row(
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
                         ) {
-                            Text(
-                                text = yearLabel,
-                                fontSize = 10.sp,
-                                textAlign = TextAlign.Start,
-                                color = themeColors.primary,
-                                style = MaterialTheme.typography.bodyLarge,
+                            val themeColors = MaterialTheme.colorScheme
+                            Icon(
+                                imageVector = Iconax.Calendar,
+                                contentDescription = "Date Picker",
+                                tint = themeColors.onSurface
                             )
-                            Text(
-                                text = dateLabel,
-                                fontSize = 14.sp,
-                                textAlign = TextAlign.Start,
-                                color = themeColors.onSurface,
-                                style = MaterialTheme.typography.bodyLarge,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.basicMarquee()
-                            )
-                        }
+                            Spacer(Modifier.size(8.dp))
 
+                            val dateLabel =
+                                uiState.nextPaymentDate.format(DateTimeFormatter.ofPattern("dd MMMM"))
+                            val yearLabel =
+                                uiState.nextPaymentDate.format(DateTimeFormatter.ofPattern("yyyy"))
+                            Column(
+                                verticalArrangement = Arrangement.Center,
+                            ) {
+                                Text(
+                                    text = yearLabel,
+                                    fontSize = 10.sp,
+                                    textAlign = TextAlign.Start,
+                                    color = themeColors.primary,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                )
+                                Text(
+                                    text = dateLabel,
+                                    fontSize = 14.sp,
+                                    textAlign = TextAlign.Start,
+                                    color = themeColors.onSurface,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.basicMarquee()
+                                )
+                            }
+
+                        }
                     }
+                }
+
+                // Custom Billing Cycle Card
+                BlurredAnimatedVisibility(
+                    visible = uiState.isCustomCycle,
+                    enter = fadeIn() + slideInVertically { it },
+                    exit = fadeOut() + slideOutVertically { it }) {
+                    CustomBillingCycleCard(
+                        count = uiState.customCycleCount,
+                        unit = uiState.customCycleUnit,
+                        endDate = uiState.customCycleEndDate,
+                        onCountClick = { showCustomCountPad = true },
+                        onUnitSelected = { viewModel.updateSubscriptionCustomCycleUnit(it) },
+                        onEndDateClick = { showCustomEndDatePicker = true },
+                        onClearEndDate = { viewModel.updateSubscriptionCustomCycleEndDate(null) },
+                        shape = RoundedCornerShape(Spacing.md)
+                    )
                 }
             }
 
             // Accounts Section
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().animateContentSize(),
                 verticalArrangement = Arrangement.spacedBy(1.5.dp)
             ) {
                 OutlinedCard(
@@ -366,6 +394,7 @@ fun SubscriptionTabContent(
                         BrandIcon(
                             merchantName = uiState.selectedAccount?.bankName ?: "",
                             accountIconResId = uiState.selectedAccount?.iconResId ?: 0,
+                            accountIconName = uiState.selectedAccount?.iconName,
                             size = 24.dp,
                             showBackground = false
                         )
@@ -420,9 +449,19 @@ fun SubscriptionTabContent(
                             bottomEnd = 16.dp
                         ),
                     leadingIcon = {
-                        if (selectedCategoryObj != null && selectedCategoryObj.iconResId != 0) {
+                        val context = LocalContext.current
+                        val resolvedResId = remember(selectedCategoryObj) {
+                            selectedCategoryObj?.let { cat ->
+                                if (!cat.iconName.isNullOrEmpty()) {
+                                    val res = IconResolutionUtils.nameToResId(context, cat.iconName)
+                                    if (res != 0) res else cat.iconResId
+                                } else cat.iconResId
+                            } ?: 0
+                        }
+
+                        if (resolvedResId != 0) {
                             Icon(
-                                painter = painterResource(id = selectedCategoryObj.iconResId),
+                                painter = painterResource(id = resolvedResId),
                                 contentDescription = null,
                                 tint = Color.Unspecified,
                                 modifier = Modifier.size(24.dp)
@@ -462,19 +501,29 @@ fun SubscriptionTabContent(
                         readOnly = true,
                         label = { Text("Subcategory") },
                         leadingIcon = {
-                            if (selectedSubcategoryObj2 != null && selectedSubcategoryObj2.iconResId != 0) {
-                                Icon(
-                                    painter = painterResource(id = selectedSubcategoryObj2.iconResId),
-                                    contentDescription = null,
-                                    tint = Color.Unspecified,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            } else {
-                                Icon(
-                                    Icons.Default.SubdirectoryArrowRight,
-                                    contentDescription = null
-                                )
-                            }
+                                val context = LocalContext.current
+                                val resolvedResId = remember(selectedSubcategoryObj2) {
+                                    selectedSubcategoryObj2?.let { sub ->
+                                        if (!sub.iconName.isNullOrEmpty()) {
+                                            val res = IconResolutionUtils.nameToResId(context, sub.iconName)
+                                            if (res != 0) res else sub.iconResId
+                                        } else sub.iconResId
+                                    } ?: 0
+                                }
+
+                                if (resolvedResId != 0) {
+                                    Icon(
+                                        painter = painterResource(id = resolvedResId),
+                                        contentDescription = null,
+                                        tint = Color.Unspecified,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                } else {
+                                    Icon(
+                                        Icons.Default.SubdirectoryArrowRight,
+                                        contentDescription = null
+                                    )
+                                }
                         },
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth(),
@@ -552,6 +601,25 @@ fun SubscriptionTabContent(
                             showNumberPad = false
                         },
                         title = "Enter Amount"
+                    )
+                }
+            }
+
+            // NumberPad for Custom Cycle Count
+            if (showCustomCountPad) {
+                ModalBottomSheet(
+                    onDismissRequest = { showCustomCountPad = false },
+                    sheetState = sheetState,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    dragHandle = { BottomSheetDefaults.DragHandle() }
+                ) {
+                    NumberPad(
+                        initialValue = uiState.customCycleCount.toString(),
+                        onDone = { newCount ->
+                            viewModel.updateSubscriptionCustomCycleCount(newCount.toIntOrNull() ?: 1)
+                            showCustomCountPad = false
+                        },
+                        title = "Enter Interval"
                     )
                 }
             }
@@ -709,6 +777,35 @@ fun SubscriptionTabContent(
             datePickerState = datePickerState,
             blurEffects = blurEffects,
             hazeState = hazeState
+        )
+    }
+
+    // Custom End Date Picker Dialog
+    if (showCustomEndDatePicker) {
+        val datePickerState =
+            rememberDatePickerState(
+                initialSelectedDateMillis =
+                    (uiState.customCycleEndDate ?: LocalDate.now())
+                        .atStartOfDay()
+                        .toInstant(ZoneOffset.UTC)
+                        .toEpochMilli()
+            )
+
+        DatePicker(
+            onDismiss = { showCustomEndDatePicker = false },
+            onConfirm = {
+                datePickerState.selectedDateMillis?.let { millis ->
+                    val localDate = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
+                    viewModel.updateSubscriptionCustomCycleEndDate(localDate)
+                }
+                showCustomEndDatePicker = false
+            },
+            datePickerState = datePickerState,
+            blurEffects = blurEffects,
+            hazeState = hazeState,
+            // Add a "Forever" option if the DatePicker supports it, or just use a button elsewhere.
+            // For now, let's assume confirm sets the date. 
+            // I'll add a way to clear it later if needed.
         )
     }
 }

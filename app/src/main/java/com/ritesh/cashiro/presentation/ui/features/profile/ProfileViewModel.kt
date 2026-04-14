@@ -6,9 +6,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ritesh.cashiro.data.currency.CurrencyConversionService
 import com.ritesh.cashiro.data.database.entity.TransactionType
 import com.ritesh.cashiro.data.preferences.UserPreferencesRepository
 import com.ritesh.cashiro.data.repository.AccountBalanceRepository
+import com.ritesh.cashiro.data.repository.CurrencyRepository
 import com.ritesh.cashiro.data.repository.SubscriptionRepository
 import com.ritesh.cashiro.data.repository.TransactionRepository
 import com.ritesh.cashiro.utils.ImageUtils
@@ -28,18 +30,29 @@ constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val transactionRepository: TransactionRepository,
-    private val subscriptionRepository: SubscriptionRepository
+    private val subscriptionRepository: SubscriptionRepository,
+    private val currencyRepository: CurrencyRepository,
+    private val currencyConversionService: CurrencyConversionService
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ProfileScreenState())
     val state: StateFlow<ProfileScreenState> = _state.asStateFlow()
 
     init {
+        observeBaseCurrency()
         observePreferences()
         observeTransactionCount()
         observeNetWorth()
         observeMonthlyFinancials()
         observeActiveSubscriptions()
+    }
+
+    private fun observeBaseCurrency() {
+        viewModelScope.launch {
+            currencyRepository.baseCurrencyCode.collectLatest { code ->
+                _state.update { it.copy(baseCurrency = code) }
+            }
+        }
     }
 
     private fun observePreferences() {
@@ -69,12 +82,26 @@ constructor(
     }
 
     private fun observeNetWorth() {
-        accountBalanceRepository
-            .getTotalBalance()
-            .onEach { total ->
-                _state.update { it.copy(netWorth = total ?: BigDecimal.ZERO) }
+        combine(
+            accountBalanceRepository.getAllLatestBalances(),
+            currencyRepository.baseCurrencyCode
+        ) { allBalances, baseCurrency ->
+            if (allBalances.isEmpty()) return@combine BigDecimal.ZERO
+
+            allBalances.sumOf { account ->
+                if (account.currency == baseCurrency) {
+                    account.balance
+                } else {
+                    currencyConversionService.convertAmount(
+                        amount = account.balance,
+                        fromCurrency = account.currency,
+                        toCurrency = baseCurrency
+                    )
+                }
             }
-            .launchIn(viewModelScope)
+        }.onEach { total ->
+            _state.update { it.copy(netWorth = total) }
+        }.launchIn(viewModelScope)
     }
 
     private fun observeMonthlyFinancials() {
@@ -82,31 +109,48 @@ constructor(
         val firstDay = now.withDayOfMonth(1)
         val lastDay = now.withDayOfMonth(now.lengthOfMonth())
 
-        // Logic here would ideally be optimized to combine flows if needed,
-        // but for now we observe all transactions of the month
-        transactionRepository
-            .getAllTransactions()
-            .onEach { transactions ->
-                val monthTransactions =
-                    transactions.filter {
-                        it.dateTime.toLocalDate().let { date ->
-                            !date.isBefore(firstDay) && !date.isAfter(lastDay)
-                        }
+        combine(
+            transactionRepository.getAllTransactions(),
+            currencyRepository.baseCurrencyCode
+        ) { transactions, baseCurrency ->
+            val monthTransactions =
+                transactions.filter {
+                    val date = it.dateTime.toLocalDate()
+                    !date.isBefore(firstDay) && !date.isAfter(lastDay)
+                }
+
+            val income = monthTransactions
+                .filter { it.transactionType == TransactionType.INCOME }
+                .sumOf { txn ->
+                    if (txn.currency == baseCurrency) {
+                        txn.amount
+                    } else {
+                        currencyConversionService.convertAmount(
+                            amount = txn.amount,
+                            fromCurrency = txn.currency,
+                            toCurrency = baseCurrency
+                        )
                     }
+                }
 
-                val income =
-                    monthTransactions
-                        .filter { it.transactionType == TransactionType.INCOME }
-                        .sumOf { it.amount }
+            val expense = monthTransactions
+                .filter { it.transactionType == TransactionType.EXPENSE }
+                .sumOf { txn ->
+                    if (txn.currency == baseCurrency) {
+                        txn.amount
+                    } else {
+                        currencyConversionService.convertAmount(
+                            amount = txn.amount,
+                            fromCurrency = txn.currency,
+                            toCurrency = baseCurrency
+                        )
+                    }
+                }
 
-                val expense =
-                    monthTransactions
-                        .filter { it.transactionType == TransactionType.EXPENSE }
-                        .sumOf { it.amount }
-
-                _state.update { it.copy(totalIncome = income, totalExpense = expense) }
-            }
-            .launchIn(viewModelScope)
+            income to expense
+        }.onEach { (income, expense) ->
+            _state.update { it.copy(totalIncome = income, totalExpense = expense) }
+        }.launchIn(viewModelScope)
     }
 
     private fun observeActiveSubscriptions() {

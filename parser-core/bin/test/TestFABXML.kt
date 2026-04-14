@@ -1,10 +1,8 @@
-package com.ritesh.parser.core.bank
-
+import com.ritesh.parser.core.ParsedTransaction
 import com.ritesh.parser.core.TransactionType
+import com.ritesh.parser.core.bank.FABParser
 import com.ritesh.parser.core.test.ParserTestUtils
-import com.ritesh.parser.core.test.SMSData
 import com.ritesh.parser.core.test.TestResult
-import com.ritesh.parser.core.test.XMLTestUtils
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
@@ -109,7 +107,7 @@ class FABXmlTest {
     }
 
     private fun validateResult(
-        result: com.ritesh.parser.core.ParsedTransaction,
+        result: ParsedTransaction,
         smsData: SMSData
     ): List<String> {
         val errors = mutableListOf<String>()

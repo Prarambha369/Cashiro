@@ -33,6 +33,9 @@ data class SubcategoryEntity(
         @ColumnInfo(name = "icon_res_id", defaultValue = "0") 
         val iconResId: Int = 0,
         
+        @ColumnInfo(name = "icon_name", defaultValue = "") 
+        val iconName: String = "",
+        
         @ColumnInfo(name = "color", defaultValue = "#757575") 
         val color: String = "#757575",
         
@@ -45,6 +48,9 @@ data class SubcategoryEntity(
         
         @ColumnInfo(name = "default_icon_res_id") 
         val defaultIconResId: Int? = null,
+        
+        @ColumnInfo(name = "default_icon_name") 
+        val defaultIconName: String? = null,
         
         @ColumnInfo(name = "default_color") 
         val defaultColor: String? = null,

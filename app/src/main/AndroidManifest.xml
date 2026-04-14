@@ -35,19 +35,67 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Pennywisecompose">
+        android:theme="@style/Theme.CashiroCompose">
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.PennyWise.SplashScreen"
+            android:theme="@style/Theme.Cashiro.SplashScreen"
             android:windowSoftInputMode="adjustResize">
+        </activity>
+
+        <activity-alias
+            android:name=".MainActivityOriginal"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_original"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_original_round"
+            android:targetActivity=".MainActivity"
+            android:theme="@style/Theme.Cashiro.SplashScreen.Original">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+        </activity-alias>
+
+        <activity-alias
+            android:name=".MainActivityAnarchy"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_anarchy"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_anarchy_round"
+            android:targetActivity=".MainActivity"
+            android:theme="@style/Theme.Cashiro.SplashScreen.Anarchy">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+        </activity-alias>
+
+        <activity-alias
+            android:name=".MainActivityZenith"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_zenith"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_zenith_round"
+            android:targetActivity=".MainActivity"
+            android:theme="@style/Theme.Cashiro.SplashScreen.Zenith">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+        </activity-alias>
         
         <!-- Disable default WorkManager initialization -->
         <provider
@@ -105,6 +153,40 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <!-- Quick Settings Tiles -->
+        <service
+            android:name=".service.AddTransactionTileService"
+            android:exported="true"
+            android:label="@string/add_transaction"
+            android:icon="@drawable/ic_add_transaction"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".service.AddSubscriptionTileService"
+            android:exported="true"
+            android:label="@string/add_subscription"
+            android:icon="@drawable/ic_add_subscription"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".service.AddTransferTileService"
+            android:exported="true"
+            android:label="@string/add_transfer"
+            android:icon="@drawable/ic_transfer"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>

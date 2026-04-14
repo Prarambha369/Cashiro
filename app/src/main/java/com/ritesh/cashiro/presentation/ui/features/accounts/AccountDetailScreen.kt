@@ -230,14 +230,17 @@ fun SharedTransitionScope.AccountDetailScreen(
                     }
                     val shape = position.toShape()
 
-                    TransactionItem(
+                    this@AccountDetailScreen.TransactionItem(
                         transaction = transaction,
                         categoryEntity = categoryEntity,
                         subcategoryEntity = subcategoryEntity,
                         balanceAfter = transaction.balanceAfter,
                         balanceCurrency = uiState.primaryCurrency,
                         accountIconResId = uiState.currentBalance?.iconResId ?: 0,
+                        accountIconName = uiState.currentBalance?.iconName,
                         accountColorHex = uiState.currentBalance?.color,
+                        convertedAmount = uiState.convertedAmounts[transaction.id],
+                        mainCurrency = uiState.baseCurrency,
                         onClick = {
                             navController.safeNavigate(
                                 TransactionDetail(

@@ -55,6 +55,7 @@ import com.ritesh.cashiro.presentation.common.icons.IconResource
 import com.ritesh.cashiro.presentation.ui.icons.*
 import com.ritesh.cashiro.presentation.ui.theme.*
 import androidx.compose.foundation.clickable
+import com.ritesh.cashiro.core.Constants
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.hazeEffect
@@ -229,7 +230,7 @@ fun AboutScreen(
                         onClick = {
                             val intent = Intent(
                                 Intent.ACTION_VIEW,
-                                "https://ritesh-kanwar.github.io/cashiro.showcase".toUri()
+                                Constants.Links.WEBSITE_URL.toUri()
                             )
                             context.startActivity(intent)
                         },
@@ -245,7 +246,7 @@ fun AboutScreen(
                         onClick = {
                             val intent = Intent(
                                 Intent.ACTION_VIEW,
-                                "https://github.com/ritesh-kanwar/Cashiro?tab=readme-ov-file".toUri()
+                                Constants.Links.GITHUB_URL.toUri()
                             )
                             context.startActivity(intent)
                         },
@@ -260,7 +261,7 @@ fun AboutScreen(
                         isLink = true,
                         onClick = {
                             val intent =
-                                Intent(Intent.ACTION_VIEW, "https://discord.gg/6qaYgpJTg".toUri())
+                                Intent(Intent.ACTION_VIEW, Constants.Links.DISCORD_URL.toUri())
                             context.startActivity(intent)
                         },
                         position = ListItemPosition.Bottom
@@ -284,7 +285,7 @@ fun AboutScreen(
                         onClick = {
                             val intent = Intent(
                                 Intent.ACTION_VIEW,
-                                "https://ritesh-kanwar.github.io/cashiro.showcase/faq".toUri()
+                                Constants.Links.FAQ_URL.toUri()
                             )
                             context.startActivity(intent)
                         },
@@ -301,7 +302,7 @@ fun AboutScreen(
                         onClick = {
                             val intent = Intent(
                                 Intent.ACTION_VIEW,
-                                "https://ritesh-kanwar.github.io/cashiro.showcase/guides".toUri()
+                                Constants.Links.GUIDE_URL.toUri()
                             )
                             context.startActivity(intent)
                         },
@@ -318,7 +319,7 @@ fun AboutScreen(
                         onClick = {
                             val intent = Intent(
                                 Intent.ACTION_VIEW,
-                                "https://github.com/ritesh-kanwar/Cashiro/issues/new/choose".toUri()
+                                Constants.Links.REPORT_BUG_URL.toUri()
                             )
                             context.startActivity(intent)
                         },
@@ -335,7 +336,7 @@ fun AboutScreen(
                         onClick = {
                             val intent = Intent(
                                 Intent.ACTION_VIEW,
-                                "https://ritesh-kanwar.github.io/cashiro.showcase/privacy".toUri()
+                                Constants.Links.PRIVACY_POLICY_URL.toUri()
                             )
                             context.startActivity(intent)
                         },
@@ -352,7 +353,7 @@ fun AboutScreen(
                         onClick = {
                             val intent = Intent(
                                 Intent.ACTION_VIEW,
-                                "https://ritesh-kanwar.github.io/cashiro.showcase/terms".toUri()
+                                Constants.Links.TERMS_OF_SERVICE_URL.toUri()
                             )
                             context.startActivity(intent)
                         },
