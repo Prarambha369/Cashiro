@@ -132,21 +132,39 @@ class NabilBankParser : BankParser() {
         val lowerMessage = message.lowercase()
 
         // Skip OTP and promotional messages
-        if (lowerMessage.contains("otp") || 
+        if (lowerMessage.contains("otp") ||
             lowerMessage.contains("verification code") ||
             lowerMessage.contains("password") && !lowerMessage.contains("transaction")) {
             return false
         }
 
-        val nabilKeywords = listOf(
-            "dear customer",
+        val hasCurrency = Regex("""\b(?:npr|rs\.?)\b""", RegexOption.IGNORE_CASE).containsMatchIn(message)
+        val hasAmount = Regex(
+            """(?:\b(?:npr|rs\.?)\s*)?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\b\d+(?:\.\d{1,2})?\b""",
+            RegexOption.IGNORE_CASE
+        ).containsMatchIn(message)
+        val hasTransactionAction = listOf(
             "has been debited",
             "has been credited",
+            "debited",
+            "credited",
+            "withdrawn",
+            "deposited",
+            "purchase",
+            "spent",
+            "transfer",
+            "transferred"
+        ).any { lowerMessage.contains(it) }
+        val hasTransactionContext = listOf(
             "your account",
-            "npr",
-            "transaction"
-        )
+            "a/c",
+            "account",
+            "transaction",
+            "available balance",
+            "bal"
+        ).any { lowerMessage.contains(it) }
 
-        return nabilKeywords.any { lowerMessage.contains(it) }
+        return (hasAmount && hasCurrency && hasTransactionAction) ||
+            (hasAmount && hasTransactionAction && hasTransactionContext)
     }
 }

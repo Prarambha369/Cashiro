@@ -141,15 +141,22 @@ class EsewaParser : BankParser() {
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
 
-        if (lowerMessage.contains("otp") || 
+        if (lowerMessage.contains("otp") ||
             lowerMessage.contains("verification code") ||
             lowerMessage.contains("password") && !lowerMessage.contains("transaction")) {
             return false
         }
 
+        // Explicitly filter out failed/declined/unsuccessful transactions
+        if (lowerMessage.contains("payment failed") ||
+            lowerMessage.contains("transaction failed") ||
+            lowerMessage.contains("declined") ||
+            lowerMessage.contains("unsuccessful")) {
+            return false
+        }
+
         val esewaKeywords = listOf(
             "payment successful",
-            "payment failed",
             "transaction successful",
             "has been debited",
             "has been credited",
